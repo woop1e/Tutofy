@@ -173,3 +173,37 @@ func _AssignmentService_DeleteAssignment_Handler(srv interface{}, ctx context.Co
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+// ── Client interface ──────────────────────────────────────────────────────────
+
+type AssignmentServiceClient interface {
+	CreateAssignment(ctx context.Context, in *CreateAssignmentRequest, opts ...grpc.CallOption) (*AssignmentResponse, error)
+	GetAssignmentsByCourse(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*AssignmentsList, error)
+	DeleteAssignment(ctx context.Context, in *DeleteAssignmentRequest, opts ...grpc.CallOption) (*Empty, error)
+}
+
+type assignmentServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewAssignmentServiceClient(cc grpc.ClientConnInterface) AssignmentServiceClient {
+	return &assignmentServiceClient{cc}
+}
+
+func (c *assignmentServiceClient) CreateAssignment(ctx context.Context, in *CreateAssignmentRequest, opts ...grpc.CallOption) (*AssignmentResponse, error) {
+	out := new(AssignmentResponse)
+	err := c.cc.Invoke(ctx, "/assignment.AssignmentService/CreateAssignment", in, out, opts...)
+	return out, err
+}
+
+func (c *assignmentServiceClient) GetAssignmentsByCourse(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*AssignmentsList, error) {
+	out := new(AssignmentsList)
+	err := c.cc.Invoke(ctx, "/assignment.AssignmentService/GetAssignmentsByCourse", in, out, opts...)
+	return out, err
+}
+
+func (c *assignmentServiceClient) DeleteAssignment(ctx context.Context, in *DeleteAssignmentRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/assignment.AssignmentService/DeleteAssignment", in, out, opts...)
+	return out, err
+}

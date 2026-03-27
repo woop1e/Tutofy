@@ -167,3 +167,37 @@ func _EnrollmentService_GetCourseEnrollments_Handler(srv interface{}, ctx contex
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+// ── Client interface ──────────────────────────────────────────────────────────
+
+type EnrollmentServiceClient interface {
+	EnrollUser(ctx context.Context, in *EnrollRequest, opts ...grpc.CallOption) (*EnrollmentResponse, error)
+	GetUserEnrollments(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*EnrollmentsList, error)
+	GetCourseEnrollments(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentsList, error)
+}
+
+type enrollmentServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewEnrollmentServiceClient(cc grpc.ClientConnInterface) EnrollmentServiceClient {
+	return &enrollmentServiceClient{cc}
+}
+
+func (c *enrollmentServiceClient) EnrollUser(ctx context.Context, in *EnrollRequest, opts ...grpc.CallOption) (*EnrollmentResponse, error) {
+	out := new(EnrollmentResponse)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/EnrollUser", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) GetUserEnrollments(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*EnrollmentsList, error) {
+	out := new(EnrollmentsList)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/GetUserEnrollments", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) GetCourseEnrollments(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentsList, error) {
+	out := new(EnrollmentsList)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/GetCourseEnrollments", in, out, opts...)
+	return out, err
+}

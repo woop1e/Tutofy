@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package grading;
+
+option go_package = "grading-service/proto/gradingpb";
+
+message SubmitGradeRequest {
+  string assignment_id = 1;
+  string student_id    = 2;
+  float  grade         = 3;
+}
+
+message StudentRequest {
+  string student_id = 1;
+}
+
+message AssignmentRequest {
+  string assignment_id = 1;
+}
+
+message GradeResponse {
+  string id            = 1;
+  string assignment_id = 2;
+  string student_id    = 3;
+  float  grade         = 4;
+}
+
+message GradesList {
+  repeated GradeResponse grades = 1;
+}
+
+message Empty {}
+
+service GradingService {
+  rpc SubmitGrade(SubmitGradeRequest)          returns (GradeResponse);
+  rpc GetStudentGrades(StudentRequest)         returns (GradesList);
+  rpc GetAssignmentGrades(AssignmentRequest)   returns (GradesList);
+}
