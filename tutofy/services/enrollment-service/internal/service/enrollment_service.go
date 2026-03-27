@@ -10,12 +10,13 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 var (
-	ErrForbidden   = errors.New("forbidden")
-	ErrNotStudent  = errors.New("only students can enroll")
+	ErrForbidden  = errors.New("forbidden")
+	ErrNotStudent = errors.New("only students can enroll")
 )
 
 type EnrollmentService interface {
@@ -38,13 +39,17 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 		return nil, ErrNotStudent
 	}
 
-	_, err := s.courseClient.GetCourse(ctx, &coursepb.GetCourseRequest{CourseId: courseID})
+	// Forward incoming metadata (authorization token) to course-service
+	md, _ := metadata.FromIncomingContext(ctx)
+	outCtx := metadata.NewOutgoingContext(ctx, md)
+
+	_, err := s.courseClient.GetCourse(outCtx, &coursepb.GetCourseRequest{CourseId: courseID})
 	if err != nil {
 		st, _ := status.FromError(err)
 		if st.Code() == codes.NotFound {
 			return nil, errors.New("course not found")
 		}
-		return nil, errors.New("course service unavailable")
+		return nil, errors.New("course service unavailable: " + st.Message())
 	}
 
 	e := &model.Enrollment{
