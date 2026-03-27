@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS users (
+    id    TEXT PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    name  TEXT NOT NULL,
+    role  TEXT NOT NULL DEFAULT 'user'
+);
