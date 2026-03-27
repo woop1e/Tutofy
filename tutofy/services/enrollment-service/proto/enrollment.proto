@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package enrollment;
+
+option go_package = "enrollment-service/proto/enrollmentpb";
+
+message EnrollRequest {
+  string course_id = 1;
+}
+
+message UserRequest {
+  string user_id = 1;
+}
+
+message CourseRequest {
+  string course_id = 1;
+}
+
+message EnrollmentResponse {
+  string id        = 1;
+  string user_id   = 2;
+  string course_id = 3;
+}
+
+message EnrollmentsList {
+  repeated EnrollmentResponse enrollments = 1;
+}
+
+message Empty {}
+
+service EnrollmentService {
+  rpc EnrollUser(EnrollRequest)               returns (EnrollmentResponse);
+  rpc GetUserEnrollments(UserRequest)         returns (EnrollmentsList);
+  rpc GetCourseEnrollments(CourseRequest)     returns (EnrollmentsList);
+}
