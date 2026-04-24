@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package progress;
+
+option go_package = "progress-service/proto/progresspb";
+
+// Called by lesson-service when a lesson status changes.
+message RecordLessonEventRequest {
+  string student_id = 1;
+  string course_id  = 2;
+  string lesson_id  = 3;
+  LessonStatus status = 4;
+}
+
+enum LessonStatus {
+  LESSON_STATUS_UNSPECIFIED = 0;
+  LESSON_STATUS_PLANNED     = 1;
+  LESSON_STATUS_COMPLETED   = 2;
+  LESSON_STATUS_CANCELLED   = 3;
+}
+
+message RecordLessonEventResponse {}
+
+// Called to read a student's progress in a course.
+message GetProgressRequest {
+  string student_id = 1;
+  string course_id  = 2;
+}
+
+message ProgressResponse {
+  string student_id        = 1;
+  string course_id         = 2;
+  int32  completed_lessons = 3;
+  int32  cancelled_lessons = 4;
+  int32  planned_lessons   = 5;
+  int32  total_lessons     = 6;   // completed + cancelled + planned
+  float  completion_pct    = 7;   // completed / total * 100
+}
+
+// Called to read all progress records for a course (tutor/admin view).
+message GetCourseProgressRequest {
+  string course_id = 1;
+}
+
+message CourseProgressResponse {
+  repeated ProgressResponse students = 1;
+}
+
+service ProgressService {
+  rpc RecordLessonEvent  (RecordLessonEventRequest)  returns (RecordLessonEventResponse);
+  rpc GetProgress        (GetProgressRequest)         returns (ProgressResponse);
+  rpc GetCourseProgress  (GetCourseProgressRequest)   returns (CourseProgressResponse);
+}

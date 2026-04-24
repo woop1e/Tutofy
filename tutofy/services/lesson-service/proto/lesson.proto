@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package lesson;
+
+option go_package = "lesson-service/proto/lessonpb";
+
+import "google/protobuf/timestamp.proto";
+
+enum LessonStatus {
+  LESSON_STATUS_UNSPECIFIED = 0;
+  LESSON_STATUS_PLANNED     = 1;
+  LESSON_STATUS_COMPLETED   = 2;
+  LESSON_STATUS_CANCELLED   = 3;
+}
+
+message Lesson {
+  string                    id         = 1;
+  string                    course_id  = 2;
+  string                    tutor_id   = 3;
+  string                    title      = 4;
+  google.protobuf.Timestamp scheduled_at = 5;
+  int32                     duration_minutes = 6;
+  string                    video_link = 7;
+  LessonStatus              status     = 8;
+}
+
+message CreateLessonRequest {
+  string                    course_id        = 1;
+  string                    title            = 2;
+  google.protobuf.Timestamp scheduled_at     = 3;
+  int32                     duration_minutes = 4;
+  string                    video_link       = 5;
+}
+
+message GetLessonRequest {
+  string lesson_id = 1;
+}
+
+message GetCourseLessonsRequest {
+  string course_id = 1;
+}
+
+message CourseLessonsList {
+  repeated Lesson lessons = 1;
+}
+
+message UpdateLessonStatusRequest {
+  string       lesson_id = 1;
+  LessonStatus status    = 2;
+}
+
+message DeleteLessonRequest {
+  string lesson_id = 1;
+}
+
+message Empty {}
+
+service LessonService {
+  rpc CreateLesson          (CreateLessonRequest)       returns (Lesson);
+  rpc GetLesson             (GetLessonRequest)           returns (Lesson);
+  rpc GetCourseLessons      (GetCourseLessonsRequest)    returns (CourseLessonsList);
+  rpc UpdateLessonStatus    (UpdateLessonStatusRequest)  returns (Lesson);
+  rpc DeleteLesson          (DeleteLessonRequest)        returns (Empty);
+}
