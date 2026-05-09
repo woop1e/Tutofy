@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package media;
+
+option go_package = "media-service/proto/mediapb";
+
+enum FileType {
+  FILE_TYPE_UNSPECIFIED    = 0;
+  FILE_TYPE_ASSIGNMENT     = 1;  // uploaded by student
+  FILE_TYPE_COURSE_MATERIAL = 2; // uploaded by tutor
+}
+
+message UploadFileRequest {
+  string course_id  = 1;
+  string file_name  = 2;
+  FileType file_type = 3;
+  bytes  data       = 4; // raw file bytes
+}
+
+message UploadFileResponse {
+  string file_id = 1;
+}
+
+message GetDownloadURLRequest {
+  string file_id = 1;
+}
+
+message GetDownloadURLResponse {
+  string url       = 1; // presigned S3/MinIO URL, valid for 1 hour
+  string file_name = 2;
+}
+
+message DeleteFileRequest {
+  string file_id = 1;
+}
+
+message DeleteFileResponse {}
+
+service MediaService {
+  rpc UploadFile      (UploadFileRequest)      returns (UploadFileResponse);
+  rpc GetDownloadURL  (GetDownloadURLRequest)  returns (GetDownloadURLResponse);
+  rpc DeleteFile      (DeleteFileRequest)      returns (DeleteFileResponse);
+}
