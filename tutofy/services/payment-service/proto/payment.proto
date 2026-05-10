@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package payment;
+
+option go_package = "payment-service/proto/paymentpb";
+
+message CreatePaymentRequest {
+  string course_id = 1;
+  double amount    = 2;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+message GetUserPaymentsRequest {
+  string user_id = 1;
+  int32  limit   = 2;
+  int32  offset  = 3;
+}
+
+message UpdatePaymentStatusRequest {
+  string payment_id = 1;
+  string status     = 2;
+}
+
+message PaymentResponse {
+  string payment_id  = 1;
+  string user_id     = 2;
+  string course_id   = 3;
+  double amount      = 4;
+  string status      = 5;
+  string created_at  = 6;
+}
+
+message PaymentsList {
+  repeated PaymentResponse payments = 1;
+}
+
+service PaymentService {
+  rpc CreatePayment(CreatePaymentRequest)            returns (PaymentResponse);
+  rpc GetPayment(GetPaymentRequest)                  returns (PaymentResponse);
+  rpc GetUserPayments(GetUserPaymentsRequest)        returns (PaymentsList);
+  rpc CompletePayment(UpdatePaymentStatusRequest)    returns (PaymentResponse);
+  rpc FailPayment(UpdatePaymentStatusRequest)        returns (PaymentResponse);
+}

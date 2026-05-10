@@ -26,10 +26,16 @@ message EnrollmentsList {
   repeated EnrollmentResponse enrollments = 1;
 }
 
+message UnenrollRequest {
+  string user_id   = 1;
+  string course_id = 2;
+}
+
 message Empty {}
 
 service EnrollmentService {
   rpc EnrollUser(EnrollRequest)               returns (EnrollmentResponse);
   rpc GetUserEnrollments(UserRequest)         returns (EnrollmentsList);
   rpc GetCourseEnrollments(CourseRequest)     returns (EnrollmentsList);
+  rpc UnenrollUser(UnenrollRequest)           returns (Empty);
 }

@@ -13,7 +13,8 @@ var ErrForbidden = errors.New("forbidden")
 type UserService interface {
 	GetUser(ctx context.Context, id string) (*model.User, error)
 	UpdateUser(ctx context.Context, callerID, callerRole, targetID, name, email string) (*model.User, error)
-	GetAllUsers(ctx context.Context, callerRole string) ([]*model.User, error)
+	GetAllUsers(ctx context.Context, callerRole string, limit, offset int32) ([]*model.User, error)
+	DeleteUser(ctx context.Context, callerRole, targetID string) error
 }
 
 type userService struct {
@@ -35,9 +36,16 @@ func (s *userService) UpdateUser(ctx context.Context, callerID, callerRole, targ
 	return s.repo.UpdateUser(ctx, targetID, name, email)
 }
 
-func (s *userService) GetAllUsers(ctx context.Context, callerRole string) ([]*model.User, error) {
+func (s *userService) GetAllUsers(ctx context.Context, callerRole string, limit, offset int32) ([]*model.User, error) {
 	if callerRole != "admin" {
 		return nil, ErrForbidden
 	}
-	return s.repo.GetAllUsers(ctx)
+	return s.repo.GetAllUsers(ctx, limit, offset)
+}
+
+func (s *userService) DeleteUser(ctx context.Context, callerRole, targetID string) error {
+	if callerRole != "admin" {
+		return ErrForbidden
+	}
+	return s.repo.DeleteUser(ctx, targetID)
 }

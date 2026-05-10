@@ -14,6 +14,7 @@ type Config struct {
 	AuthServiceAddr   string
 	EnrollmentSvcAddr string
 	ProgressSvcAddr   string
+	CourseSvcAddr     string
 }
 
 // Load reads configuration from a .env file (if present) and environment variables.
@@ -39,12 +40,17 @@ func Load() *Config {
 
 	enrollmentAddr := os.Getenv("ENROLLMENT_SERVICE_ADDR")
 	if enrollmentAddr == "" {
-		enrollmentAddr = "localhost:50052"
+		enrollmentAddr = "localhost:50054"
 	}
 
 	progressAddr := os.Getenv("PROGRESS_SERVICE_ADDR")
 	if progressAddr == "" {
-		progressAddr = "localhost:50054"
+		progressAddr = "localhost:50058"
+	}
+
+	courseAddr := os.Getenv("COURSE_SERVICE_ADDR")
+	if courseAddr == "" {
+		courseAddr = "localhost:50053"
 	}
 
 	return &Config{
@@ -53,5 +59,6 @@ func Load() *Config {
 		AuthServiceAddr:   authAddr,
 		EnrollmentSvcAddr: enrollmentAddr,
 		ProgressSvcAddr:   progressAddr,
+		CourseSvcAddr:     courseAddr,
 	}
 }

@@ -25,10 +25,15 @@ message UsersList {
   repeated UserResponse users = 1;
 }
 
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
 message Empty {}
 
 service UserService {
   rpc GetUser(GetUserRequest)       returns (UserResponse);
   rpc UpdateUser(UpdateUserRequest) returns (UserResponse);
   rpc GetAllUsers(Empty)            returns (UsersList);
+  rpc DeleteUser(DeleteUserRequest) returns (Empty);
 }

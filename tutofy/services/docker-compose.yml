@@ -1,0 +1,293 @@
+version: "3.9"
+
+
+services:
+
+  # ── Infrastructure ────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tutofy
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tutofy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/tutofy-media &&
+        echo 'Bucket ready'
+      "
+
+  # ── Services ──────────────────────────────────────────────────────────────────
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/auth?sslmode=disable"
+      PORT: "50051"
+      JWT_SECRET: "change-me-in-production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "50051:50051"
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/users?sslmode=disable"
+      PORT: "50052"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "50052:50052"
+    restart: unless-stopped
+
+  course-service:
+    build:
+      context: .
+      dockerfile: course-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/courses?sslmode=disable"
+      PORT: "50053"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "50053:50053"
+    restart: unless-stopped
+
+  enrollment-service:
+    build:
+      context: .
+      dockerfile: enrollment-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/enrollments?sslmode=disable"
+      PORT: "50054"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+      COURSE_SERVICE_ADDR: "course-service:50053"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      course-service:
+        condition: service_started
+    ports:
+      - "50054:50054"
+    restart: unless-stopped
+
+  lesson-service:
+    build:
+      context: .
+      dockerfile: lesson-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/lessons?sslmode=disable"
+      PORT: "50055"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+      COURSE_SERVICE_ADDR: "course-service:50053"
+      ENROLLMENT_SERVICE_ADDR: "enrollment-service:50054"
+      PROGRESS_SERVICE_ADDR: "progress-service:50058"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      course-service:
+        condition: service_started
+      enrollment-service:
+        condition: service_started
+      progress-service:
+        condition: service_started
+    ports:
+      - "50055:50055"
+    restart: unless-stopped
+
+  grading-service:
+    build:
+      context: .
+      dockerfile: grading-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/grading?sslmode=disable"
+      PORT: "50056"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+      ASSIGNMENT_SERVICE_ADDR: "assignment-service:50059"
+      ENROLLMENT_SERVICE_ADDR: "enrollment-service:50054"
+      NOTIFICATION_SERVICE_ADDR: "notification-service:50057"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      assignment-service:
+        condition: service_started
+      enrollment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    ports:
+      - "50056:50056"
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/notifications?sslmode=disable"
+      PORT: "50057"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "50057:50057"
+    restart: unless-stopped
+
+  progress-service:
+    build:
+      context: .
+      dockerfile: progress-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/progress?sslmode=disable"
+      PORT: "50058"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "50058:50058"
+    restart: unless-stopped
+
+  assignment-service:
+    build:
+      context: .
+      dockerfile: assignment-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/assignments?sslmode=disable"
+      PORT: "50059"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+      COURSE_SERVICE_ADDR: "course-service:50053"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      course-service:
+        condition: service_started
+    ports:
+      - "50059:50059"
+    restart: unless-stopped
+
+  messaging-service:
+    build:
+      context: .
+      dockerfile: messaging-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/messaging?sslmode=disable"
+      PORT: "50060"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "50060:50060"
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/payments?sslmode=disable"
+      PORT: "50061"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "50061:50061"
+    restart: unless-stopped
+
+  media-service:
+    build:
+      context: .
+      dockerfile: media-service/Dockerfile
+    environment:
+      DB_URL: "postgres://tutofy:secret@postgres/media?sslmode=disable"
+      PORT: "50062"
+      AUTH_SERVICE_ADDR: "auth-service:50051"
+      ENROLLMENT_SERVICE_ADDR: "enrollment-service:50054"
+      S3_ENDPOINT: "http://minio:9000"
+      S3_ACCESS_KEY_ID: "minioadmin"
+      S3_SECRET_ACCESS_KEY: "minioadmin"
+      S3_BUCKET: "tutofy-media"
+      S3_REGION: "us-east-1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      enrollment-service:
+        condition: service_started
+      createbuckets:
+        condition: service_completed_successfully
+    ports:
+      - "50062:50062"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  minio-data:

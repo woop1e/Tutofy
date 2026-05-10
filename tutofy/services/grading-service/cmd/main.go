@@ -9,12 +9,14 @@ import (
 	"auth-service/proto/authpb"
 	"assignment-service/proto/assignmentpb"
 	"enrollment-service/proto/enrollmentpb"
+	"grading-service/internal/client"
 	"grading-service/internal/config"
 	"grading-service/internal/handler"
 	"grading-service/internal/middleware"
 	"grading-service/internal/repository"
 	"grading-service/internal/service"
 	"grading-service/proto/gradingpb"
+	"notification-service/proto/notificationpb"
 
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
@@ -51,12 +53,19 @@ func main() {
 	}
 	defer enrollmentConn.Close()
 
-	authClient       := authpb.NewAuthServiceClient(authConn)
-	assignmentClient := assignmentpb.NewAssignmentServiceClient(assignmentConn)
-	enrollmentClient := enrollmentpb.NewEnrollmentServiceClient(enrollmentConn)
+	notificationConn, err := grpc.NewClient(cfg.NotificationServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("notification-service dial: %v", err)
+	}
+	defer notificationConn.Close()
+
+	authClient         := authpb.NewAuthServiceClient(authConn)
+	assignmentClient   := assignmentpb.NewAssignmentServiceClient(assignmentConn)
+	enrollmentClient   := enrollmentpb.NewEnrollmentServiceClient(enrollmentConn)
+	notificationClient := client.NewNotificationClient(notificationpb.NewNotificationServiceClient(notificationConn))
 
 	repo := repository.NewPostgresRepo(db)
-	svc  := service.NewGradingService(repo, assignmentClient, enrollmentClient)
+	svc  := service.NewGradingService(repo, assignmentClient, enrollmentClient, notificationClient)
 	h    := handler.NewGradingHandler(svc)
 
 	grpcServer := grpc.NewServer(

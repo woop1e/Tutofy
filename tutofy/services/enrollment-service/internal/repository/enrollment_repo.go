@@ -17,6 +17,7 @@ type EnrollmentRepository interface {
 	CreateEnrollment(ctx context.Context, e *model.Enrollment) error
 	GetEnrollmentsByUser(ctx context.Context, userID string) ([]*model.Enrollment, error)
 	GetEnrollmentsByCourse(ctx context.Context, courseID string) ([]*model.Enrollment, error)
+	DeleteEnrollment(ctx context.Context, userID, courseID string) error
 }
 
 type postgresRepo struct {
@@ -65,6 +66,20 @@ func (r *postgresRepo) GetEnrollmentsByUser(ctx context.Context, userID string) 
 		result = append(result, e)
 	}
 	return result, rows.Err()
+}
+
+func (r *postgresRepo) DeleteEnrollment(ctx context.Context, userID, courseID string) error {
+	res, err := r.db.ExecContext(ctx,
+		`DELETE FROM enrollments WHERE user_id = $1 AND course_id = $2`, userID, courseID,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *postgresRepo) GetEnrollmentsByCourse(ctx context.Context, courseID string) ([]*model.Enrollment, error) {

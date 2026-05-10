@@ -6,11 +6,14 @@ import (
 
 	"assignment-service/proto/assignmentpb"
 	"enrollment-service/proto/enrollmentpb"
+	"grading-service/internal/client"
 	"grading-service/internal/model"
 	"grading-service/internal/repository"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -20,26 +23,29 @@ var (
 )
 
 type GradingService interface {
-	SubmitGrade(ctx context.Context, callerRole, assignmentID, studentID string, grade float32) (*model.Grade, error)
+	SubmitGrade(ctx context.Context, callerRole, assignmentID, studentID, feedback string, grade float32) (*model.Grade, error)
 	GetStudentGrades(ctx context.Context, callerID, callerRole, studentID string) ([]*model.Grade, error)
 	GetAssignmentGrades(ctx context.Context, callerRole, assignmentID string) ([]*model.Grade, error)
 }
 
 type gradingService struct {
-	repo             repository.GradeRepository
-	assignmentClient assignmentpb.AssignmentServiceClient
-	enrollmentClient enrollmentpb.EnrollmentServiceClient
+	repo                 repository.GradeRepository
+	assignmentClient     assignmentpb.AssignmentServiceClient
+	enrollmentClient     enrollmentpb.EnrollmentServiceClient
+	notificationClient   client.NotificationClient
 }
 
 func NewGradingService(
 	repo repository.GradeRepository,
 	assignmentClient assignmentpb.AssignmentServiceClient,
 	enrollmentClient enrollmentpb.EnrollmentServiceClient,
+	notificationClient client.NotificationClient,
 ) GradingService {
 	return &gradingService{
-		repo:             repo,
-		assignmentClient: assignmentClient,
-		enrollmentClient: enrollmentClient,
+		repo:               repo,
+		assignmentClient:   assignmentClient,
+		enrollmentClient:   enrollmentClient,
+		notificationClient: notificationClient,
 	}
 }
 
@@ -48,19 +54,19 @@ func outCtx(ctx context.Context) context.Context {
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func (s *gradingService) SubmitGrade(ctx context.Context, callerRole, assignmentID, studentID string, grade float32) (*model.Grade, error) {
+func (s *gradingService) SubmitGrade(ctx context.Context, callerRole, assignmentID, studentID, feedback string, grade float32) (*model.Grade, error) {
 	if callerRole != "tutor" && callerRole != "admin" {
 		return nil, ErrNotTutor
 	}
 
-	// Validate assignment exists — get its course_id
-	resp, err := s.assignmentClient.GetAssignmentsByCourse(outCtx(ctx), &assignmentpb.CourseRequest{CourseId: assignmentID})
-	if err != nil || resp == nil {
-		// assignmentID may be a direct ID, so we try fetching by checking list is non-empty
-		// We just verify call didn't fail with unavailable
-		if err != nil {
-			return nil, errors.New("assignment service unavailable")
+	// Validate assignment exists
+	_, err := s.assignmentClient.GetAssignment(outCtx(ctx), &assignmentpb.GetAssignmentRequest{AssignmentId: assignmentID})
+	if err != nil {
+		st, _ := status.FromError(err)
+		if st.Code() == codes.NotFound {
+			return nil, errors.New("assignment not found")
 		}
+		return nil, errors.New("assignment service unavailable")
 	}
 
 	// Validate student is enrolled — get their enrollments
@@ -77,11 +83,15 @@ func (s *gradingService) SubmitGrade(ctx context.Context, callerRole, assignment
 		AssignmentID: assignmentID,
 		StudentID:    studentID,
 		Grade:        grade,
+		Feedback:     feedback,
 	}
 
 	if err := s.repo.CreateGrade(ctx, g); err != nil {
 		return nil, err
 	}
+
+	go s.notificationClient.NotifyGrade(outCtx(ctx), assignmentID, studentID, grade)
+
 	return g, nil
 }
 

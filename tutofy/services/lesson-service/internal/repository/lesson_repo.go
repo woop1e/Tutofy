@@ -14,7 +14,7 @@ var ErrNotFound = errors.New("lesson not found")
 type LessonRepository interface {
 	CreateLesson(ctx context.Context, lesson *model.Lesson) error
 	GetLessonByID(ctx context.Context, id string) (*model.Lesson, error)
-	GetCourseLessons(ctx context.Context, courseID string) ([]*model.Lesson, error)
+	GetCourseLessons(ctx context.Context, courseID string, limit, offset int32) ([]*model.Lesson, error)
 	UpdateLessonStatus(ctx context.Context, id string, status model.LessonStatus) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, id string) error
 }
@@ -59,10 +59,10 @@ func (r *postgresRepo) GetLessonByID(ctx context.Context, id string) (*model.Les
 	return scanLesson(row)
 }
 
-func (r *postgresRepo) GetCourseLessons(ctx context.Context, courseID string) ([]*model.Lesson, error) {
+func (r *postgresRepo) GetCourseLessons(ctx context.Context, courseID string, limit, offset int32) ([]*model.Lesson, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT `+lessonColumns+` FROM lessons WHERE course_id = $1 ORDER BY scheduled_at ASC`,
-		courseID,
+		`SELECT `+lessonColumns+` FROM lessons WHERE course_id = $1 ORDER BY scheduled_at ASC LIMIT $2 OFFSET $3`,
+		courseID, limit, offset,
 	)
 	if err != nil {
 		return nil, err

@@ -21,8 +21,9 @@ var (
 
 type EnrollmentService interface {
 	EnrollUser(ctx context.Context, callerID, callerRole, courseID string) (*model.Enrollment, error)
-	GetUserEnrollments(ctx context.Context, userID string) ([]*model.Enrollment, error)
+	GetUserEnrollments(ctx context.Context, callerID, callerRole, userID string) ([]*model.Enrollment, error)
 	GetCourseEnrollments(ctx context.Context, callerRole, courseID string) ([]*model.Enrollment, error)
+	UnenrollUser(ctx context.Context, callerID, callerRole, userID, courseID string) error
 }
 
 type enrollmentService struct {
@@ -64,8 +65,18 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 	return e, nil
 }
 
-func (s *enrollmentService) GetUserEnrollments(ctx context.Context, userID string) ([]*model.Enrollment, error) {
+func (s *enrollmentService) GetUserEnrollments(ctx context.Context, callerID, callerRole, userID string) ([]*model.Enrollment, error) {
+	if callerRole == "student" && callerID != userID {
+		return nil, ErrForbidden
+	}
 	return s.repo.GetEnrollmentsByUser(ctx, userID)
+}
+
+func (s *enrollmentService) UnenrollUser(ctx context.Context, callerID, callerRole, userID, courseID string) error {
+	if callerRole == "student" && callerID != userID {
+		return ErrForbidden
+	}
+	return s.repo.DeleteEnrollment(ctx, userID, courseID)
 }
 
 func (s *enrollmentService) GetCourseEnrollments(ctx context.Context, callerRole, courseID string) ([]*model.Enrollment, error) {

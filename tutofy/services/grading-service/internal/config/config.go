@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	DBURL                 string
-	Port                  string
-	AuthServiceAddr       string
-	AssignmentServiceAddr string
-	EnrollmentServiceAddr string
+	DBURL                   string
+	Port                    string
+	AuthServiceAddr         string
+	AssignmentServiceAddr   string
+	EnrollmentServiceAddr   string
+	NotificationServiceAddr string
 }
 
 func Load() *Config {
@@ -37,7 +38,7 @@ func Load() *Config {
 
 	assignmentAddr := os.Getenv("ASSIGNMENT_SERVICE_ADDR")
 	if assignmentAddr == "" {
-		assignmentAddr = "localhost:50055"
+		assignmentAddr = "localhost:50059"
 	}
 
 	enrollmentAddr := os.Getenv("ENROLLMENT_SERVICE_ADDR")
@@ -45,11 +46,17 @@ func Load() *Config {
 		enrollmentAddr = "localhost:50054"
 	}
 
+	notificationAddr := os.Getenv("NOTIFICATION_SERVICE_ADDR")
+	if notificationAddr == "" {
+		notificationAddr = "localhost:50057"
+	}
+
 	return &Config{
-		DBURL:                 dbURL,
-		Port:                  port,
-		AuthServiceAddr:       authAddr,
-		AssignmentServiceAddr: assignmentAddr,
-		EnrollmentServiceAddr: enrollmentAddr,
+		DBURL:                   dbURL,
+		Port:                    port,
+		AuthServiceAddr:         authAddr,
+		AssignmentServiceAddr:   assignmentAddr,
+		EnrollmentServiceAddr:   enrollmentAddr,
+		NotificationServiceAddr: notificationAddr,
 	}
 }

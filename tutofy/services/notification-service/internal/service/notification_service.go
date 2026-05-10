@@ -21,7 +21,7 @@ type NotificationService interface {
 
 	// GetNotifications returns notifications for the caller.
 	// Students may only fetch their own; admins may fetch any user's.
-	GetNotifications(ctx context.Context, callerID, callerRole, userID string, unreadOnly bool) ([]*model.Notification, error)
+	GetNotifications(ctx context.Context, callerID, callerRole, userID string, unreadOnly bool, limit, offset int32) ([]*model.Notification, error)
 
 	// MarkAsRead marks a notification as read.
 	// Only the owner of the notification may mark it read.
@@ -53,11 +53,12 @@ func (s *notificationService) GetNotifications(
 	ctx context.Context,
 	callerID, callerRole, userID string,
 	unreadOnly bool,
+	limit, offset int32,
 ) ([]*model.Notification, error) {
 	if callerRole != "admin" && callerID != userID {
 		return nil, ErrForbidden
 	}
-	return s.repo.GetNotifications(ctx, userID, unreadOnly)
+	return s.repo.GetNotifications(ctx, userID, unreadOnly, limit, offset)
 }
 
 func (s *notificationService) MarkAsRead(ctx context.Context, callerID, notificationID string) error {

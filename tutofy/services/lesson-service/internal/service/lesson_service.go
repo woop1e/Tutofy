@@ -22,7 +22,7 @@ var (
 type LessonService interface {
 	CreateLesson(ctx context.Context, callerID, callerRole, courseID, title, videoLink string, scheduledAt time.Time, durationMinutes int32) (*model.Lesson, error)
 	GetLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error)
-	GetCourseLessons(ctx context.Context, callerID, callerRole, courseID string) ([]*model.Lesson, error)
+	GetCourseLessons(ctx context.Context, callerID, callerRole, courseID string, limit, offset int32) ([]*model.Lesson, error)
 	UpdateLessonStatus(ctx context.Context, callerID, callerRole, lessonID string, status model.LessonStatus) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, callerID, callerRole, lessonID string) error
 }
@@ -31,6 +31,7 @@ type lessonService struct {
 	repo       repository.LessonRepository
 	enrollment client.EnrollmentClient
 	progress   client.ProgressClient
+	course     client.CourseClient
 }
 
 // NewLessonService creates a LessonService wired to all required dependencies.
@@ -38,11 +39,13 @@ func NewLessonService(
 	repo repository.LessonRepository,
 	enrollment client.EnrollmentClient,
 	progress client.ProgressClient,
+	course client.CourseClient,
 ) LessonService {
 	return &lessonService{
 		repo:       repo,
 		enrollment: enrollment,
 		progress:   progress,
+		course:     course,
 	}
 }
 
@@ -54,6 +57,10 @@ func (s *lessonService) CreateLesson(
 ) (*model.Lesson, error) {
 	if !isTutorOrAdmin(callerRole) {
 		return nil, ErrNotTutorOrAdmin
+	}
+
+	if err := s.course.CourseExists(ctx, courseID); err != nil {
+		return nil, err
 	}
 
 	lesson := &model.Lesson{
@@ -90,11 +97,11 @@ func (s *lessonService) GetLesson(ctx context.Context, callerID, callerRole, les
 	return lesson, nil
 }
 
-func (s *lessonService) GetCourseLessons(ctx context.Context, callerID, callerRole, courseID string) ([]*model.Lesson, error) {
+func (s *lessonService) GetCourseLessons(ctx context.Context, callerID, callerRole, courseID string, limit, offset int32) ([]*model.Lesson, error) {
 	if err := s.assertCanView(ctx, callerID, callerRole, courseID); err != nil {
 		return nil, err
 	}
-	return s.repo.GetCourseLessons(ctx, courseID)
+	return s.repo.GetCourseLessons(ctx, courseID, limit, offset)
 }
 
 func (s *lessonService) UpdateLessonStatus(

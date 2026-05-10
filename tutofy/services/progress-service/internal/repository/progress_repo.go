@@ -21,7 +21,7 @@ type ProgressRepository interface {
 	GetProgress(ctx context.Context, studentID, courseID string) (*model.Progress, error)
 
 	// GetCourseProgress returns aggregated progress for all students in a course.
-	GetCourseProgress(ctx context.Context, courseID string) ([]*model.Progress, error)
+	GetCourseProgress(ctx context.Context, courseID string, limit, offset int32) ([]*model.Progress, error)
 }
 
 type postgresRepo struct {
@@ -130,11 +130,11 @@ func (r *postgresRepo) GetProgress(ctx context.Context, studentID, courseID stri
 	return p, nil
 }
 
-func (r *postgresRepo) GetCourseProgress(ctx context.Context, courseID string) ([]*model.Progress, error) {
+func (r *postgresRepo) GetCourseProgress(ctx context.Context, courseID string, limit, offset int32) ([]*model.Progress, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT student_id, course_id, completed_lessons, cancelled_lessons, planned_lessons
-		 FROM progress WHERE course_id = $1`,
-		courseID,
+		 FROM progress WHERE course_id = $1 ORDER BY student_id LIMIT $2 OFFSET $3`,
+		courseID, limit, offset,
 	)
 	if err != nil {
 		return nil, err

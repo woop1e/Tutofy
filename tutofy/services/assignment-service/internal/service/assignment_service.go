@@ -21,7 +21,9 @@ var (
 
 type AssignmentService interface {
 	CreateAssignment(ctx context.Context, callerID, callerRole, title, description, courseID string) (*model.Assignment, error)
-	GetAssignmentsByCourse(ctx context.Context, courseID string) ([]*model.Assignment, error)
+	GetAssignment(ctx context.Context, id string) (*model.Assignment, error)
+	GetAssignmentsByCourse(ctx context.Context, courseID string, limit, offset int32) ([]*model.Assignment, error)
+	UpdateAssignment(ctx context.Context, callerRole, id, title, description, dueDate string) (*model.Assignment, error)
 	DeleteAssignment(ctx context.Context, callerRole, assignmentID string) error
 }
 
@@ -64,8 +66,19 @@ func (s *assignmentService) CreateAssignment(ctx context.Context, callerID, call
 	return a, nil
 }
 
-func (s *assignmentService) GetAssignmentsByCourse(ctx context.Context, courseID string) ([]*model.Assignment, error) {
-	return s.repo.GetByCourseID(ctx, courseID)
+func (s *assignmentService) GetAssignment(ctx context.Context, id string) (*model.Assignment, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
+func (s *assignmentService) GetAssignmentsByCourse(ctx context.Context, courseID string, limit, offset int32) ([]*model.Assignment, error) {
+	return s.repo.GetByCourseID(ctx, courseID, limit, offset)
+}
+
+func (s *assignmentService) UpdateAssignment(ctx context.Context, callerRole, id, title, description, dueDate string) (*model.Assignment, error) {
+	if callerRole != "tutor" && callerRole != "admin" {
+		return nil, ErrForbidden
+	}
+	return s.repo.UpdateAssignment(ctx, id, title, description, dueDate)
 }
 
 func (s *assignmentService) DeleteAssignment(ctx context.Context, callerRole, assignmentID string) error {

@@ -13,7 +13,7 @@ var ErrNotFound = errors.New("notification not found")
 // NotificationRepository is the data-access contract.
 type NotificationRepository interface {
 	CreateNotification(ctx context.Context, n *model.Notification) error
-	GetNotifications(ctx context.Context, userID string, unreadOnly bool) ([]*model.Notification, error)
+	GetNotifications(ctx context.Context, userID string, unreadOnly bool, limit, offset int32) ([]*model.Notification, error)
 	MarkAsRead(ctx context.Context, notificationID, userID string) error
 }
 
@@ -34,7 +34,7 @@ func (r *postgresRepo) CreateNotification(ctx context.Context, n *model.Notifica
 	return err
 }
 
-func (r *postgresRepo) GetNotifications(ctx context.Context, userID string, unreadOnly bool) ([]*model.Notification, error) {
+func (r *postgresRepo) GetNotifications(ctx context.Context, userID string, unreadOnly bool, limit, offset int32) ([]*model.Notification, error) {
 	query := `SELECT id, user_id, type, message, is_read, created_at
 	          FROM notifications WHERE user_id = $1`
 	args := []any{userID}
@@ -42,7 +42,8 @@ func (r *postgresRepo) GetNotifications(ctx context.Context, userID string, unre
 	if unreadOnly {
 		query += ` AND is_read = FALSE`
 	}
-	query += ` ORDER BY created_at DESC`
+	query += ` ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	args = append(args, limit, offset)
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {

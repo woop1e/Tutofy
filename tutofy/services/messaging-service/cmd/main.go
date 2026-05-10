@@ -1,0 +1,62 @@
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"net"
+
+	_ "github.com/lib/pq"
+	"auth-service/proto/authpb"
+	"messaging-service/internal/config"
+	"messaging-service/internal/handler"
+	"messaging-service/internal/middleware"
+	"messaging-service/internal/repository"
+	"messaging-service/internal/service"
+	"messaging-service/proto/messagingpb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
+
+func main() {
+	cfg := config.Load()
+
+	db, err := sql.Open("postgres", cfg.DBURL)
+	if err != nil {
+		log.Fatalf("db open: %v", err)
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatalf("db ping: %v", err)
+	}
+
+	authConn, err := grpc.NewClient(
+		cfg.AuthServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalf("auth-service dial: %v", err)
+	}
+	defer authConn.Close()
+
+	authClient := authpb.NewAuthServiceClient(authConn)
+
+	repo := repository.NewPostgresRepo(db)
+	svc := service.NewMessageService(repo)
+	h := handler.NewMessagingHandler(svc)
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(middleware.AuthInterceptor(authClient)),
+	)
+	messagingpb.RegisterMessagingServiceServer(grpcServer, h)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.Port))
+	if err != nil {
+		log.Fatalf("listen: %v", err)
+	}
+
+	log.Printf("messaging-service listening on :%s", cfg.Port)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("gRPC serve: %v", err)
+	}
+}

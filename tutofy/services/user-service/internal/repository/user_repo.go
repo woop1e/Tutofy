@@ -13,7 +13,8 @@ var ErrNotFound = errors.New("user not found")
 type UserRepository interface {
 	GetByID(ctx context.Context, id string) (*model.User, error)
 	UpdateUser(ctx context.Context, id, name, email string) (*model.User, error)
-	GetAllUsers(ctx context.Context) ([]*model.User, error)
+	GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error)
+	DeleteUser(ctx context.Context, id string) error
 }
 
 type postgresRepo struct {
@@ -54,8 +55,20 @@ func (r *postgresRepo) UpdateUser(ctx context.Context, id, name, email string) (
 	return u, nil
 }
 
-func (r *postgresRepo) GetAllUsers(ctx context.Context) ([]*model.User, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, email, name, role FROM users`)
+func (r *postgresRepo) DeleteUser(ctx context.Context, id string) error {
+	res, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *postgresRepo) GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT id, email, name, role FROM users ORDER BY id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, err
 	}

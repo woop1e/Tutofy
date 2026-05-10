@@ -73,6 +73,20 @@ func (x *EnrollmentsList) String() string  { return "" }
 func (x *EnrollmentsList) ProtoMessage()  {}
 func (x *EnrollmentsList) GetEnrollments() []*EnrollmentResponse { return x.Enrollments }
 
+type UnenrollRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	UserId   string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	CourseId string `protobuf:"bytes,2,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+}
+
+func (x *UnenrollRequest) Reset()         { *x = UnenrollRequest{} }
+func (x *UnenrollRequest) String() string  { return x.UserId }
+func (x *UnenrollRequest) ProtoMessage()  {}
+func (x *UnenrollRequest) GetUserId() string   { return x.UserId }
+func (x *UnenrollRequest) GetCourseId() string { return x.CourseId }
+
 type Empty struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -89,6 +103,7 @@ type EnrollmentServiceServer interface {
 	EnrollUser(context.Context, *EnrollRequest) (*EnrollmentResponse, error)
 	GetUserEnrollments(context.Context, *UserRequest) (*EnrollmentsList, error)
 	GetCourseEnrollments(context.Context, *CourseRequest) (*EnrollmentsList, error)
+	UnenrollUser(context.Context, *UnenrollRequest) (*Empty, error)
 	mustEmbedUnimplementedEnrollmentServiceServer()
 }
 
@@ -101,6 +116,9 @@ func (UnimplementedEnrollmentServiceServer) GetUserEnrollments(context.Context, 
 	return nil, nil
 }
 func (UnimplementedEnrollmentServiceServer) GetCourseEnrollments(context.Context, *CourseRequest) (*EnrollmentsList, error) {
+	return nil, nil
+}
+func (UnimplementedEnrollmentServiceServer) UnenrollUser(context.Context, *UnenrollRequest) (*Empty, error) {
 	return nil, nil
 }
 func (UnimplementedEnrollmentServiceServer) mustEmbedUnimplementedEnrollmentServiceServer() {}
@@ -118,6 +136,7 @@ var EnrollmentService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "EnrollUser", Handler: _EnrollmentService_EnrollUser_Handler},
 		{MethodName: "GetUserEnrollments", Handler: _EnrollmentService_GetUserEnrollments_Handler},
 		{MethodName: "GetCourseEnrollments", Handler: _EnrollmentService_GetCourseEnrollments_Handler},
+		{MethodName: "UnenrollUser", Handler: _EnrollmentService_UnenrollUser_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "enrollment.proto",
@@ -168,12 +187,28 @@ func _EnrollmentService_GetCourseEnrollments_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnrollmentService_UnenrollUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnenrollRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnrollmentServiceServer).UnenrollUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/enrollment.EnrollmentService/UnenrollUser"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnrollmentServiceServer).UnenrollUser(ctx, req.(*UnenrollRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client interface ──────────────────────────────────────────────────────────
 
 type EnrollmentServiceClient interface {
 	EnrollUser(ctx context.Context, in *EnrollRequest, opts ...grpc.CallOption) (*EnrollmentResponse, error)
 	GetUserEnrollments(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*EnrollmentsList, error)
 	GetCourseEnrollments(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentsList, error)
+	UnenrollUser(ctx context.Context, in *UnenrollRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type enrollmentServiceClient struct {
@@ -199,5 +234,11 @@ func (c *enrollmentServiceClient) GetUserEnrollments(ctx context.Context, in *Us
 func (c *enrollmentServiceClient) GetCourseEnrollments(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentsList, error) {
 	out := new(EnrollmentsList)
 	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/GetCourseEnrollments", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) UnenrollUser(ctx context.Context, in *UnenrollRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/UnenrollUser", in, out, opts...)
 	return out, err
 }

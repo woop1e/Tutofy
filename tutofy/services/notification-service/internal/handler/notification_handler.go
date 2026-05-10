@@ -38,10 +38,14 @@ func (h *NotificationHandler) NotifyGrade(ctx context.Context, req *notification
 
 // GetNotifications returns notifications for a user.
 func (h *NotificationHandler) GetNotifications(ctx context.Context, req *notificationpb.GetNotificationsRequest) (*notificationpb.NotificationsList, error) {
+	if req.GetUserId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	notifications, err := h.svc.GetNotifications(ctx, callerID, callerRole, req.GetUserId(), req.GetUnreadOnly())
+	notifications, err := h.svc.GetNotifications(ctx, callerID, callerRole, req.GetUserId(), req.GetUnreadOnly(), 50, 0)
 	if err != nil {
 		return nil, mapError(err)
 	}

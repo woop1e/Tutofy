@@ -15,6 +15,7 @@ import (
 	"lesson-service/proto/lessonpb"
 
 	"auth-service/proto/authpb"
+	"course-service/proto/coursepb"
 	"enrollment-service/proto/enrollmentpb"
 	"progress-service/proto/progresspb"
 
@@ -58,11 +59,19 @@ func main() {
 	}
 	defer progressConn.Close()
 
+	// Connect to course-service.
+	courseConn, err := grpc.NewClient(cfg.CourseSvcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to connect to course-service: %v", err)
+	}
+	defer courseConn.Close()
+
 	// Wire up layers.
 	repo := repository.NewPostgresRepo(db)
 	enrollmentClient := client.NewEnrollmentClient(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
 	progressClient := client.NewProgressClient(progresspb.NewProgressServiceClient(progressConn))
-	svc := service.NewLessonService(repo, enrollmentClient, progressClient)
+	courseClient := client.NewCourseClient(coursepb.NewCourseServiceClient(courseConn))
+	svc := service.NewLessonService(repo, enrollmentClient, progressClient, courseClient)
 	h := handler.NewLessonHandler(svc)
 
 	// Start gRPC server.

@@ -41,11 +41,34 @@ func (h *EnrollmentHandler) EnrollUser(ctx context.Context, req *enrollmentpb.En
 }
 
 func (h *EnrollmentHandler) GetUserEnrollments(ctx context.Context, req *enrollmentpb.UserRequest) (*enrollmentpb.EnrollmentsList, error) {
-	enrollments, err := h.svc.GetUserEnrollments(ctx, req.GetUserId())
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	enrollments, err := h.svc.GetUserEnrollments(ctx, callerID, callerRole, req.GetUserId())
 	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return toList(enrollments), nil
+}
+
+func (h *EnrollmentHandler) UnenrollUser(ctx context.Context, req *enrollmentpb.UnenrollRequest) (*enrollmentpb.Empty, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	err := h.svc.UnenrollUser(ctx, callerID, callerRole, req.GetUserId(), req.GetCourseId())
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "enrollment not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &enrollmentpb.Empty{}, nil
 }
 
 func (h *EnrollmentHandler) GetCourseEnrollments(ctx context.Context, req *enrollmentpb.CourseRequest) (*enrollmentpb.EnrollmentsList, error) {

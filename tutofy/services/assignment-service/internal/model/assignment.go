@@ -5,4 +5,5 @@ type Assignment struct {
 	Title       string
 	Description string
 	CourseID    string
+	DueDate     string
 }

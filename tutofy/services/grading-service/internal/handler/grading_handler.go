@@ -23,9 +23,18 @@ func NewGradingHandler(svc service.GradingService) *GradingHandler {
 }
 
 func (h *GradingHandler) SubmitGrade(ctx context.Context, req *gradingpb.SubmitGradeRequest) (*gradingpb.GradeResponse, error) {
+	switch {
+	case req.GetAssignmentId() == "":
+		return nil, status.Error(codes.InvalidArgument, "assignment_id is required")
+	case req.GetStudentId() == "":
+		return nil, status.Error(codes.InvalidArgument, "student_id is required")
+	case req.GetGrade() < 0 || req.GetGrade() > 100:
+		return nil, status.Error(codes.InvalidArgument, "grade must be between 0 and 100")
+	}
+
 	callerRole := middleware.RoleFromContext(ctx)
 
-	g, err := h.svc.SubmitGrade(ctx, callerRole, req.GetAssignmentId(), req.GetStudentId(), req.GetGrade())
+	g, err := h.svc.SubmitGrade(ctx, callerRole, req.GetAssignmentId(), req.GetStudentId(), req.GetFeedback(), req.GetGrade())
 	if err != nil {
 		if errors.Is(err, service.ErrNotTutor) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -71,6 +80,7 @@ func toProto(g *model.Grade) *gradingpb.GradeResponse {
 		AssignmentId: g.AssignmentID,
 		StudentId:    g.StudentID,
 		Grade:        g.Grade,
+		Feedback:     g.Feedback,
 	}
 }
 

@@ -13,6 +13,12 @@ message GetCourseRequest {
   string course_id = 1;
 }
 
+message UpdateCourseRequest {
+  string course_id   = 1;
+  string title       = 2;
+  string description = 3;
+}
+
 message DeleteCourseRequest {
   string course_id = 1;
 }
@@ -31,8 +37,9 @@ message CoursesList {
 message Empty {}
 
 service CourseService {
-  rpc CreateCourse(CreateCourseRequest) returns (CourseResponse);
-  rpc GetCourse(GetCourseRequest)       returns (CourseResponse);
-  rpc GetAllCourses(Empty)              returns (CoursesList);
-  rpc DeleteCourse(DeleteCourseRequest) returns (Empty);
+  rpc CreateCourse(CreateCourseRequest)  returns (CourseResponse);
+  rpc GetCourse(GetCourseRequest)        returns (CourseResponse);
+  rpc GetAllCourses(Empty)               returns (CoursesList);
+  rpc UpdateCourse(UpdateCourseRequest)  returns (CourseResponse);
+  rpc DeleteCourse(DeleteCourseRequest)  returns (Empty);
 }

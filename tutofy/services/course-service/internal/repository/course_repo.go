@@ -13,7 +13,8 @@ var ErrNotFound = errors.New("course not found")
 type CourseRepository interface {
 	CreateCourse(ctx context.Context, course *model.Course) error
 	GetCourseByID(ctx context.Context, id string) (*model.Course, error)
-	GetAllCourses(ctx context.Context) ([]*model.Course, error)
+	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
+	UpdateCourse(ctx context.Context, id, title, description string) (*model.Course, error)
 	DeleteCourse(ctx context.Context, id string) error
 }
 
@@ -47,9 +48,10 @@ func (r *postgresRepo) GetCourseByID(ctx context.Context, id string) (*model.Cou
 	return c, nil
 }
 
-func (r *postgresRepo) GetAllCourses(ctx context.Context) ([]*model.Course, error) {
+func (r *postgresRepo) GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, title, description, tutor_id FROM courses`,
+		`SELECT id, title, description, tutor_id FROM courses ORDER BY id LIMIT $1 OFFSET $2`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, err
@@ -65,6 +67,19 @@ func (r *postgresRepo) GetAllCourses(ctx context.Context) ([]*model.Course, erro
 		courses = append(courses, c)
 	}
 	return courses, rows.Err()
+}
+
+func (r *postgresRepo) UpdateCourse(ctx context.Context, id, title, description string) (*model.Course, error) {
+	c := &model.Course{}
+	err := r.db.QueryRowContext(ctx,
+		`UPDATE courses SET title = $1, description = $2 WHERE id = $3
+		 RETURNING id, title, description, tutor_id`,
+		title, description, id,
+	).Scan(&c.ID, &c.Title, &c.Description, &c.TutorID)
+	if err == sql.ErrNoRows {
+		return nil, ErrNotFound
+	}
+	return c, err
 }
 
 func (r *postgresRepo) DeleteCourse(ctx context.Context, id string) error {

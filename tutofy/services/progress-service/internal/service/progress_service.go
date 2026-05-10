@@ -23,7 +23,7 @@ type ProgressService interface {
 
 	// GetCourseProgress returns progress for all students in a course.
 	// The caller must be a tutor, parent, or admin.
-	GetCourseProgress(ctx context.Context, callerID, callerRole, courseID string) ([]*model.Progress, error)
+	GetCourseProgress(ctx context.Context, callerID, callerRole, courseID string, limit, offset int32) ([]*model.Progress, error)
 }
 
 type progressService struct {
@@ -56,11 +56,12 @@ func (s *progressService) GetProgress(
 func (s *progressService) GetCourseProgress(
 	ctx context.Context,
 	callerID, callerRole, courseID string,
+	limit, offset int32,
 ) ([]*model.Progress, error) {
 	if !canReadCourseProgress(callerRole) {
 		return nil, ErrForbidden
 	}
-	return s.repo.GetCourseProgress(ctx, courseID)
+	return s.repo.GetCourseProgress(ctx, courseID, limit, offset)
 }
 
 // canReadStudentProgress returns true when the caller is allowed to view

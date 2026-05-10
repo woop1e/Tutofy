@@ -18,7 +18,8 @@ var (
 type CourseService interface {
 	CreateCourse(ctx context.Context, callerID, callerRole, title, description string) (*model.Course, error)
 	GetCourse(ctx context.Context, id string) (*model.Course, error)
-	GetAllCourses(ctx context.Context) ([]*model.Course, error)
+	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
+	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description string) (*model.Course, error)
 	DeleteCourse(ctx context.Context, callerID, callerRole, courseID string) error
 }
 
@@ -52,8 +53,19 @@ func (s *courseService) GetCourse(ctx context.Context, id string) (*model.Course
 	return s.repo.GetCourseByID(ctx, id)
 }
 
-func (s *courseService) GetAllCourses(ctx context.Context) ([]*model.Course, error) {
-	return s.repo.GetAllCourses(ctx)
+func (s *courseService) GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error) {
+	return s.repo.GetAllCourses(ctx, limit, offset)
+}
+
+func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description string) (*model.Course, error) {
+	course, err := s.repo.GetCourseByID(ctx, courseID)
+	if err != nil {
+		return nil, err
+	}
+	if callerRole != "admin" && course.TutorID != callerID {
+		return nil, ErrForbidden
+	}
+	return s.repo.UpdateCourse(ctx, courseID, title, description)
 }
 
 func (s *courseService) DeleteCourse(ctx context.Context, callerID, callerRole, courseID string) error {

@@ -4,10 +4,13 @@ import (
 	"auth-service/internal/service"
 	"auth-service/proto/authpb"
 	"context"
+	"regexp"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+var emailRE = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
 type AuthHandler struct {
 	authpb.UnimplementedAuthServiceServer
@@ -19,8 +22,19 @@ func NewAuthHandler(svc *service.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest) (*authpb.AuthResponse, error) {
-	if req.Email == "" || req.Password == "" || req.Role == "" {
-		return nil, status.Error(codes.InvalidArgument, "email, password, and role are required")
+	switch {
+	case req.Name == "":
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	case req.Email == "":
+		return nil, status.Error(codes.InvalidArgument, "email is required")
+	case !emailRE.MatchString(req.Email):
+		return nil, status.Error(codes.InvalidArgument, "invalid email format")
+	case req.Password == "":
+		return nil, status.Error(codes.InvalidArgument, "password is required")
+	case len(req.Password) < 8:
+		return nil, status.Error(codes.InvalidArgument, "password must be at least 8 characters")
+	case req.Role == "":
+		return nil, status.Error(codes.InvalidArgument, "role is required")
 	}
 
 	token, err := h.svc.Register(req.Email, req.Password, req.Name, req.Role)
@@ -32,8 +46,13 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.AuthResponse, error) {
-	if req.Email == "" || req.Password == "" {
-		return nil, status.Error(codes.InvalidArgument, "email and password are required")
+	switch {
+	case req.Email == "":
+		return nil, status.Error(codes.InvalidArgument, "email is required")
+	case !emailRE.MatchString(req.Email):
+		return nil, status.Error(codes.InvalidArgument, "invalid email format")
+	case req.Password == "":
+		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 
 	token, err := h.svc.Login(req.Email, req.Password)

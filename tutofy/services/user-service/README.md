@@ -1,23 +1,32 @@
 # user-service
 
-## Run
+Manages user profiles — read, update, and delete. All requests require a valid JWT.
+
+## Endpoints (gRPC)
+
+| RPC | Role | Description |
+|---|---|---|
+| `GetUser` | Any | Get user by ID |
+| `UpdateUser` | Self or admin | Update name / email |
+| `GetAllUsers` | Admin | List all users (limit, offset) |
+| `DeleteUser` | Admin | Hard-delete a user |
+
+## Environment Variables
+
+| Variable | Default | Required |
+|---|---|---|
+| `DB_URL` | — | Yes |
+| `PORT` | `50052` | No |
+| `AUTH_SERVICE_ADDR` | `localhost:50051` | No |
+
+## Running Locally
 
 ```bash
-# 1. Apply schema
-psql $DB_URL -f schema.sql
-
-# 2. Fetch dependencies
-go mod tidy
-
-# 3. Run
-export DB_URL="postgres://user:pass@localhost:5432/olms?sslmode=disable"
-export PORT=50052
-export AUTH_SERVICE_ADDR=localhost:50051
-go run ./cmd/main.go
+DB_URL=postgres://user:pass@localhost/users?sslmode=disable go run ./cmd
 ```
 
-## Proto regeneration (optional)
+## Running with Docker
+
 ```bash
-protoc --go_out=. --go-grpc_out=. proto/user.proto proto/auth.proto
+cd services && docker compose up user-service
 ```
-Replace `proto/user_grpc.go` and `proto/auth_grpc.go` with the generated output.

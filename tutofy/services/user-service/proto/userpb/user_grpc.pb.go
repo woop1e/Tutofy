@@ -112,6 +112,37 @@ func (x *UsersList) GetUsers() []*UserResponse {
 	return nil
 }
 
+type DeleteUserRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+}
+
+func (x *DeleteUserRequest) Reset()        { *x = DeleteUserRequest{} }
+func (x *DeleteUserRequest) String() string { return x.UserId }
+func (x *DeleteUserRequest) ProtoMessage() {}
+func (x *DeleteUserRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetAllUsersRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Limit  int32 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset int32 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+}
+
+func (x *GetAllUsersRequest) Reset()         { *x = GetAllUsersRequest{} }
+func (x *GetAllUsersRequest) String() string  { return "" }
+func (x *GetAllUsersRequest) ProtoMessage()  {}
+func (x *GetAllUsersRequest) GetLimit() int32  { return x.Limit }
+func (x *GetAllUsersRequest) GetOffset() int32 { return x.Offset }
+
 type Empty struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -127,7 +158,8 @@ func (x *Empty) ProtoMessage() {}
 type UserServiceServer interface {
 	GetUser(context.Context, *GetUserRequest) (*UserResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UserResponse, error)
-	GetAllUsers(context.Context, *Empty) (*UsersList, error)
+	GetAllUsers(context.Context, *GetAllUsersRequest) (*UsersList, error)
+	DeleteUser(context.Context, *DeleteUserRequest) (*Empty, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -139,7 +171,10 @@ func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) 
 func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UpdateUserRequest) (*UserResponse, error) {
 	return nil, nil
 }
-func (UnimplementedUserServiceServer) GetAllUsers(context.Context, *Empty) (*UsersList, error) {
+func (UnimplementedUserServiceServer) GetAllUsers(context.Context, *GetAllUsersRequest) (*UsersList, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*Empty, error) {
 	return nil, nil
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
@@ -157,6 +192,7 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "GetUser", Handler: _UserService_GetUser_Handler},
 		{MethodName: "UpdateUser", Handler: _UserService_UpdateUser_Handler},
 		{MethodName: "GetAllUsers", Handler: _UserService_GetAllUsers_Handler},
+		{MethodName: "DeleteUser", Handler: _UserService_DeleteUser_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "user.proto",
@@ -193,7 +229,7 @@ func _UserService_UpdateUser_Handler(srv interface{}, ctx context.Context, dec f
 }
 
 func _UserService_GetAllUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
+	in := new(GetAllUsersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -202,7 +238,22 @@ func _UserService_GetAllUsers_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/GetAllUsers"}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).GetAllUsers(ctx, req.(*Empty))
+		return srv.(UserServiceServer).GetAllUsers(ctx, req.(*GetAllUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).DeleteUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/DeleteUser"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).DeleteUser(ctx, req.(*DeleteUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

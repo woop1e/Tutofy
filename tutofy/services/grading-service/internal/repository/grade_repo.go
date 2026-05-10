@@ -26,16 +26,16 @@ func NewPostgresRepo(db *sql.DB) GradeRepository {
 
 func (r *postgresRepo) CreateGrade(ctx context.Context, g *model.Grade) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO grades (id, assignment_id, student_id, grade) VALUES ($1, $2, $3, $4)
-		 ON CONFLICT (assignment_id, student_id) DO UPDATE SET grade = EXCLUDED.grade`,
-		g.ID, g.AssignmentID, g.StudentID, g.Grade,
+		`INSERT INTO grades (id, assignment_id, student_id, grade, feedback) VALUES ($1, $2, $3, $4, $5)
+		 ON CONFLICT (assignment_id, student_id) DO UPDATE SET grade = EXCLUDED.grade, feedback = EXCLUDED.feedback`,
+		g.ID, g.AssignmentID, g.StudentID, g.Grade, g.Feedback,
 	)
 	return err
 }
 
 func (r *postgresRepo) GetGradesByStudent(ctx context.Context, studentID string) ([]*model.Grade, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, assignment_id, student_id, grade FROM grades WHERE student_id = $1`, studentID,
+		`SELECT id, assignment_id, student_id, grade, feedback FROM grades WHERE student_id = $1`, studentID,
 	)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (r *postgresRepo) GetGradesByStudent(ctx context.Context, studentID string)
 	var result []*model.Grade
 	for rows.Next() {
 		g := &model.Grade{}
-		if err := rows.Scan(&g.ID, &g.AssignmentID, &g.StudentID, &g.Grade); err != nil {
+		if err := rows.Scan(&g.ID, &g.AssignmentID, &g.StudentID, &g.Grade, &g.Feedback); err != nil {
 			return nil, err
 		}
 		result = append(result, g)
@@ -55,7 +55,7 @@ func (r *postgresRepo) GetGradesByStudent(ctx context.Context, studentID string)
 
 func (r *postgresRepo) GetGradesByAssignment(ctx context.Context, assignmentID string) ([]*model.Grade, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, assignment_id, student_id, grade FROM grades WHERE assignment_id = $1`, assignmentID,
+		`SELECT id, assignment_id, student_id, grade, feedback FROM grades WHERE assignment_id = $1`, assignmentID,
 	)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (r *postgresRepo) GetGradesByAssignment(ctx context.Context, assignmentID s
 	var result []*model.Grade
 	for rows.Next() {
 		g := &model.Grade{}
-		if err := rows.Scan(&g.ID, &g.AssignmentID, &g.StudentID, &g.Grade); err != nil {
+		if err := rows.Scan(&g.ID, &g.AssignmentID, &g.StudentID, &g.Grade, &g.Feedback); err != nil {
 			return nil, err
 		}
 		result = append(result, g)

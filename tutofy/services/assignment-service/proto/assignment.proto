@@ -12,10 +12,23 @@ message CreateAssignmentRequest {
 
 message CourseRequest {
   string course_id = 1;
+  int32  limit     = 2;
+  int32  offset    = 3;
+}
+
+message GetAssignmentRequest {
+  string assignment_id = 1;
 }
 
 message DeleteAssignmentRequest {
   string assignment_id = 1;
+}
+
+message UpdateAssignmentRequest {
+  string assignment_id = 1;
+  string title         = 2;
+  string description   = 3;
+  string due_date      = 4;
 }
 
 message AssignmentResponse {
@@ -23,6 +36,7 @@ message AssignmentResponse {
   string title       = 2;
   string description = 3;
   string course_id   = 4;
+  string due_date    = 5;
 }
 
 message AssignmentsList {
@@ -33,6 +47,8 @@ message Empty {}
 
 service AssignmentService {
   rpc CreateAssignment(CreateAssignmentRequest)     returns (AssignmentResponse);
+  rpc GetAssignment(GetAssignmentRequest)           returns (AssignmentResponse);
   rpc GetAssignmentsByCourse(CourseRequest)         returns (AssignmentsList);
+  rpc UpdateAssignment(UpdateAssignmentRequest)     returns (AssignmentResponse);
   rpc DeleteAssignment(DeleteAssignmentRequest)     returns (Empty);
 }

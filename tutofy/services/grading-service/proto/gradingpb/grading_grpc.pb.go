@@ -16,6 +16,7 @@ type SubmitGradeRequest struct {
 	AssignmentId string  `protobuf:"bytes,1,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
 	StudentId    string  `protobuf:"bytes,2,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
 	Grade        float32 `protobuf:"fixed32,3,opt,name=grade,proto3" json:"grade,omitempty"`
+	Feedback     string  `protobuf:"bytes,4,opt,name=feedback,proto3" json:"feedback,omitempty"`
 }
 
 func (x *SubmitGradeRequest) Reset()         { *x = SubmitGradeRequest{} }
@@ -24,6 +25,7 @@ func (x *SubmitGradeRequest) ProtoMessage()  {}
 func (x *SubmitGradeRequest) GetAssignmentId() string { return x.AssignmentId }
 func (x *SubmitGradeRequest) GetStudentId() string    { return x.StudentId }
 func (x *SubmitGradeRequest) GetGrade() float32       { return x.Grade }
+func (x *SubmitGradeRequest) GetFeedback() string     { return x.Feedback }
 
 type StudentRequest struct {
 	state         protoimpl.MessageState
@@ -57,6 +59,7 @@ type GradeResponse struct {
 	AssignmentId string  `protobuf:"bytes,2,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
 	StudentId    string  `protobuf:"bytes,3,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
 	Grade        float32 `protobuf:"fixed32,4,opt,name=grade,proto3" json:"grade,omitempty"`
+	Feedback     string  `protobuf:"bytes,5,opt,name=feedback,proto3" json:"feedback,omitempty"`
 }
 
 func (x *GradeResponse) Reset()         { *x = GradeResponse{} }
@@ -66,6 +69,7 @@ func (x *GradeResponse) GetId() string           { return x.Id }
 func (x *GradeResponse) GetAssignmentId() string { return x.AssignmentId }
 func (x *GradeResponse) GetStudentId() string    { return x.StudentId }
 func (x *GradeResponse) GetGrade() float32       { return x.Grade }
+func (x *GradeResponse) GetFeedback() string     { return x.Feedback }
 
 type GradesList struct {
 	state         protoimpl.MessageState

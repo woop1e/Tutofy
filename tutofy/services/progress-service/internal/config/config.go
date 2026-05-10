@@ -22,7 +22,7 @@ func Load() *Config {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "50054"
+		port = "50058"
 	}
 
 	dbURL := os.Getenv("DB_URL")

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package messaging;
+
+option go_package = "messaging-service/proto/messagingpb";
+
+message SendMessageRequest {
+  string receiver_id = 1;
+  string content     = 2;
+}
+
+message GetConversationRequest {
+  string other_user_id = 1;
+  int32  limit         = 2;
+  int32  offset        = 3;
+}
+
+message GetUserConversationsRequest {
+  int32 limit  = 1;
+  int32 offset = 2;
+}
+
+message MessageResponse {
+  string id          = 1;
+  string sender_id   = 2;
+  string receiver_id = 3;
+  string content     = 4;
+  bool   is_read     = 5;
+  string created_at  = 6;
+}
+
+message MessagesList {
+  repeated MessageResponse messages = 1;
+}
+
+message ConversationItem {
+  string other_user_id   = 1;
+  string last_message    = 2;
+  string last_message_at = 3;
+}
+
+message ConversationsList {
+  repeated ConversationItem conversations = 1;
+}
+
+service MessagingService {
+  rpc SendMessage(SendMessageRequest)                       returns (MessageResponse);
+  rpc GetConversation(GetConversationRequest)               returns (MessagesList);
+  rpc GetUserConversations(GetUserConversationsRequest)     returns (ConversationsList);
+}

@@ -27,6 +27,17 @@ func NewLessonHandler(svc service.LessonService) *LessonHandler {
 }
 
 func (h *LessonHandler) CreateLesson(ctx context.Context, req *lessonpb.CreateLessonRequest) (*lessonpb.Lesson, error) {
+	switch {
+	case req.GetTitle() == "":
+		return nil, status.Error(codes.InvalidArgument, "title is required")
+	case req.GetDurationMinutes() <= 0:
+		return nil, status.Error(codes.InvalidArgument, "duration_minutes must be greater than 0")
+	case req.GetScheduledAt() == nil || req.GetScheduledAt().AsTime().IsZero():
+		return nil, status.Error(codes.InvalidArgument, "scheduled_at is required")
+	case req.GetCourseId() == "":
+		return nil, status.Error(codes.InvalidArgument, "course_id is required")
+	}
+
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
@@ -60,7 +71,7 @@ func (h *LessonHandler) GetCourseLessons(ctx context.Context, req *lessonpb.GetC
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	lessons, err := h.svc.GetCourseLessons(ctx, callerID, callerRole, req.GetCourseId())
+	lessons, err := h.svc.GetCourseLessons(ctx, callerID, callerRole, req.GetCourseId(), 50, 0)
 	if err != nil {
 		return nil, mapError(err)
 	}

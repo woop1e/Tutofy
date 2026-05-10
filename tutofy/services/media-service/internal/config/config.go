@@ -29,7 +29,7 @@ func Load() *Config {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "50057"
+		port = "50062"
 	}
 
 	dbURL := os.Getenv("DB_URL")
@@ -54,7 +54,7 @@ func Load() *Config {
 
 	enrollmentAddr := os.Getenv("ENROLLMENT_SERVICE_ADDR")
 	if enrollmentAddr == "" {
-		enrollmentAddr = "localhost:50052"
+		enrollmentAddr = "localhost:50054"
 	}
 
 	return &Config{

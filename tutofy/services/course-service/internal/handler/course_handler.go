@@ -24,6 +24,13 @@ func NewCourseHandler(svc service.CourseService) *CourseHandler {
 }
 
 func (h *CourseHandler) CreateCourse(ctx context.Context, req *coursepb.CreateCourseRequest) (*coursepb.CourseResponse, error) {
+	if req.GetTitle() == "" {
+		return nil, status.Error(codes.InvalidArgument, "title is required")
+	}
+	if len(req.GetTitle()) > 200 {
+		return nil, status.Error(codes.InvalidArgument, "title must be 200 characters or fewer")
+	}
+
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
@@ -48,8 +55,9 @@ func (h *CourseHandler) GetCourse(ctx context.Context, req *coursepb.GetCourseRe
 	return toProto(course), nil
 }
 
-func (h *CourseHandler) GetAllCourses(ctx context.Context, _ *coursepb.Empty) (*coursepb.CoursesList, error) {
-	courses, err := h.svc.GetAllCourses(ctx)
+func (h *CourseHandler) GetAllCourses(ctx context.Context, req *coursepb.GetAllCoursesRequest) (*coursepb.CoursesList, error) {
+	limit, offset := pageParams(req.GetLimit(), req.GetOffset())
+	courses, err := h.svc.GetAllCourses(ctx, limit, offset)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -59,6 +67,37 @@ func (h *CourseHandler) GetAllCourses(ctx context.Context, _ *coursepb.Empty) (*
 		list = append(list, toProto(c))
 	}
 	return &coursepb.CoursesList{Courses: list}, nil
+}
+
+func pageParams(limit, offset int32) (int32, int32) {
+	if limit <= 0 {
+		limit = 50
+	}
+	return limit, offset
+}
+
+func (h *CourseHandler) UpdateCourse(ctx context.Context, req *coursepb.UpdateCourseRequest) (*coursepb.CourseResponse, error) {
+	if req.GetTitle() == "" {
+		return nil, status.Error(codes.InvalidArgument, "title is required")
+	}
+	if len(req.GetTitle()) > 200 {
+		return nil, status.Error(codes.InvalidArgument, "title must be 200 characters or fewer")
+	}
+
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	course, err := h.svc.UpdateCourse(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetDescription())
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "course not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return toProto(course), nil
 }
 
 func (h *CourseHandler) DeleteCourse(ctx context.Context, req *coursepb.DeleteCourseRequest) (*coursepb.Empty, error) {

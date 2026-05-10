@@ -5,4 +5,5 @@ type Grade struct {
 	AssignmentID string
 	StudentID    string
 	Grade        float32
+	Feedback     string
 }

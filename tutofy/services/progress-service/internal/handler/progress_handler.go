@@ -71,7 +71,7 @@ func (h *ProgressHandler) GetCourseProgress(
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	progresses, err := h.svc.GetCourseProgress(ctx, callerID, callerRole, req.GetCourseId())
+	progresses, err := h.svc.GetCourseProgress(ctx, callerID, callerRole, req.GetCourseId(), 50, 0)
 	if err != nil {
 		return nil, mapServiceError(err)
 	}
