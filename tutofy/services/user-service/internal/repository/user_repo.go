@@ -28,7 +28,7 @@ func NewPostgresRepo(db *sql.DB) UserRepository {
 func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.User, error) {
 	u := &model.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, email, name, role FROM users WHERE id = $1`, id,
+		`SELECT id, email, name, role FROM users WHERE id = $1 AND deleted_at IS NULL`, id,
 	).Scan(&u.ID, &u.Email, &u.Name, &u.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -56,7 +56,7 @@ func (r *postgresRepo) UpdateUser(ctx context.Context, id, name, email string) (
 }
 
 func (r *postgresRepo) DeleteUser(ctx context.Context, id string) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
+	res, err := r.db.ExecContext(ctx, `UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (r *postgresRepo) DeleteUser(ctx context.Context, id string) error {
 }
 
 func (r *postgresRepo) GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, email, name, role FROM users ORDER BY id LIMIT $1 OFFSET $2`, limit, offset)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, email, name, role FROM users WHERE deleted_at IS NULL ORDER BY id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, err
 	}

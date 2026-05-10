@@ -14,6 +14,7 @@ import (
 	"enrollment-service/internal/repository"
 	"enrollment-service/internal/service"
 	"enrollment-service/proto/enrollmentpb"
+	"payment-service/proto/paymentpb"
 
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
@@ -44,11 +45,18 @@ func main() {
 	}
 	defer courseConn.Close()
 
-	authClient := authpb.NewAuthServiceClient(authConn)
+	paymentConn, err := grpc.NewClient(cfg.PaymentServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("payment-service dial: %v", err)
+	}
+	defer paymentConn.Close()
+
+	authClient   := authpb.NewAuthServiceClient(authConn)
 	courseClient := coursepb.NewCourseServiceClient(courseConn)
+	paymentClient := paymentpb.NewPaymentServiceClient(paymentConn)
 
 	repo := repository.NewPostgresRepo(db)
-	svc := service.NewEnrollmentService(repo, courseClient)
+	svc := service.NewEnrollmentService(repo, courseClient, paymentClient)
 	h := handler.NewEnrollmentHandler(svc)
 
 	grpcServer := grpc.NewServer(

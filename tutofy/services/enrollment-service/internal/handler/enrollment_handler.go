@@ -32,6 +32,9 @@ func (h *EnrollmentHandler) EnrollUser(ctx context.Context, req *enrollmentpb.En
 		if errors.Is(err, service.ErrNotStudent) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		}
+		if errors.Is(err, service.ErrPaymentRequired) {
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		}
 		if errors.Is(err, repository.ErrAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, "already enrolled")
 		}

@@ -11,6 +11,7 @@ type Config struct {
 	DBURL     string
 	JWTSecret string
 	Port      string
+	RedisAddr string
 }
 
 func Load() *Config {
@@ -24,9 +25,15 @@ func Load() *Config {
 		port = "50051"
 	}
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
 	return &Config{
 		DBURL:     os.Getenv("DB_URL"),
 		JWTSecret: os.Getenv("JWT_SECRET"),
 		Port:      port,
+		RedisAddr: redisAddr,
 	}
 }

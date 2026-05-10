@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	DBURL             string
-	Port              string
-	AuthServiceAddr   string
-	CourseServiceAddr string
+	DBURL              string
+	Port               string
+	AuthServiceAddr    string
+	CourseServiceAddr  string
+	PaymentServiceAddr string
 }
 
 func Load() *Config {
@@ -39,10 +40,16 @@ func Load() *Config {
 		courseAddr = "localhost:50053"
 	}
 
+	paymentAddr := os.Getenv("PAYMENT_SERVICE_ADDR")
+	if paymentAddr == "" {
+		paymentAddr = "localhost:50061"
+	}
+
 	return &Config{
-		DBURL:             dbURL,
-		Port:              port,
-		AuthServiceAddr:   authAddr,
-		CourseServiceAddr: courseAddr,
+		DBURL:              dbURL,
+		Port:               port,
+		AuthServiceAddr:    authAddr,
+		CourseServiceAddr:  courseAddr,
+		PaymentServiceAddr: paymentAddr,
 	}
 }

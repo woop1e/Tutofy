@@ -34,7 +34,7 @@ func (h *CourseHandler) CreateCourse(ctx context.Context, req *coursepb.CreateCo
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	course, err := h.svc.CreateCourse(ctx, callerID, callerRole, req.GetTitle(), req.GetDescription())
+	course, err := h.svc.CreateCourse(ctx, callerID, callerRole, req.GetTitle(), req.GetDescription(), req.GetPrice())
 	if err != nil {
 		if errors.Is(err, service.ErrNotTutor) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -123,5 +123,57 @@ func toProto(c *model.Course) *coursepb.CourseResponse {
 		Title:       c.Title,
 		Description: c.Description,
 		TutorId:     c.TutorID,
+		Price:       c.Price,
 	}
+}
+
+func (h *CourseHandler) AddTag(ctx context.Context, req *coursepb.TagRequest) (*coursepb.Empty, error) {
+	if req.GetCourseId() == "" || req.GetTagName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "course_id and tag_name are required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	if err := h.svc.AddTag(ctx, callerID, callerRole, req.GetCourseId(), req.GetTagName()); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "course not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &coursepb.Empty{}, nil
+}
+
+func (h *CourseHandler) RemoveTag(ctx context.Context, req *coursepb.TagRequest) (*coursepb.Empty, error) {
+	if req.GetCourseId() == "" || req.GetTagName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "course_id and tag_name are required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	if err := h.svc.RemoveTag(ctx, callerID, callerRole, req.GetCourseId(), req.GetTagName()); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "course not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &coursepb.Empty{}, nil
+}
+
+func (h *CourseHandler) GetCoursesByTag(ctx context.Context, req *coursepb.GetCoursesByTagRequest) (*coursepb.CoursesList, error) {
+	if req.GetTagName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tag_name is required")
+	}
+	courses, err := h.svc.GetCoursesByTag(ctx, req.GetTagName(), req.GetLimit(), req.GetOffset())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	list := make([]*coursepb.CourseResponse, 0, len(courses))
+	for _, c := range courses {
+		list = append(list, toProto(c))
+	}
+	return &coursepb.CoursesList{Courses: list}, nil
 }

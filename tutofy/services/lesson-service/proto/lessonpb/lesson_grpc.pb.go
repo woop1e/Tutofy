@@ -91,6 +91,7 @@ type LessonServiceServer interface {
 	GetCourseLessons(context.Context, *GetCourseLessonsRequest) (*CourseLessonsList, error)
 	UpdateLessonStatus(context.Context, *UpdateLessonStatusRequest) (*Lesson, error)
 	DeleteLesson(context.Context, *DeleteLessonRequest) (*Empty, error)
+	MarkAttendance(context.Context, *MarkAttendanceRequest) (*Empty, error)
 	mustEmbedUnimplementedLessonServiceServer()
 }
 
@@ -243,7 +244,34 @@ var LessonService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteLesson",
 			Handler:    _LessonService_DeleteLesson_Handler,
 		},
+		{
+			MethodName: "MarkAttendance",
+			Handler:    _LessonService_MarkAttendance_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/lesson.proto",
+}
+
+// ── MarkAttendance extension ──────────────────────────────────────────────────
+
+// Added without protoc regeneration — wire encoding requires protoc re-run.
+
+func (UnimplementedLessonServiceServer) MarkAttendance(context.Context, *MarkAttendanceRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MarkAttendance not implemented")
+}
+
+func _LessonService_MarkAttendance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkAttendanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LessonServiceServer).MarkAttendance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/MarkAttendance"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).MarkAttendance(ctx, req.(*MarkAttendanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }

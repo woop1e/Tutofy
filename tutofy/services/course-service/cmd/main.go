@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -15,6 +16,7 @@ import (
 	"course-service/proto/coursepb"
 
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -42,8 +44,17 @@ func main() {
 
 	authClient := authpb.NewAuthServiceClient(authConn)
 
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Printf("warn: redis unavailable — caching disabled: %v", err)
+		rdb = nil
+	}
+	if rdb != nil {
+		defer rdb.Close()
+	}
+
 	repo := repository.NewPostgresRepo(db)
-	svc := service.NewCourseService(repo)
+	svc := service.NewCourseService(repo, rdb)
 	h := handler.NewCourseHandler(svc)
 
 	grpcServer := grpc.NewServer(

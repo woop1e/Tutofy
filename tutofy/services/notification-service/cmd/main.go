@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -16,9 +18,17 @@ import (
 	"auth-service/proto/authpb"
 
 	_ "github.com/lib/pq"
+	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+type gradeEvent struct {
+	AssignmentID string  `json:"assignment_id"`
+	StudentID    string  `json:"student_id"`
+	Grade        float32 `json:"grade"`
+	Feedback     string  `json:"feedback"`
+}
 
 func main() {
 	cfg := config.Load()
@@ -45,6 +55,25 @@ func main() {
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewNotificationService(repo)
 	h := handler.NewNotificationHandler(svc)
+
+	// Subscribe to NATS grade.submitted events.
+	nc, err := nats.Connect(cfg.NATSAddr)
+	if err != nil {
+		log.Printf("warn: NATS unavailable — grade notifications via NATS disabled: %v", err)
+	} else {
+		defer nc.Close()
+		_, _ = nc.Subscribe("grade.submitted", func(msg *nats.Msg) {
+			var ev gradeEvent
+			if err := json.Unmarshal(msg.Data, &ev); err != nil {
+				log.Printf("warn: bad grade.submitted payload: %v", err)
+				return
+			}
+			if err := svc.NotifyGrade(context.Background(), ev.AssignmentID, ev.StudentID, ev.Grade); err != nil {
+				log.Printf("warn: NotifyGrade failed: %v", err)
+			}
+		})
+		log.Printf("notification-service: subscribed to grade.submitted on %s", cfg.NATSAddr)
+	}
 
 	// Start gRPC server.
 	grpcServer := grpc.NewServer(

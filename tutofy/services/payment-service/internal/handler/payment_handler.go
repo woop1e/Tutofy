@@ -134,3 +134,14 @@ func pageParams(limit, offset int32) (int32, int32) {
 	}
 	return limit, offset
 }
+
+func (h *PaymentHandler) CheckCoursePayment(ctx context.Context, req *paymentpb.CheckCoursePaymentRequest) (*paymentpb.CheckCoursePaymentResponse, error) {
+	if req.GetUserId() == "" || req.GetCourseId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id and course_id are required")
+	}
+	hasPaid, err := h.svc.CheckCoursePayment(ctx, req.GetUserId(), req.GetCourseId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &paymentpb.CheckCoursePaymentResponse{HasPaid: hasPaid}, nil
+}

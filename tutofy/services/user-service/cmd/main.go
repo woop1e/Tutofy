@@ -8,6 +8,8 @@ import (
 
 	_ "github.com/lib/pq"
 	"auth-service/proto/authpb"
+	"context"
+	"github.com/redis/go-redis/v9"
 	"user-service/internal/config"
 	"user-service/internal/handler"
 	"user-service/internal/middleware"
@@ -41,8 +43,17 @@ func main() {
 
 	authClient := authpb.NewAuthServiceClient(authConn)
 
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Printf("warn: redis unavailable — caching disabled: %v", err)
+		rdb = nil
+	}
+	if rdb != nil {
+		defer rdb.Close()
+	}
+
 	repo := repository.NewPostgresRepo(db)
-	svc := service.NewUserService(repo)
+	svc := service.NewUserService(repo, rdb)
 	h := handler.NewUserHandler(svc)
 
 	grpcServer := grpc.NewServer(

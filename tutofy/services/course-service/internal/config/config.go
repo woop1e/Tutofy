@@ -11,6 +11,7 @@ type Config struct {
 	DBURL           string
 	Port            string
 	AuthServiceAddr string
+	RedisAddr       string
 }
 
 func Load() *Config {
@@ -33,9 +34,15 @@ func Load() *Config {
 		authAddr = "localhost:50051"
 	}
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
 	return &Config{
 		DBURL:           dbURL,
 		Port:            port,
 		AuthServiceAddr: authAddr,
+		RedisAddr:       redisAddr,
 	}
 }

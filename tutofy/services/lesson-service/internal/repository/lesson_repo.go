@@ -17,6 +17,7 @@ type LessonRepository interface {
 	GetCourseLessons(ctx context.Context, courseID string, limit, offset int32) ([]*model.Lesson, error)
 	UpdateLessonStatus(ctx context.Context, id string, status model.LessonStatus) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, id string) error
+	UpsertAttendance(ctx context.Context, lessonID, studentID string, attended bool) error
 }
 
 type postgresRepo struct {
@@ -54,14 +55,14 @@ func (r *postgresRepo) CreateLesson(ctx context.Context, lesson *model.Lesson) e
 
 func (r *postgresRepo) GetLessonByID(ctx context.Context, id string) (*model.Lesson, error) {
 	row := r.db.QueryRowContext(ctx,
-		`SELECT `+lessonColumns+` FROM lessons WHERE id = $1`, id,
+		`SELECT `+lessonColumns+` FROM lessons WHERE id = $1 AND deleted_at IS NULL`, id,
 	)
 	return scanLesson(row)
 }
 
 func (r *postgresRepo) GetCourseLessons(ctx context.Context, courseID string, limit, offset int32) ([]*model.Lesson, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT `+lessonColumns+` FROM lessons WHERE course_id = $1 ORDER BY scheduled_at ASC LIMIT $2 OFFSET $3`,
+		`SELECT `+lessonColumns+` FROM lessons WHERE course_id = $1 AND deleted_at IS NULL ORDER BY scheduled_at ASC LIMIT $2 OFFSET $3`,
 		courseID, limit, offset,
 	)
 	if err != nil {
@@ -96,7 +97,7 @@ func (r *postgresRepo) UpdateLessonStatus(ctx context.Context, id string, status
 }
 
 func (r *postgresRepo) DeleteLesson(ctx context.Context, id string) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM lessons WHERE id = $1`, id)
+	res, err := r.db.ExecContext(ctx, `UPDATE lessons SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
 		return err
 	}
@@ -145,4 +146,14 @@ func scanLessonRow(rows *sql.Rows) (*model.Lesson, error) {
 	}
 	l.Status = model.LessonStatus(status)
 	return l, nil
+}
+
+func (r *postgresRepo) UpsertAttendance(ctx context.Context, lessonID, studentID string, attended bool) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO lesson_attendance (lesson_id, student_id, attended)
+		 VALUES ($1, $2, $3)
+		 ON CONFLICT (lesson_id, student_id) DO UPDATE SET attended = EXCLUDED.attended`,
+		lessonID, studentID, attended,
+	)
+	return err
 }

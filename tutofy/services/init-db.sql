@@ -11,3 +11,7 @@ CREATE DATABASE progress;
 CREATE DATABASE media;
 CREATE DATABASE messaging;
 CREATE DATABASE payments;
+CREATE DATABASE submissions;
+CREATE DATABASE quizzes;
+CREATE DATABASE reviews;
+CREATE DATABASE certificates;

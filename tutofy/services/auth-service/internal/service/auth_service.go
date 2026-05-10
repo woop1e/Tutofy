@@ -3,21 +3,25 @@ package service
 import (
 	"auth-service/internal/model"
 	"auth-service/internal/repository"
+	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
 	repo      *repository.UserRepository
 	jwtSecret string
+	rdb       *redis.Client
 }
 
-func NewAuthService(repo *repository.UserRepository, jwtSecret string) *AuthService {
-	return &AuthService{repo: repo, jwtSecret: jwtSecret}
+func NewAuthService(repo *repository.UserRepository, jwtSecret string, rdb *redis.Client) *AuthService {
+	return &AuthService{repo: repo, jwtSecret: jwtSecret, rdb: rdb}
 }
 
 func (s *AuthService) Register(email, password, name, role string) (string, error) {
@@ -76,6 +80,15 @@ func (s *AuthService) GenerateJWT(userID, role string) (string, error) {
 }
 
 func (s *AuthService) ValidateJWT(tokenStr string) (string, string, error) {
+	// Cache hit — skip JWT parsing on hot path.
+	if s.rdb != nil {
+		if val, err := s.rdb.Get(context.Background(), "token:"+tokenStr).Result(); err == nil {
+			if parts := strings.SplitN(val, ":", 2); len(parts) == 2 {
+				return parts[0], parts[1], nil
+			}
+		}
+	}
+
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -93,5 +106,10 @@ func (s *AuthService) ValidateJWT(tokenStr string) (string, string, error) {
 
 	userID, _ := claims["user_id"].(string)
 	role, _ := claims["role"].(string)
+
+	if s.rdb != nil {
+		_ = s.rdb.SetEx(context.Background(), "token:"+tokenStr, userID+":"+role, 5*time.Minute).Err()
+	}
+
 	return userID, role, nil
 }

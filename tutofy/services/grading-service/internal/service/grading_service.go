@@ -2,19 +2,28 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"log"
 
 	"assignment-service/proto/assignmentpb"
 	"enrollment-service/proto/enrollmentpb"
-	"grading-service/internal/client"
 	"grading-service/internal/model"
 	"grading-service/internal/repository"
 
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+type gradeEvent struct {
+	AssignmentID string  `json:"assignment_id"`
+	StudentID    string  `json:"student_id"`
+	Grade        float32 `json:"grade"`
+	Feedback     string  `json:"feedback"`
+}
 
 var (
 	ErrForbidden   = errors.New("forbidden")
@@ -29,23 +38,23 @@ type GradingService interface {
 }
 
 type gradingService struct {
-	repo                 repository.GradeRepository
-	assignmentClient     assignmentpb.AssignmentServiceClient
-	enrollmentClient     enrollmentpb.EnrollmentServiceClient
-	notificationClient   client.NotificationClient
+	repo             repository.GradeRepository
+	assignmentClient assignmentpb.AssignmentServiceClient
+	enrollmentClient enrollmentpb.EnrollmentServiceClient
+	nc               *nats.Conn
 }
 
 func NewGradingService(
 	repo repository.GradeRepository,
 	assignmentClient assignmentpb.AssignmentServiceClient,
 	enrollmentClient enrollmentpb.EnrollmentServiceClient,
-	notificationClient client.NotificationClient,
+	nc *nats.Conn,
 ) GradingService {
 	return &gradingService{
-		repo:               repo,
-		assignmentClient:   assignmentClient,
-		enrollmentClient:   enrollmentClient,
-		notificationClient: notificationClient,
+		repo:             repo,
+		assignmentClient: assignmentClient,
+		enrollmentClient: enrollmentClient,
+		nc:               nc,
 	}
 }
 
@@ -90,7 +99,13 @@ func (s *gradingService) SubmitGrade(ctx context.Context, callerRole, assignment
 		return nil, err
 	}
 
-	go s.notificationClient.NotifyGrade(outCtx(ctx), assignmentID, studentID, grade)
+	if s.nc != nil {
+		if data, err := json.Marshal(gradeEvent{AssignmentID: assignmentID, StudentID: studentID, Grade: grade, Feedback: feedback}); err == nil {
+			if err := s.nc.Publish("grade.submitted", data); err != nil {
+				log.Printf("warn: NATS publish grade.submitted failed: %v", err)
+			}
+		}
+	}
 
 	return g, nil
 }

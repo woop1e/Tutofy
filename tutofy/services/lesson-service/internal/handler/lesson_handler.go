@@ -162,3 +162,18 @@ func mapError(err error) error {
 		return status.Error(codes.Internal, err.Error())
 	}
 }
+
+func (h *LessonHandler) MarkAttendance(ctx context.Context, req *lessonpb.MarkAttendanceRequest) (*lessonpb.Empty, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	if len(req.GetStudentIds()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "student_ids must not be empty")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	if err := h.svc.MarkAttendance(ctx, callerID, callerRole, req.GetLessonId(), req.GetStudentIds(), req.GetAttended()); err != nil {
+		return nil, mapError(err)
+	}
+	return &lessonpb.Empty{}, nil
+}

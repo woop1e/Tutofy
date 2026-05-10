@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"log"
 	"time"
 
 	"lesson-service/internal/client"
@@ -10,7 +12,21 @@ import (
 	"lesson-service/internal/repository"
 
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 )
+
+type lessonStatusEvent struct {
+	CourseID   string   `json:"course_id"`
+	LessonID   string   `json:"lesson_id"`
+	StudentIDs []string `json:"student_ids"`
+	Status     string   `json:"status"`
+}
+
+var statusName = map[model.LessonStatus]string{
+	model.LessonStatusPlanned:   "PLANNED",
+	model.LessonStatusCompleted: "COMPLETED",
+	model.LessonStatusCancelled: "CANCELLED",
+}
 
 var (
 	ErrForbidden       = errors.New("forbidden")
@@ -25,27 +41,28 @@ type LessonService interface {
 	GetCourseLessons(ctx context.Context, callerID, callerRole, courseID string, limit, offset int32) ([]*model.Lesson, error)
 	UpdateLessonStatus(ctx context.Context, callerID, callerRole, lessonID string, status model.LessonStatus) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, callerID, callerRole, lessonID string) error
+	MarkAttendance(ctx context.Context, callerID, callerRole, lessonID string, studentIDs []string, attended bool) error
 }
 
 type lessonService struct {
 	repo       repository.LessonRepository
 	enrollment client.EnrollmentClient
-	progress   client.ProgressClient
 	course     client.CourseClient
+	nc         *nats.Conn
 }
 
 // NewLessonService creates a LessonService wired to all required dependencies.
 func NewLessonService(
 	repo repository.LessonRepository,
 	enrollment client.EnrollmentClient,
-	progress client.ProgressClient,
 	course client.CourseClient,
+	nc *nats.Conn,
 ) LessonService {
 	return &lessonService{
 		repo:       repo,
 		enrollment: enrollment,
-		progress:   progress,
 		course:     course,
+		nc:         nc,
 	}
 }
 
@@ -165,16 +182,52 @@ func (s *lessonService) assertCanView(ctx context.Context, callerID, callerRole,
 	}
 }
 
-// notifyProgress fetches all enrolled students and fires RecordLessonEvent
-// for each of them. Runs in a goroutine so it never blocks the main flow.
+// notifyProgress publishes a lesson.status_changed event to NATS with all
+// enrolled student IDs included so progress-service can process without
+// needing its own enrollment-service client.
 func (s *lessonService) notifyProgress(ctx context.Context, courseID, lessonID string, status model.LessonStatus) {
+	if s.nc == nil {
+		return
+	}
 	studentIDs, err := s.enrollment.GetEnrolledStudentIDs(ctx, courseID)
+	if err != nil || len(studentIDs) == 0 {
+		return
+	}
+	ev := lessonStatusEvent{
+		CourseID:   courseID,
+		LessonID:   lessonID,
+		StudentIDs: studentIDs,
+		Status:     statusName[status],
+	}
+	data, err := json.Marshal(ev)
 	if err != nil {
 		return
 	}
-	s.progress.RecordLessonEvent(ctx, studentIDs, courseID, lessonID, status)
+	if err := s.nc.Publish("lesson.status_changed", data); err != nil {
+		log.Printf("warn: NATS publish lesson.status_changed failed: %v", err)
+	}
 }
 
 func isTutorOrAdmin(role string) bool {
 	return role == "tutor" || role == "admin"
+}
+
+func (s *lessonService) MarkAttendance(ctx context.Context, callerID, callerRole, lessonID string, studentIDs []string, attended bool) error {
+	if !isTutorOrAdmin(callerRole) {
+		return ErrNotTutorOrAdmin
+	}
+	// Verify the caller owns this lesson (or is admin).
+	lesson, err := s.repo.GetLessonByID(ctx, lessonID)
+	if err != nil {
+		return err
+	}
+	if callerRole != "admin" && lesson.TutorID != callerID {
+		return ErrForbidden
+	}
+	for _, studentID := range studentIDs {
+		if err := s.repo.UpsertAttendance(ctx, lessonID, studentID, attended); err != nil {
+			return err
+		}
+	}
+	return nil
 }

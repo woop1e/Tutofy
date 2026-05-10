@@ -7,11 +7,13 @@ import (
 	"auth-service/internal/repository"
 	"auth-service/internal/service"
 	"auth-service/proto/authpb"
+	"context"
 	"database/sql"
 	"log"
 	"net"
 
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 )
 
@@ -28,8 +30,17 @@ func main() {
 		log.Fatalf("db unreachable: %v", err)
 	}
 
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Printf("warn: redis unavailable at %s — caching disabled: %v", cfg.RedisAddr, err)
+		rdb = nil
+	}
+	if rdb != nil {
+		defer rdb.Close()
+	}
+
 	repo := repository.NewUserRepository(db)
-	svc := service.NewAuthService(repo, cfg.JWTSecret)
+	svc := service.NewAuthService(repo, cfg.JWTSecret, rdb)
 	h := handler.NewAuthHandler(svc)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Port)

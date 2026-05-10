@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package quiz;
+
+option go_package = "quiz-service/proto/quizpb";
+
+// ── Management ────────────────────────────────────────────────────────────────
+
+message CreateQuizRequest {
+  string course_id = 1;
+  string title     = 2;
+}
+
+message AddQuestionRequest {
+  string quiz_id  = 1;
+  string text     = 2;
+  int32  position = 3;
+}
+
+message AddOptionRequest {
+  string question_id = 1;
+  string text        = 2;
+  bool   is_correct  = 3;
+}
+
+message DeleteQuizRequest {
+  string quiz_id = 1;
+}
+
+// ── Attempt ───────────────────────────────────────────────────────────────────
+
+message StartAttemptRequest {
+  string quiz_id = 1;
+}
+
+message AnswerInput {
+  string question_id = 1;
+  string option_id   = 2;
+}
+
+message SubmitAttemptRequest {
+  string              attempt_id = 1;
+  repeated AnswerInput answers   = 2;
+}
+
+message GetAttemptResultRequest {
+  string attempt_id = 1;
+}
+
+// ── Responses ─────────────────────────────────────────────────────────────────
+
+message QuizResponse {
+  string id         = 1;
+  string course_id  = 2;
+  string title      = 3;
+  string created_at = 4;
+}
+
+message QuestionResponse {
+  string id       = 1;
+  string quiz_id  = 2;
+  string text     = 3;
+  int32  position = 4;
+}
+
+message OptionResponse {
+  string id          = 1;
+  string question_id = 2;
+  string text        = 3;
+}
+
+message AttemptResponse {
+  string attempt_id  = 1;
+  string quiz_id     = 2;
+  string student_id  = 3;
+  int32  score       = 4;
+  int32  total       = 5;
+  string started_at  = 6;
+  string completed_at = 7;
+}
+
+message AttemptResultResponse {
+  string attempt_id = 1;
+  int32  score      = 2;
+  int32  total      = 3;
+  float  percentage = 4;
+  repeated AnswerResultItem answers = 5;
+}
+
+message AnswerResultItem {
+  string question_id        = 1;
+  string chosen_option_id   = 2;
+  string correct_option_id  = 3;
+  bool   is_correct         = 4;
+}
+
+message GetCourseQuizzesRequest {
+  string course_id = 1;
+}
+
+message QuizzesList {
+  repeated QuizResponse quizzes = 1;
+}
+
+message Empty {}
+
+// ── Service ───────────────────────────────────────────────────────────────────
+
+service QuizService {
+  rpc CreateQuiz(CreateQuizRequest)               returns (QuizResponse);
+  rpc AddQuestion(AddQuestionRequest)             returns (QuestionResponse);
+  rpc AddOption(AddOptionRequest)                 returns (OptionResponse);
+  rpc DeleteQuiz(DeleteQuizRequest)               returns (Empty);
+  rpc GetCourseQuizzes(GetCourseQuizzesRequest)   returns (QuizzesList);
+  rpc StartAttempt(StartAttemptRequest)           returns (AttemptResponse);
+  rpc SubmitAttempt(SubmitAttemptRequest)         returns (AttemptResultResponse);
+  rpc GetAttemptResult(GetAttemptResultRequest)   returns (AttemptResultResponse);
+}

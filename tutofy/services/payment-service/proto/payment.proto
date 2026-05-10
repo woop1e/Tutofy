@@ -37,10 +37,20 @@ message PaymentsList {
   repeated PaymentResponse payments = 1;
 }
 
+message CheckCoursePaymentRequest {
+  string user_id   = 1;
+  string course_id = 2;
+}
+
+message CheckCoursePaymentResponse {
+  bool has_paid = 1;
+}
+
 service PaymentService {
-  rpc CreatePayment(CreatePaymentRequest)            returns (PaymentResponse);
-  rpc GetPayment(GetPaymentRequest)                  returns (PaymentResponse);
-  rpc GetUserPayments(GetUserPaymentsRequest)        returns (PaymentsList);
-  rpc CompletePayment(UpdatePaymentStatusRequest)    returns (PaymentResponse);
-  rpc FailPayment(UpdatePaymentStatusRequest)        returns (PaymentResponse);
+  rpc CreatePayment(CreatePaymentRequest)              returns (PaymentResponse);
+  rpc GetPayment(GetPaymentRequest)                    returns (PaymentResponse);
+  rpc GetUserPayments(GetUserPaymentsRequest)          returns (PaymentsList);
+  rpc CompletePayment(UpdatePaymentStatusRequest)      returns (PaymentResponse);
+  rpc FailPayment(UpdatePaymentStatusRequest)          returns (PaymentResponse);
+  rpc CheckCoursePayment(CheckCoursePaymentRequest)    returns (CheckCoursePaymentResponse);
 }

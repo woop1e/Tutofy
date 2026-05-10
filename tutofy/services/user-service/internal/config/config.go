@@ -10,6 +10,7 @@ type Config struct {
 	DBURL           string
 	Port            string
 	AuthServiceAddr string
+	RedisAddr       string
 }
 
 func Load() *Config {
@@ -22,6 +23,7 @@ func Load() *Config {
 		DBURL:           getEnv("DB_URL", ""),
 		Port:            getEnv("PORT", "50052"),
 		AuthServiceAddr: getEnv("AUTH_SERVICE_ADDR", "localhost:50051"),
+		RedisAddr:       getEnv("REDIS_ADDR", "localhost:6379"),
 	}
 
 	return cfg

@@ -13,8 +13,8 @@ type Config struct {
 	Port              string
 	AuthServiceAddr   string
 	EnrollmentSvcAddr string
-	ProgressSvcAddr   string
 	CourseSvcAddr     string
+	NATSAddr          string
 }
 
 // Load reads configuration from a .env file (if present) and environment variables.
@@ -43,14 +43,14 @@ func Load() *Config {
 		enrollmentAddr = "localhost:50054"
 	}
 
-	progressAddr := os.Getenv("PROGRESS_SERVICE_ADDR")
-	if progressAddr == "" {
-		progressAddr = "localhost:50058"
-	}
-
 	courseAddr := os.Getenv("COURSE_SERVICE_ADDR")
 	if courseAddr == "" {
 		courseAddr = "localhost:50053"
+	}
+
+	natsAddr := os.Getenv("NATS_ADDR")
+	if natsAddr == "" {
+		natsAddr = "nats://localhost:4222"
 	}
 
 	return &Config{
@@ -58,7 +58,7 @@ func Load() *Config {
 		Port:              port,
 		AuthServiceAddr:   authAddr,
 		EnrollmentSvcAddr: enrollmentAddr,
-		ProgressSvcAddr:   progressAddr,
 		CourseSvcAddr:     courseAddr,
+		NATSAddr:          natsAddr,
 	}
 }

@@ -4,5 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
     name       TEXT NOT NULL,
     role       TEXT NOT NULL DEFAULT 'user',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ
 );
+
+-- Migration: ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;

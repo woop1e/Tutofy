@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package certificate;
+
+option go_package = "certificate-service/proto/certificatepb";
+
+message IssueCertificateRequest {
+  string student_id = 1;
+  string course_id  = 2;
+}
+
+message GetCertificateRequest {
+  string student_id = 1;
+  string course_id  = 2;
+}
+
+message GetUserCertificatesRequest {
+  string student_id = 1;
+}
+
+message CertificateResponse {
+  string id         = 1;
+  string student_id = 2;
+  string course_id  = 3;
+  string issued_at  = 4;
+}
+
+message CertificatesList {
+  repeated CertificateResponse certificates = 1;
+}
+
+service CertificateService {
+  rpc IssueCertificate(IssueCertificateRequest)         returns (CertificateResponse);
+  rpc GetCertificate(GetCertificateRequest)             returns (CertificateResponse);
+  rpc GetUserCertificates(GetUserCertificatesRequest)   returns (CertificatesList);
+}

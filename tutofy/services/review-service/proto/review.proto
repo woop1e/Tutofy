@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package review;
+
+option go_package = "review-service/proto/reviewpb";
+
+message CreateReviewRequest {
+  string course_id = 1;
+  int32  rating    = 2;
+  string body      = 3;
+}
+
+message GetCourseReviewsRequest {
+  string course_id = 1;
+  int32  limit     = 2;
+  int32  offset    = 3;
+}
+
+message GetCourseRatingRequest {
+  string course_id = 1;
+}
+
+message ReviewResponse {
+  string id         = 1;
+  string course_id  = 2;
+  string student_id = 3;
+  int32  rating     = 4;
+  string body       = 5;
+  string created_at = 6;
+}
+
+message ReviewsList {
+  repeated ReviewResponse reviews = 1;
+}
+
+message RatingResponse {
+  double average = 1;
+  int64  count   = 2;
+}
+
+service ReviewService {
+  rpc CreateReview(CreateReviewRequest)         returns (ReviewResponse);
+  rpc GetCourseReviews(GetCourseReviewsRequest) returns (ReviewsList);
+  rpc GetCourseRating(GetCourseRatingRequest)   returns (RatingResponse);
+}

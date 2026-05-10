@@ -17,9 +17,9 @@ import (
 	"auth-service/proto/authpb"
 	"course-service/proto/coursepb"
 	"enrollment-service/proto/enrollmentpb"
-	"progress-service/proto/progresspb"
 
 	_ "github.com/lib/pq"
+	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -52,13 +52,6 @@ func main() {
 	}
 	defer enrollmentConn.Close()
 
-	// Connect to progress-service.
-	progressConn, err := grpc.NewClient(cfg.ProgressSvcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("failed to connect to progress-service: %v", err)
-	}
-	defer progressConn.Close()
-
 	// Connect to course-service.
 	courseConn, err := grpc.NewClient(cfg.CourseSvcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -66,12 +59,21 @@ func main() {
 	}
 	defer courseConn.Close()
 
+	// Connect to NATS (replaces direct progress-service gRPC calls).
+	nc, err := nats.Connect(cfg.NATSAddr)
+	if err != nil {
+		log.Printf("warn: NATS unavailable — lesson progress events disabled: %v", err)
+		nc = nil
+	}
+	if nc != nil {
+		defer nc.Close()
+	}
+
 	// Wire up layers.
 	repo := repository.NewPostgresRepo(db)
 	enrollmentClient := client.NewEnrollmentClient(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
-	progressClient := client.NewProgressClient(progresspb.NewProgressServiceClient(progressConn))
 	courseClient := client.NewCourseClient(coursepb.NewCourseServiceClient(courseConn))
-	svc := service.NewLessonService(repo, enrollmentClient, progressClient, courseClient)
+	svc := service.NewLessonService(repo, enrollmentClient, courseClient, nc)
 	h := handler.NewLessonHandler(svc)
 
 	// Start gRPC server.

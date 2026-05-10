@@ -7,6 +7,7 @@ import (
 	"course-service/proto/coursepb"
 	"enrollment-service/internal/model"
 	"enrollment-service/internal/repository"
+	"payment-service/proto/paymentpb"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -15,8 +16,9 @@ import (
 )
 
 var (
-	ErrForbidden  = errors.New("forbidden")
-	ErrNotStudent = errors.New("only students can enroll")
+	ErrForbidden       = errors.New("forbidden")
+	ErrNotStudent      = errors.New("only students can enroll")
+	ErrPaymentRequired = errors.New("payment required to enroll in this course")
 )
 
 type EnrollmentService interface {
@@ -27,12 +29,17 @@ type EnrollmentService interface {
 }
 
 type enrollmentService struct {
-	repo         repository.EnrollmentRepository
-	courseClient coursepb.CourseServiceClient
+	repo           repository.EnrollmentRepository
+	courseClient   coursepb.CourseServiceClient
+	paymentClient  paymentpb.PaymentServiceClient
 }
 
-func NewEnrollmentService(repo repository.EnrollmentRepository, courseClient coursepb.CourseServiceClient) EnrollmentService {
-	return &enrollmentService{repo: repo, courseClient: courseClient}
+func NewEnrollmentService(
+	repo repository.EnrollmentRepository,
+	courseClient coursepb.CourseServiceClient,
+	paymentClient paymentpb.PaymentServiceClient,
+) EnrollmentService {
+	return &enrollmentService{repo: repo, courseClient: courseClient, paymentClient: paymentClient}
 }
 
 func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole, courseID string) (*model.Enrollment, error) {
@@ -40,17 +47,30 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 		return nil, ErrNotStudent
 	}
 
-	// Forward incoming metadata (authorization token) to course-service
 	md, _ := metadata.FromIncomingContext(ctx)
 	outCtx := metadata.NewOutgoingContext(ctx, md)
 
-	_, err := s.courseClient.GetCourse(outCtx, &coursepb.GetCourseRequest{CourseId: courseID})
+	course, err := s.courseClient.GetCourse(outCtx, &coursepb.GetCourseRequest{CourseId: courseID})
 	if err != nil {
 		st, _ := status.FromError(err)
 		if st.Code() == codes.NotFound {
 			return nil, errors.New("course not found")
 		}
 		return nil, errors.New("course service unavailable: " + st.Message())
+	}
+
+	// If the course has a price, verify the student has a completed payment.
+	if course.GetPrice() > 0 {
+		resp, err := s.paymentClient.CheckCoursePayment(outCtx, &paymentpb.CheckCoursePaymentRequest{
+			UserId:   callerID,
+			CourseId: courseID,
+		})
+		if err != nil {
+			return nil, errors.New("payment service unavailable")
+		}
+		if !resp.GetHasPaid() {
+			return nil, ErrPaymentRequired
+		}
 	}
 
 	e := &model.Enrollment{

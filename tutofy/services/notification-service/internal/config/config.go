@@ -12,6 +12,7 @@ type Config struct {
 	DBURL           string
 	Port            string
 	AuthServiceAddr string
+	NATSAddr        string
 }
 
 // Load reads configuration from a .env file (if present) and environment variables.
@@ -35,9 +36,15 @@ func Load() *Config {
 		authAddr = "localhost:50051"
 	}
 
+	natsAddr := os.Getenv("NATS_ADDR")
+	if natsAddr == "" {
+		natsAddr = "nats://localhost:4222"
+	}
+
 	return &Config{
 		DBURL:           dbURL,
 		Port:            port,
 		AuthServiceAddr: authAddr,
+		NATSAddr:        natsAddr,
 	}
 }

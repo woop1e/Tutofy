@@ -38,7 +38,7 @@ func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.Assignmen
 	a := &model.Assignment{}
 	var dueDate sql.NullString
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, title, description, course_id, COALESCE(due_date::TEXT, '') FROM assignments WHERE id = $1`, id,
+		`SELECT id, title, description, course_id, COALESCE(due_date::TEXT, '') FROM assignments WHERE id = $1 AND deleted_at IS NULL`, id,
 	).Scan(&a.ID, &a.Title, &a.Description, &a.CourseID, &dueDate)
 	if err == sql.ErrNoRows {
 		return nil, ErrNotFound
@@ -49,7 +49,7 @@ func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.Assignmen
 
 func (r *postgresRepo) GetByCourseID(ctx context.Context, courseID string, limit, offset int32) ([]*model.Assignment, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, title, description, course_id, COALESCE(due_date::TEXT, '') FROM assignments WHERE course_id = $1 ORDER BY id LIMIT $2 OFFSET $3`,
+		`SELECT id, title, description, course_id, COALESCE(due_date::TEXT, '') FROM assignments WHERE course_id = $1 AND deleted_at IS NULL ORDER BY id LIMIT $2 OFFSET $3`,
 		courseID, limit, offset,
 	)
 	if err != nil {
@@ -83,7 +83,7 @@ func (r *postgresRepo) UpdateAssignment(ctx context.Context, id, title, descript
 }
 
 func (r *postgresRepo) DeleteAssignment(ctx context.Context, id string) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM assignments WHERE id = $1`, id)
+	res, err := r.db.ExecContext(ctx, `UPDATE assignments SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
 		return err
 	}

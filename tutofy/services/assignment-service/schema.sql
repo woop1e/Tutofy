@@ -4,5 +4,8 @@ CREATE TABLE IF NOT EXISTS assignments (
     description TEXT NOT NULL DEFAULT '',
     course_id   TEXT NOT NULL,
     due_date    TIMESTAMPTZ,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at  TIMESTAMPTZ
 );
+
+-- Migration: ALTER TABLE assignments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;

@@ -177,3 +177,35 @@ func _GradingService_GetAssignmentGrades_Handler(srv interface{}, ctx context.Co
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+// ── Client interface ──────────────────────────────────────────────────────────
+
+type GradingServiceClient interface {
+	SubmitGrade(ctx context.Context, in *SubmitGradeRequest, opts ...grpc.CallOption) (*GradeResponse, error)
+	GetStudentGrades(ctx context.Context, in *StudentRequest, opts ...grpc.CallOption) (*GradesList, error)
+	GetAssignmentGrades(ctx context.Context, in *AssignmentRequest, opts ...grpc.CallOption) (*GradesList, error)
+}
+
+type gradingServiceClient struct{ cc grpc.ClientConnInterface }
+
+func NewGradingServiceClient(cc grpc.ClientConnInterface) GradingServiceClient {
+	return &gradingServiceClient{cc}
+}
+
+func (c *gradingServiceClient) SubmitGrade(ctx context.Context, in *SubmitGradeRequest, opts ...grpc.CallOption) (*GradeResponse, error) {
+	out := new(GradeResponse)
+	err := c.cc.Invoke(ctx, "/grading.GradingService/SubmitGrade", in, out, opts...)
+	return out, err
+}
+
+func (c *gradingServiceClient) GetStudentGrades(ctx context.Context, in *StudentRequest, opts ...grpc.CallOption) (*GradesList, error) {
+	out := new(GradesList)
+	err := c.cc.Invoke(ctx, "/grading.GradingService/GetStudentGrades", in, out, opts...)
+	return out, err
+}
+
+func (c *gradingServiceClient) GetAssignmentGrades(ctx context.Context, in *AssignmentRequest, opts ...grpc.CallOption) (*GradesList, error) {
+	out := new(GradesList)
+	err := c.cc.Invoke(ctx, "/grading.GradingService/GetAssignmentGrades", in, out, opts...)
+	return out, err
+}

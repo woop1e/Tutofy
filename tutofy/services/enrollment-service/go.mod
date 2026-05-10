@@ -10,6 +10,7 @@ require (
 	github.com/lib/pq v1.10.9
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.1
+	payment-service v0.0.0
 )
 
 require (
@@ -22,4 +23,5 @@ require (
 replace (
 	auth-service => ../auth-service
 	course-service => ../course-service
+	payment-service => ../payment-service
 )

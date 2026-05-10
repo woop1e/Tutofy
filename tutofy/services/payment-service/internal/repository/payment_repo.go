@@ -15,6 +15,7 @@ type PaymentRepository interface {
 	GetByID(ctx context.Context, id string) (*model.Payment, error)
 	GetByUserID(ctx context.Context, userID string, limit, offset int32) ([]*model.Payment, error)
 	UpdateStatus(ctx context.Context, id string, status model.PaymentStatus) (*model.Payment, error)
+	HasCompletedPayment(ctx context.Context, userID, courseID string) (bool, error)
 }
 
 type postgresRepo struct {
@@ -91,4 +92,13 @@ func (r *postgresRepo) UpdateStatus(ctx context.Context, id string, status model
 	}
 	p.Status = model.PaymentStatus(statusStr)
 	return p, nil
+}
+
+func (r *postgresRepo) HasCompletedPayment(ctx context.Context, userID, courseID string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM payments WHERE user_id = $1 AND course_id = $2 AND status = 'completed')`,
+		userID, courseID,
+	).Scan(&exists)
+	return exists, err
 }

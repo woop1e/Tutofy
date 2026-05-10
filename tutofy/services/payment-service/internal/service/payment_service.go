@@ -23,6 +23,7 @@ type PaymentService interface {
 	GetUserPayments(ctx context.Context, callerID, callerRole, userID string, limit, offset int32) ([]*model.Payment, error)
 	CompletePayment(ctx context.Context, callerRole, paymentID string) (*model.Payment, error)
 	FailPayment(ctx context.Context, callerRole, paymentID string) (*model.Payment, error)
+	CheckCoursePayment(ctx context.Context, userID, courseID string) (bool, error)
 }
 
 type paymentService struct {
@@ -92,4 +93,8 @@ func (s *paymentService) FailPayment(ctx context.Context, callerRole, paymentID 
 		return nil, ErrInvalidTransition
 	}
 	return s.repo.UpdateStatus(ctx, paymentID, model.StatusFailed)
+}
+
+func (s *paymentService) CheckCoursePayment(ctx context.Context, userID, courseID string) (bool, error) {
+	return s.repo.HasCompletedPayment(ctx, userID, courseID)
 }
