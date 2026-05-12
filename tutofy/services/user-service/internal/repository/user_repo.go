@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"user-service/internal/model"
 )
@@ -15,6 +16,9 @@ type UserRepository interface {
 	UpdateUser(ctx context.Context, id, name, email string) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error)
 	DeleteUser(ctx context.Context, id string) error
+	GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error)
+	UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects string, age, experienceYears int32) (*model.TutorProfile, error)
+	SearchTutors(ctx context.Context, subject, location string, limit, offset int32) ([]*model.TutorProfile, error)
 }
 
 type postgresRepo struct {
@@ -83,4 +87,84 @@ func (r *postgresRepo) GetAllUsers(ctx context.Context, limit, offset int32) ([]
 		users = append(users, u)
 	}
 	return users, rows.Err()
+}
+
+func (r *postgresRepo) GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error) {
+	p := &model.TutorProfile{}
+	var age sql.NullInt32
+	err := r.db.QueryRowContext(ctx,
+		`SELECT id, name, email, bio, age, location, photo_url, subjects, experience_years
+		 FROM users WHERE id = $1 AND role = 'tutor' AND deleted_at IS NULL`, tutorID,
+	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if age.Valid {
+		p.Age = age.Int32
+	}
+	return p, nil
+}
+
+func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects string, age, experienceYears int32) (*model.TutorProfile, error) {
+	p := &model.TutorProfile{}
+	var dbAge sql.NullInt32
+	err := r.db.QueryRowContext(ctx,
+		`UPDATE users
+		 SET bio = $1, age = $2, location = $3, photo_url = $4, subjects = $5, experience_years = $6, updated_at = NOW()
+		 WHERE id = $7 AND role = 'tutor' AND deleted_at IS NULL
+		 RETURNING id, name, email, bio, age, location, photo_url, subjects, experience_years`,
+		bio, age, location, photoURL, subjects, experienceYears, tutorID,
+	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &dbAge, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if dbAge.Valid {
+		p.Age = dbAge.Int32
+	}
+	return p, nil
+}
+
+func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location string, limit, offset int32) ([]*model.TutorProfile, error) {
+	q := `SELECT id, name, email, bio, COALESCE(age, 0), location, photo_url, subjects, experience_years
+	      FROM users
+	      WHERE role = 'tutor' AND deleted_at IS NULL`
+	args := []any{}
+	n := 1
+	if subject != "" {
+		q += ` AND subjects ILIKE $` + itoa(n)
+		args = append(args, "%"+subject+"%")
+		n++
+	}
+	if location != "" {
+		q += ` AND location ILIKE $` + itoa(n)
+		args = append(args, "%"+location+"%")
+		n++
+	}
+	q += ` ORDER BY name LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []*model.TutorProfile
+	for rows.Next() {
+		p := &model.TutorProfile{}
+		if err := rows.Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &p.Age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, rows.Err()
+}
+
+func itoa(n int) string {
+	return fmt.Sprintf("%d", n)
 }

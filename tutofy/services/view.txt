@@ -1,0 +1,148 @@
+Core Platform Structure
+
+The system has 2 main parts:
+
+Marketplace System
+LMS / Learning System
+1. Marketplace System
+
+The marketplace is the public-facing part of the platform where students can find tutors.
+
+There is a page that displays tutor cards.
+The page includes a search and filtering system.
+
+Students can filter tutors by things such as:
+
+rating
+price
+age
+subject/course
+and other parameters
+
+Each tutor card is compact and contains only minimal information because the cards are small.
+
+Example information shown on a card:
+
+tutor photo
+tutor name
+age
+subjects/courses taught (English, Math, etc.)
+
+When a user clicks on a tutor card, it opens a full detailed profile page.
+
+The full tutor profile includes:
+
+Tutor photo
+Full name
+Age and location
+Description/About section
+Certificates, achievements, or qualifications
+Available courses
+Course type (individual or group)
+Pricing
+Enrollment / booking buttons
+2. LMS (Learning Management System)
+
+After a student enrolls in a course, learning happens inside the LMS system.
+
+The flow is:
+
+student enrolls in a course from the marketplace
+once the course begins, the student gets access to the LMS section
+
+Inside the LMS, the student can:
+
+see enrolled courses
+open a course page
+access assignments
+access tests/quizzes
+view attendance
+view course materials
+check lesson schedules
+
+There is also a calendar system.
+
+The calendar contains:
+
+lesson dates
+lesson times
+links/buttons to external conference platforms (Zoom, Google Meet, etc.)
+
+The LMS is conceptually similar to Moodle, but simplified and more modern.
+
+3. Tutor Workflow
+
+Tutors have a different system flow.
+
+After registration, a tutor can create a professional tutor profile/resume page.
+This profile becomes publicly visible in the marketplace.
+
+Tutors can then create courses.
+
+There are 2 main course types:
+
+Group Courses
+
+Example:
+
+English Group Course
+enrollment open until June 1
+maximum 5 students
+
+This course then appears on the tutor’s marketplace profile as an available course.
+
+Individual Courses
+
+Tutors can also create individual/private lessons without fixed dates.
+Students can enroll whenever the tutor keeps the course open.
+
+Tutor LMS Features
+
+Once students enroll:
+
+tutors manage courses inside the LMS
+group courses function as shared classrooms
+individual courses create separate private course spaces per student
+
+Tutors can:
+
+upload assignments
+create quizzes/tests
+manage attendance
+track weekly progress
+manage course content
+
+This functionality is also inspired by Moodle-style systems.
+
+Tutors also have their own calendar system where they can:
+
+schedule lessons
+set times
+add meeting links
+choose which course/student receives the lesson
+Additional Platform Features
+
+The platform also includes:
+
+authentication and registration
+role-based system (student/tutor)
+payment system
+student profiles
+tutor profiles
+general LMS and marketplace functionality/settings
+Main Vision of the Project
+
+The main vision is to create an educational ecosystem where:
+
+tutors can promote themselves and manage teaching professionally
+students can easily discover tutors and enroll in courses
+the entire learning process continues inside the same platform
+
+So instead of using:
+
+one website for finding tutors
+another LMS for studying
+another app for scheduling
+another app for assignments
+
+everything is unified into a single system.

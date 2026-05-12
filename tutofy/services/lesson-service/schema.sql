@@ -27,3 +27,13 @@ CREATE TABLE IF NOT EXISTS lesson_attendance (
 
 -- Migration: run if table does not exist
 -- CREATE TABLE lesson_attendance (lesson_id TEXT NOT NULL, student_id TEXT NOT NULL, attended BOOLEAN NOT NULL DEFAULT FALSE, PRIMARY KEY (lesson_id, student_id));
+
+CREATE TABLE IF NOT EXISTS lesson_materials (
+    id           TEXT PRIMARY KEY,
+    lesson_id    TEXT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+    file_id      TEXT NOT NULL,
+    title        TEXT NOT NULL DEFAULT '',
+    uploaded_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_lesson_materials_lesson ON lesson_materials (lesson_id);

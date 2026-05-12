@@ -29,11 +29,51 @@ message DeleteUserRequest {
   string user_id = 1;
 }
 
+message UpdateTutorProfileRequest {
+  string user_id          = 1;
+  string bio              = 2;
+  int32  age              = 3;
+  string location         = 4;
+  string photo_url        = 5;
+  repeated string subjects = 6;
+  int32  experience_years  = 7;
+}
+
+message GetTutorProfileRequest {
+  string tutor_id = 1;
+}
+
+message TutorProfileResponse {
+  string id               = 1;
+  string name             = 2;
+  string email            = 3;
+  string bio              = 4;
+  int32  age              = 5;
+  string location         = 6;
+  string photo_url        = 7;
+  repeated string subjects = 8;
+  int32  experience_years  = 9;
+}
+
+message SearchTutorsRequest {
+  string subject  = 1;
+  string location = 2;
+  int32  limit    = 3;
+  int32  offset   = 4;
+}
+
+message TutorCardsList {
+  repeated TutorProfileResponse tutors = 1;
+}
+
 message Empty {}
 
 service UserService {
-  rpc GetUser(GetUserRequest)       returns (UserResponse);
-  rpc UpdateUser(UpdateUserRequest) returns (UserResponse);
-  rpc GetAllUsers(Empty)            returns (UsersList);
-  rpc DeleteUser(DeleteUserRequest) returns (Empty);
+  rpc GetUser(GetUserRequest)                           returns (UserResponse);
+  rpc UpdateUser(UpdateUserRequest)                     returns (UserResponse);
+  rpc GetAllUsers(Empty)                                returns (UsersList);
+  rpc DeleteUser(DeleteUserRequest)                     returns (Empty);
+  rpc UpdateTutorProfile(UpdateTutorProfileRequest)     returns (TutorProfileResponse);
+  rpc GetTutorProfile(GetTutorProfileRequest)           returns (TutorProfileResponse);
+  rpc SearchTutors(SearchTutorsRequest)                 returns (TutorCardsList);
 }

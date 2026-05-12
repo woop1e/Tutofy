@@ -93,6 +93,19 @@ func (h *LessonHandler) UpdateLessonStatus(w http.ResponseWriter, r *http.Reques
 	jsonResp(w, http.StatusOK, resp)
 }
 
+func (h *LessonHandler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	resp, err := h.client.GetMySchedule(tokenCtx(r), &lessonpb.GetScheduleRequest{
+		FromDate: q.Get("from"),
+		ToDate:   q.Get("to"),
+	})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}
+
 func (h *LessonHandler) DeleteLesson(w http.ResponseWriter, r *http.Request) {
 	_, err := h.client.DeleteLesson(tokenCtx(r), &lessonpb.DeleteLessonRequest{LessonId: r.PathValue("id")})
 	if err != nil {
@@ -100,4 +113,28 @@ func (h *LessonHandler) DeleteLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *LessonHandler) AddMaterial(w http.ResponseWriter, r *http.Request) {
+	var req lessonpb.AddMaterialRequest
+	if err := decode(r, &req); err != nil {
+		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		return
+	}
+	req.LessonId = r.PathValue("id")
+	resp, err := h.client.AddMaterial(tokenCtx(r), &req)
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusCreated, resp)
+}
+
+func (h *LessonHandler) GetLessonMaterials(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.client.GetLessonMaterials(tokenCtx(r), &lessonpb.GetLessonMaterialsRequest{LessonId: r.PathValue("id")})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
 }

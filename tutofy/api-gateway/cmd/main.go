@@ -54,6 +54,7 @@ func main() {
 	ah  := handler.NewAuthHandler(authpb.NewAuthServiceClient(authConn))
 	uh  := handler.NewUserHandler(userpb.NewUserServiceClient(userConn))
 	ch  := handler.NewCourseHandler(coursepb.NewCourseServiceClient(courseConn))
+	tph := handler.NewTutorPublicProfileHandler(userpb.NewUserServiceClient(userConn), coursepb.NewCourseServiceClient(courseConn))
 	eh  := handler.NewEnrollmentHandler(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
 	lh  := handler.NewLessonHandler(lessonpb.NewLessonServiceClient(lessonConn))
 	ash := handler.NewAssignmentHandler(assignmentpb.NewAssignmentServiceClient(assignmentConn))
@@ -77,11 +78,17 @@ func main() {
 	mux.HandleFunc("DELETE /users/{id}", uh.DeleteUser)
 
 	// Courses
-	mux.HandleFunc("POST /courses",        ch.CreateCourse)
-	mux.HandleFunc("GET /courses",         ch.GetAllCourses)
-	mux.HandleFunc("GET /courses/{id}",    ch.GetCourse)
-	mux.HandleFunc("PUT /courses/{id}",    ch.UpdateCourse)
-	mux.HandleFunc("DELETE /courses/{id}", ch.DeleteCourse)
+	mux.HandleFunc("POST /courses",               ch.CreateCourse)
+	mux.HandleFunc("GET /courses",                ch.GetAllCourses)
+	mux.HandleFunc("GET /courses/{id}",           ch.GetCourse)
+	mux.HandleFunc("PUT /courses/{id}",           ch.UpdateCourse)
+	mux.HandleFunc("PATCH /courses/{id}/publish", ch.PublishCourse)
+	mux.HandleFunc("DELETE /courses/{id}",        ch.DeleteCourse)
+
+	// Marketplace
+	mux.HandleFunc("GET /marketplace/tutors",           tph.SearchTutors)
+	mux.HandleFunc("GET /marketplace/tutors/{id}",      tph.GetTutorPublicProfile)
+	mux.HandleFunc("GET /marketplace/courses",          tph.SearchCourses)
 
 	// Enrollments
 	mux.HandleFunc("POST /enrollments",                    eh.EnrollUser)
@@ -93,6 +100,9 @@ func main() {
 	mux.HandleFunc("POST /lessons",                       lh.CreateLesson)
 	mux.HandleFunc("GET /lessons/{id}",                   lh.GetLesson)
 	mux.HandleFunc("GET /courses/{id}/lessons",           lh.GetCourseLessons)
+	mux.HandleFunc("GET /schedule",                             lh.GetMySchedule)
+	mux.HandleFunc("POST /lessons/{id}/materials",              lh.AddMaterial)
+	mux.HandleFunc("GET /lessons/{id}/materials",               lh.GetLessonMaterials)
 	mux.HandleFunc("PATCH /lessons/{id}/status",          lh.UpdateLessonStatus)
 	mux.HandleFunc("DELETE /lessons/{id}",                lh.DeleteLesson)
 

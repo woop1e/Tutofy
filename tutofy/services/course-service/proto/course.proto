@@ -5,9 +5,12 @@ package course;
 option go_package = "course-service/proto/coursepb";
 
 message CreateCourseRequest {
-  string title       = 1;
-  string description = 2;
-  double price       = 3;
+  string title               = 1;
+  string description         = 2;
+  double price               = 3;
+  string course_type         = 4;  // "group" or "individual"
+  int32  max_students        = 5;  // 0 = unlimited
+  string enrollment_deadline = 6;  // RFC3339, optional
 }
 
 message GetCourseRequest {
@@ -15,9 +18,16 @@ message GetCourseRequest {
 }
 
 message UpdateCourseRequest {
-  string course_id   = 1;
-  string title       = 2;
-  string description = 3;
+  string course_id           = 1;
+  string title               = 2;
+  string description         = 3;
+  string course_type         = 4;
+  int32  max_students        = 5;
+  string enrollment_deadline = 6;
+}
+
+message PublishCourseRequest {
+  string course_id = 1;
 }
 
 message DeleteCourseRequest {
@@ -25,11 +35,15 @@ message DeleteCourseRequest {
 }
 
 message CourseResponse {
-  string id          = 1;
-  string title       = 2;
-  string description = 3;
-  string tutor_id    = 4;
-  double price       = 5;
+  string id                  = 1;
+  string title               = 2;
+  string description         = 3;
+  string tutor_id            = 4;
+  double price               = 5;
+  string course_type         = 6;
+  int32  max_students        = 7;
+  string enrollment_deadline = 8;
+  bool   is_published        = 9;
 }
 
 message CoursesList {
@@ -38,10 +52,22 @@ message CoursesList {
 
 message Empty {}
 
+message SearchCoursesRequest {
+  string tutor_id    = 1;
+  string tag         = 2;
+  string course_type = 3;  // "group" or "individual"
+  double min_price   = 4;
+  double max_price   = 5;  // 0 = no limit
+  int32  limit       = 6;
+  int32  offset      = 7;
+}
+
 service CourseService {
-  rpc CreateCourse(CreateCourseRequest)  returns (CourseResponse);
-  rpc GetCourse(GetCourseRequest)        returns (CourseResponse);
-  rpc GetAllCourses(Empty)               returns (CoursesList);
-  rpc UpdateCourse(UpdateCourseRequest)  returns (CourseResponse);
-  rpc DeleteCourse(DeleteCourseRequest)  returns (Empty);
+  rpc CreateCourse(CreateCourseRequest)   returns (CourseResponse);
+  rpc GetCourse(GetCourseRequest)         returns (CourseResponse);
+  rpc GetAllCourses(Empty)                returns (CoursesList);
+  rpc UpdateCourse(UpdateCourseRequest)   returns (CourseResponse);
+  rpc PublishCourse(PublishCourseRequest)   returns (CourseResponse);
+  rpc SearchCourses(SearchCoursesRequest)  returns (CoursesList);
+  rpc DeleteCourse(DeleteCourseRequest)    returns (Empty);
 }

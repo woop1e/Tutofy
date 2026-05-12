@@ -59,6 +59,15 @@ func (h *CourseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	jsonResp(w, http.StatusOK, resp)
 }
 
+func (h *CourseHandler) PublishCourse(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.client.PublishCourse(tokenCtx(r), &coursepb.PublishCourseRequest{CourseId: r.PathValue("id")})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}
+
 func (h *CourseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	_, err := h.client.DeleteCourse(tokenCtx(r), &coursepb.DeleteCourseRequest{CourseId: r.PathValue("id")})
 	if err != nil {

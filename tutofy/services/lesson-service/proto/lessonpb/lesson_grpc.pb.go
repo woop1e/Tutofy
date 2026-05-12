@@ -27,6 +27,9 @@ type LessonServiceClient interface {
 	GetCourseLessons(ctx context.Context, in *GetCourseLessonsRequest, opts ...grpc.CallOption) (*CourseLessonsList, error)
 	UpdateLessonStatus(ctx context.Context, in *UpdateLessonStatusRequest, opts ...grpc.CallOption) (*Lesson, error)
 	DeleteLesson(ctx context.Context, in *DeleteLessonRequest, opts ...grpc.CallOption) (*Empty, error)
+	GetMySchedule(ctx context.Context, in *GetScheduleRequest, opts ...grpc.CallOption) (*CourseLessonsList, error)
+	AddMaterial(ctx context.Context, in *AddMaterialRequest, opts ...grpc.CallOption) (*MaterialResponse, error)
+	GetLessonMaterials(ctx context.Context, in *GetLessonMaterialsRequest, opts ...grpc.CallOption) (*MaterialsList, error)
 }
 
 type lessonServiceClient struct {
@@ -92,6 +95,9 @@ type LessonServiceServer interface {
 	UpdateLessonStatus(context.Context, *UpdateLessonStatusRequest) (*Lesson, error)
 	DeleteLesson(context.Context, *DeleteLessonRequest) (*Empty, error)
 	MarkAttendance(context.Context, *MarkAttendanceRequest) (*Empty, error)
+	GetMySchedule(context.Context, *GetScheduleRequest) (*CourseLessonsList, error)
+	AddMaterial(context.Context, *AddMaterialRequest) (*MaterialResponse, error)
+	GetLessonMaterials(context.Context, *GetLessonMaterialsRequest) (*MaterialsList, error)
 	mustEmbedUnimplementedLessonServiceServer()
 }
 
@@ -113,6 +119,9 @@ func (UnimplementedLessonServiceServer) UpdateLessonStatus(context.Context, *Upd
 }
 func (UnimplementedLessonServiceServer) DeleteLesson(context.Context, *DeleteLessonRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteLesson not implemented")
+}
+func (UnimplementedLessonServiceServer) GetMySchedule(context.Context, *GetScheduleRequest) (*CourseLessonsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMySchedule not implemented")
 }
 func (UnimplementedLessonServiceServer) mustEmbedUnimplementedLessonServiceServer() {}
 
@@ -248,6 +257,18 @@ var LessonService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "MarkAttendance",
 			Handler:    _LessonService_MarkAttendance_Handler,
 		},
+		{
+			MethodName: "GetMySchedule",
+			Handler:    _LessonService_GetMySchedule_Handler,
+		},
+		{
+			MethodName: "AddMaterial",
+			Handler:    _LessonService_AddMaterial_Handler,
+		},
+		{
+			MethodName: "GetLessonMaterials",
+			Handler:    _LessonService_GetLessonMaterials_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/lesson.proto",
@@ -273,5 +294,68 @@ func _LessonService_MarkAttendance_Handler(srv interface{}, ctx context.Context,
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LessonServiceServer).MarkAttendance(ctx, req.(*MarkAttendanceRequest))
 	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LessonService_GetMySchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LessonServiceServer).GetMySchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetMySchedule"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).GetMySchedule(ctx, req.(*GetScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func (c *lessonServiceClient) GetMySchedule(ctx context.Context, in *GetScheduleRequest, opts ...grpc.CallOption) (*CourseLessonsList, error) {
+	out := new(CourseLessonsList)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetMySchedule", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *lessonServiceClient) AddMaterial(ctx context.Context, in *AddMaterialRequest, opts ...grpc.CallOption) (*MaterialResponse, error) {
+	out := new(MaterialResponse)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/AddMaterial", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
+}
+
+func (c *lessonServiceClient) GetLessonMaterials(ctx context.Context, in *GetLessonMaterialsRequest, opts ...grpc.CallOption) (*MaterialsList, error) {
+	out := new(MaterialsList)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetLessonMaterials", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
+}
+
+func (UnimplementedLessonServiceServer) AddMaterial(context.Context, *AddMaterialRequest) (*MaterialResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddMaterial not implemented")
+}
+func (UnimplementedLessonServiceServer) GetLessonMaterials(context.Context, *GetLessonMaterialsRequest) (*MaterialsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLessonMaterials not implemented")
+}
+
+func _LessonService_AddMaterial_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddMaterialRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).AddMaterial(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/AddMaterial"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) { return srv.(LessonServiceServer).AddMaterial(ctx, req.(*AddMaterialRequest)) }
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LessonService_GetLessonMaterials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLessonMaterialsRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).GetLessonMaterials(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetLessonMaterials"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) { return srv.(LessonServiceServer).GetLessonMaterials(ctx, req.(*GetLessonMaterialsRequest)) }
 	return interceptor(ctx, in, info, handler)
 }

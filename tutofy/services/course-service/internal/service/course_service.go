@@ -19,10 +19,12 @@ var (
 )
 
 type CourseService interface {
-	CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64) (*model.Course, error)
+	CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error)
 	GetCourse(ctx context.Context, id string) (*model.Course, error)
 	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
-	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description string) (*model.Course, error)
+	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error)
+	PublishCourse(ctx context.Context, callerID, callerRole, courseID string) (*model.Course, error)
+	SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error)
 	DeleteCourse(ctx context.Context, callerID, callerRole, courseID string) error
 	AddTag(ctx context.Context, callerID, callerRole, courseID, tagName string) error
 	RemoveTag(ctx context.Context, callerID, callerRole, courseID, tagName string) error
@@ -38,19 +40,23 @@ func NewCourseService(repo repository.CourseRepository, rdb *redis.Client) Cours
 	return &courseService{repo: repo, rdb: rdb}
 }
 
-func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64) (*model.Course, error) {
+func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error) {
 	if callerRole != "tutor" && callerRole != "admin" {
 		return nil, ErrNotTutor
 	}
-
-	course := &model.Course{
-		ID:          uuid.NewString(),
-		Title:       title,
-		Description: description,
-		TutorID:     callerID,
-		Price:       price,
+	if courseType == "" {
+		courseType = "group"
 	}
-
+	course := &model.Course{
+		ID:                 uuid.NewString(),
+		Title:              title,
+		Description:        description,
+		TutorID:            callerID,
+		Price:              price,
+		CourseType:         courseType,
+		MaxStudents:        maxStudents,
+		EnrollmentDeadline: enrollmentDeadline,
+	}
 	if err := s.repo.CreateCourse(ctx, course); err != nil {
 		return nil, err
 	}
@@ -82,7 +88,7 @@ func (s *courseService) GetAllCourses(ctx context.Context, limit, offset int32) 
 	return s.repo.GetAllCourses(ctx, limit, offset)
 }
 
-func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description string) (*model.Course, error) {
+func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error) {
 	course, err := s.repo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return nil, err
@@ -90,11 +96,25 @@ func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, 
 	if callerRole != "admin" && course.TutorID != callerID {
 		return nil, ErrForbidden
 	}
-	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description)
+	if courseType == "" {
+		courseType = course.CourseType
+	}
+	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description, courseType, maxStudents, enrollmentDeadline)
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "course:"+courseID).Err()
 	}
 	return updated, err
+}
+
+func (s *courseService) PublishCourse(ctx context.Context, callerID, callerRole, courseID string) (*model.Course, error) {
+	if callerRole != "tutor" && callerRole != "admin" {
+		return nil, ErrForbidden
+	}
+	c, err := s.repo.PublishCourse(ctx, courseID, callerID, callerRole)
+	if err == nil && s.rdb != nil {
+		_ = s.rdb.Del(ctx, "course:"+courseID).Err()
+	}
+	return c, err
 }
 
 func (s *courseService) DeleteCourse(ctx context.Context, callerID, callerRole, courseID string) error {
@@ -120,7 +140,6 @@ func (s *courseService) AddTag(ctx context.Context, callerID, callerRole, course
 	if callerRole != "admin" && course.TutorID != callerID {
 		return ErrForbidden
 	}
-	// EnsureTag returns the actual ID whether the tag was just created or already existed.
 	tagID, err := s.repo.EnsureTag(ctx, uuid.NewString(), tagName)
 	if err != nil {
 		return err
@@ -144,4 +163,11 @@ func (s *courseService) GetCoursesByTag(ctx context.Context, tagName string, lim
 		limit = 50
 	}
 	return s.repo.GetCoursesByTag(ctx, tagName, limit, offset)
+}
+
+func (s *courseService) SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	return s.repo.SearchCourses(ctx, tutorID, tag, courseType, minPrice, maxPrice, limit, offset)
 }

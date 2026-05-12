@@ -12,6 +12,9 @@ type EnrollmentClient interface {
 	// IsEnrolled returns true if the given user is enrolled in the given course.
 	IsEnrolled(ctx context.Context, userID, courseID string) (bool, error)
 
+	// GetEnrolledCourseIDs returns all course IDs a student is enrolled in.
+	GetEnrolledCourseIDs(ctx context.Context, userID string) ([]string, error)
+
 	// GetEnrolledStudentIDs returns the IDs of all students enrolled in a course.
 	GetEnrolledStudentIDs(ctx context.Context, courseID string) ([]string, error)
 }
@@ -50,6 +53,18 @@ func (c *enrollmentClient) GetEnrolledStudentIDs(ctx context.Context, courseID s
 	ids := make([]string, 0, len(resp.GetEnrollments()))
 	for _, e := range resp.GetEnrollments() {
 		ids = append(ids, e.GetUserId())
+	}
+	return ids, nil
+}
+
+func (c *enrollmentClient) GetEnrolledCourseIDs(ctx context.Context, userID string) ([]string, error) {
+	resp, err := c.grpc.GetUserEnrollments(ctx, &enrollmentpb.UserRequest{UserId: userID})
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(resp.GetEnrollments()))
+	for _, e := range resp.GetEnrollments() {
+		ids = append(ids, e.GetCourseId())
 	}
 	return ids, nil
 }

@@ -42,6 +42,9 @@ type LessonService interface {
 	UpdateLessonStatus(ctx context.Context, callerID, callerRole, lessonID string, status model.LessonStatus) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, callerID, callerRole, lessonID string) error
 	MarkAttendance(ctx context.Context, callerID, callerRole, lessonID string, studentIDs []string, attended bool) error
+	GetMySchedule(ctx context.Context, callerID, callerRole, fromDate, toDate string) ([]*model.Lesson, error)
+	AddMaterial(ctx context.Context, callerID, callerRole, lessonID, fileID, title string) error
+	GetLessonMaterials(ctx context.Context, callerID, callerRole, lessonID string) ([]*repository.LessonMaterial, error)
 }
 
 type lessonService struct {
@@ -231,3 +234,43 @@ func (s *lessonService) MarkAttendance(ctx context.Context, callerID, callerRole
 	}
 	return nil
 }
+
+func (s *lessonService) GetMySchedule(ctx context.Context, callerID, callerRole, fromDate, toDate string) ([]*model.Lesson, error) {
+	var courseIDs []string
+	var tutorID string
+
+	switch callerRole {
+	case "tutor", "admin":
+		tutorID = callerID
+	case "student":
+		ids, err := s.enrollment.GetEnrolledCourseIDs(ctx, callerID)
+		if err != nil {
+			return nil, err
+		}
+		courseIDs = ids
+	default:
+		return nil, ErrForbidden
+	}
+
+	return s.repo.GetLessonsInRange(ctx, courseIDs, tutorID, fromDate, toDate)
+}
+
+func (s *lessonService) AddMaterial(ctx context.Context, callerID, callerRole, lessonID, fileID, title string) error {
+	if !isTutorOrAdmin(callerRole) {
+		return ErrNotTutorOrAdmin
+	}
+	lesson, err := s.repo.GetLessonByID(ctx, lessonID)
+	if err != nil {
+		return err
+	}
+	if callerRole != "admin" && lesson.TutorID != callerID {
+		return ErrForbidden
+	}
+	id := uuid.NewString()
+	return s.repo.AddMaterial(ctx, id, lessonID, fileID, title)
+}
+
+func (s *lessonService) GetLessonMaterials(ctx context.Context, callerID, callerRole, lessonID string) ([]*repository.LessonMaterial, error) {
+	return s.repo.GetLessonMaterials(ctx, lessonID)
+}
+

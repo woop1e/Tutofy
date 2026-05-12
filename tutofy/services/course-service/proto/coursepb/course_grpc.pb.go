@@ -13,17 +13,23 @@ type CreateCourseRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	Title       string  `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Description string  `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Price       float64 `protobuf:"fixed64,3,opt,name=price,proto3" json:"price,omitempty"`
+	Title               string  `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Description         string  `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Price               float64 `protobuf:"fixed64,3,opt,name=price,proto3" json:"price,omitempty"`
+	CourseType          string  `protobuf:"bytes,4,opt,name=course_type,json=courseType,proto3" json:"course_type,omitempty"`
+	MaxStudents         int32   `protobuf:"varint,5,opt,name=max_students,json=maxStudents,proto3" json:"max_students,omitempty"`
+	EnrollmentDeadline  string  `protobuf:"bytes,6,opt,name=enrollment_deadline,json=enrollmentDeadline,proto3" json:"enrollment_deadline,omitempty"`
 }
 
 func (x *CreateCourseRequest) Reset()         { *x = CreateCourseRequest{} }
 func (x *CreateCourseRequest) String() string  { return x.Title }
 func (x *CreateCourseRequest) ProtoMessage()  {}
-func (x *CreateCourseRequest) GetTitle() string       { return x.Title }
-func (x *CreateCourseRequest) GetDescription() string { return x.Description }
-func (x *CreateCourseRequest) GetPrice() float64      { return x.Price }
+func (x *CreateCourseRequest) GetTitle() string              { return x.Title }
+func (x *CreateCourseRequest) GetDescription() string        { return x.Description }
+func (x *CreateCourseRequest) GetPrice() float64             { return x.Price }
+func (x *CreateCourseRequest) GetCourseType() string         { return x.CourseType }
+func (x *CreateCourseRequest) GetMaxStudents() int32         { return x.MaxStudents }
+func (x *CreateCourseRequest) GetEnrollmentDeadline() string { return x.EnrollmentDeadline }
 
 type GetCourseRequest struct {
 	state         protoimpl.MessageState
@@ -41,17 +47,35 @@ type UpdateCourseRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	CourseId    string `protobuf:"bytes,1,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
-	Title       string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	CourseId           string `protobuf:"bytes,1,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+	Title              string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description        string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	CourseType         string `protobuf:"bytes,4,opt,name=course_type,json=courseType,proto3" json:"course_type,omitempty"`
+	MaxStudents        int32  `protobuf:"varint,5,opt,name=max_students,json=maxStudents,proto3" json:"max_students,omitempty"`
+	EnrollmentDeadline string `protobuf:"bytes,6,opt,name=enrollment_deadline,json=enrollmentDeadline,proto3" json:"enrollment_deadline,omitempty"`
 }
 
 func (x *UpdateCourseRequest) Reset()         { *x = UpdateCourseRequest{} }
 func (x *UpdateCourseRequest) String() string  { return x.CourseId }
 func (x *UpdateCourseRequest) ProtoMessage()  {}
-func (x *UpdateCourseRequest) GetCourseId() string    { return x.CourseId }
-func (x *UpdateCourseRequest) GetTitle() string       { return x.Title }
-func (x *UpdateCourseRequest) GetDescription() string { return x.Description }
+func (x *UpdateCourseRequest) GetCourseId() string           { return x.CourseId }
+func (x *UpdateCourseRequest) GetTitle() string              { return x.Title }
+func (x *UpdateCourseRequest) GetDescription() string        { return x.Description }
+func (x *UpdateCourseRequest) GetCourseType() string         { return x.CourseType }
+func (x *UpdateCourseRequest) GetMaxStudents() int32         { return x.MaxStudents }
+func (x *UpdateCourseRequest) GetEnrollmentDeadline() string { return x.EnrollmentDeadline }
+
+type PublishCourseRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	CourseId string `protobuf:"bytes,1,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+}
+
+func (x *PublishCourseRequest) Reset()         { *x = PublishCourseRequest{} }
+func (x *PublishCourseRequest) String() string  { return x.CourseId }
+func (x *PublishCourseRequest) ProtoMessage()  {}
+func (x *PublishCourseRequest) GetCourseId() string { return x.CourseId }
 
 type DeleteCourseRequest struct {
 	state         protoimpl.MessageState
@@ -69,21 +93,29 @@ type CourseResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	Id          string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title       string  `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description string  `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	TutorId     string  `protobuf:"bytes,4,opt,name=tutor_id,json=tutorId,proto3" json:"tutor_id,omitempty"`
-	Price       float64 `protobuf:"fixed64,5,opt,name=price,proto3" json:"price,omitempty"`
+	Id                 string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title              string  `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description        string  `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	TutorId            string  `protobuf:"bytes,4,opt,name=tutor_id,json=tutorId,proto3" json:"tutor_id,omitempty"`
+	Price              float64 `protobuf:"fixed64,5,opt,name=price,proto3" json:"price,omitempty"`
+	CourseType         string  `protobuf:"bytes,6,opt,name=course_type,json=courseType,proto3" json:"course_type,omitempty"`
+	MaxStudents        int32   `protobuf:"varint,7,opt,name=max_students,json=maxStudents,proto3" json:"max_students,omitempty"`
+	EnrollmentDeadline string  `protobuf:"bytes,8,opt,name=enrollment_deadline,json=enrollmentDeadline,proto3" json:"enrollment_deadline,omitempty"`
+	IsPublished        bool    `protobuf:"varint,9,opt,name=is_published,json=isPublished,proto3" json:"is_published,omitempty"`
 }
 
 func (x *CourseResponse) Reset()         { *x = CourseResponse{} }
 func (x *CourseResponse) String() string  { return x.Id }
 func (x *CourseResponse) ProtoMessage()  {}
-func (x *CourseResponse) GetId() string          { return x.Id }
-func (x *CourseResponse) GetTitle() string       { return x.Title }
-func (x *CourseResponse) GetDescription() string { return x.Description }
-func (x *CourseResponse) GetTutorId() string     { return x.TutorId }
-func (x *CourseResponse) GetPrice() float64      { return x.Price }
+func (x *CourseResponse) GetId() string                  { return x.Id }
+func (x *CourseResponse) GetTitle() string               { return x.Title }
+func (x *CourseResponse) GetDescription() string         { return x.Description }
+func (x *CourseResponse) GetTutorId() string             { return x.TutorId }
+func (x *CourseResponse) GetPrice() float64              { return x.Price }
+func (x *CourseResponse) GetCourseType() string          { return x.CourseType }
+func (x *CourseResponse) GetMaxStudents() int32          { return x.MaxStudents }
+func (x *CourseResponse) GetEnrollmentDeadline() string  { return x.EnrollmentDeadline }
+func (x *CourseResponse) GetIsPublished() bool           { return x.IsPublished }
 
 type GetAllCoursesRequest struct {
 	state         protoimpl.MessageState
@@ -158,6 +190,8 @@ type CourseServiceServer interface {
 	GetCourse(context.Context, *GetCourseRequest) (*CourseResponse, error)
 	GetAllCourses(context.Context, *GetAllCoursesRequest) (*CoursesList, error)
 	UpdateCourse(context.Context, *UpdateCourseRequest) (*CourseResponse, error)
+	PublishCourse(context.Context, *PublishCourseRequest) (*CourseResponse, error)
+	SearchCourses(context.Context, *SearchCoursesRequest) (*CoursesList, error)
 	DeleteCourse(context.Context, *DeleteCourseRequest) (*Empty, error)
 	AddTag(context.Context, *TagRequest) (*Empty, error)
 	RemoveTag(context.Context, *TagRequest) (*Empty, error)
@@ -177,6 +211,12 @@ func (UnimplementedCourseServiceServer) GetAllCourses(context.Context, *GetAllCo
 	return nil, nil
 }
 func (UnimplementedCourseServiceServer) UpdateCourse(context.Context, *UpdateCourseRequest) (*CourseResponse, error) {
+	return nil, nil
+}
+func (UnimplementedCourseServiceServer) PublishCourse(context.Context, *PublishCourseRequest) (*CourseResponse, error) {
+	return nil, nil
+}
+func (UnimplementedCourseServiceServer) SearchCourses(context.Context, *SearchCoursesRequest) (*CoursesList, error) {
 	return nil, nil
 }
 func (UnimplementedCourseServiceServer) DeleteCourse(context.Context, *DeleteCourseRequest) (*Empty, error) {
@@ -207,6 +247,8 @@ var CourseService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "GetCourse", Handler: _CourseService_GetCourse_Handler},
 		{MethodName: "GetAllCourses", Handler: _CourseService_GetAllCourses_Handler},
 		{MethodName: "UpdateCourse", Handler: _CourseService_UpdateCourse_Handler},
+		{MethodName: "PublishCourse", Handler: _CourseService_PublishCourse_Handler},
+		{MethodName: "SearchCourses", Handler: _CourseService_SearchCourses_Handler},
 		{MethodName: "DeleteCourse", Handler: _CourseService_DeleteCourse_Handler},
 		{MethodName: "AddTag", Handler: _CourseService_AddTag_Handler},
 		{MethodName: "RemoveTag", Handler: _CourseService_RemoveTag_Handler},
@@ -291,6 +333,36 @@ func _CourseService_DeleteCourse_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CourseService_PublishCourse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishCourseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CourseServiceServer).PublishCourse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/course.CourseService/PublishCourse"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CourseServiceServer).PublishCourse(ctx, req.(*PublishCourseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CourseService_SearchCourses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchCoursesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CourseServiceServer).SearchCourses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/course.CourseService/SearchCourses"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CourseServiceServer).SearchCourses(ctx, req.(*SearchCoursesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client interface ──────────────────────────────────────────────────────────
 
 func _CourseService_AddTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -325,6 +397,8 @@ type CourseServiceClient interface {
 	GetCourse(ctx context.Context, in *GetCourseRequest, opts ...grpc.CallOption) (*CourseResponse, error)
 	GetAllCourses(ctx context.Context, in *GetAllCoursesRequest, opts ...grpc.CallOption) (*CoursesList, error)
 	UpdateCourse(ctx context.Context, in *UpdateCourseRequest, opts ...grpc.CallOption) (*CourseResponse, error)
+	PublishCourse(ctx context.Context, in *PublishCourseRequest, opts ...grpc.CallOption) (*CourseResponse, error)
+	SearchCourses(ctx context.Context, in *SearchCoursesRequest, opts ...grpc.CallOption) (*CoursesList, error)
 	DeleteCourse(ctx context.Context, in *DeleteCourseRequest, opts ...grpc.CallOption) (*Empty, error)
 	AddTag(ctx context.Context, in *TagRequest, opts ...grpc.CallOption) (*Empty, error)
 	RemoveTag(ctx context.Context, in *TagRequest, opts ...grpc.CallOption) (*Empty, error)
@@ -363,6 +437,12 @@ func (c *courseServiceClient) UpdateCourse(ctx context.Context, in *UpdateCourse
 	return out, err
 }
 
+func (c *courseServiceClient) PublishCourse(ctx context.Context, in *PublishCourseRequest, opts ...grpc.CallOption) (*CourseResponse, error) {
+	out := new(CourseResponse)
+	err := c.cc.Invoke(ctx, "/course.CourseService/PublishCourse", in, out, opts...)
+	return out, err
+}
+
 func (c *courseServiceClient) DeleteCourse(ctx context.Context, in *DeleteCourseRequest, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/course.CourseService/DeleteCourse", in, out, opts...)
@@ -384,5 +464,37 @@ func (c *courseServiceClient) RemoveTag(ctx context.Context, in *TagRequest, opt
 func (c *courseServiceClient) GetCoursesByTag(ctx context.Context, in *GetCoursesByTagRequest, opts ...grpc.CallOption) (*CoursesList, error) {
 	out := new(CoursesList)
 	err := c.cc.Invoke(ctx, "/course.CourseService/GetCoursesByTag", in, out, opts...)
+	return out, err
+}
+
+// ── SearchCourses ─────────────────────────────────────────────────────────────
+
+type SearchCoursesRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	TutorId    string  `protobuf:"bytes,1,opt,name=tutor_id,json=tutorId,proto3" json:"tutor_id,omitempty"`
+	Tag        string  `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	CourseType string  `protobuf:"bytes,3,opt,name=course_type,json=courseType,proto3" json:"course_type,omitempty"`
+	MinPrice   float64 `protobuf:"fixed64,4,opt,name=min_price,json=minPrice,proto3" json:"min_price,omitempty"`
+	MaxPrice   float64 `protobuf:"fixed64,5,opt,name=max_price,json=maxPrice,proto3" json:"max_price,omitempty"`
+	Limit      int32   `protobuf:"varint,6,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset     int32   `protobuf:"varint,7,opt,name=offset,proto3" json:"offset,omitempty"`
+}
+
+func (x *SearchCoursesRequest) Reset()             { *x = SearchCoursesRequest{} }
+func (x *SearchCoursesRequest) String() string      { return "" }
+func (x *SearchCoursesRequest) ProtoMessage()       {}
+func (x *SearchCoursesRequest) GetTutorId() string    { return x.TutorId }
+func (x *SearchCoursesRequest) GetTag() string        { return x.Tag }
+func (x *SearchCoursesRequest) GetCourseType() string { return x.CourseType }
+func (x *SearchCoursesRequest) GetMinPrice() float64  { return x.MinPrice }
+func (x *SearchCoursesRequest) GetMaxPrice() float64  { return x.MaxPrice }
+func (x *SearchCoursesRequest) GetLimit() int32       { return x.Limit }
+func (x *SearchCoursesRequest) GetOffset() int32      { return x.Offset }
+
+func (c *courseServiceClient) SearchCourses(ctx context.Context, in *SearchCoursesRequest, opts ...grpc.CallOption) (*CoursesList, error) {
+	out := new(CoursesList)
+	err := c.cc.Invoke(ctx, "/course.CourseService/SearchCourses", in, out, opts...)
 	return out, err
 }

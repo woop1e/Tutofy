@@ -34,7 +34,8 @@ func (h *CourseHandler) CreateCourse(ctx context.Context, req *coursepb.CreateCo
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	course, err := h.svc.CreateCourse(ctx, callerID, callerRole, req.GetTitle(), req.GetDescription(), req.GetPrice())
+	course, err := h.svc.CreateCourse(ctx, callerID, callerRole, req.GetTitle(), req.GetDescription(), req.GetPrice(),
+		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline())
 	if err != nil {
 		if errors.Is(err, service.ErrNotTutor) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -87,7 +88,8 @@ func (h *CourseHandler) UpdateCourse(ctx context.Context, req *coursepb.UpdateCo
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	course, err := h.svc.UpdateCourse(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetDescription())
+	course, err := h.svc.UpdateCourse(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetDescription(),
+		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline())
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			return nil, status.Error(codes.PermissionDenied, "forbidden")
@@ -117,13 +119,36 @@ func (h *CourseHandler) DeleteCourse(ctx context.Context, req *coursepb.DeleteCo
 	return &coursepb.Empty{}, nil
 }
 
+func (h *CourseHandler) PublishCourse(ctx context.Context, req *coursepb.PublishCourseRequest) (*coursepb.CourseResponse, error) {
+	if req.GetCourseId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "course_id is required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	course, err := h.svc.PublishCourse(ctx, callerID, callerRole, req.GetCourseId())
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "course not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return toProto(course), nil
+}
+
 func toProto(c *model.Course) *coursepb.CourseResponse {
 	return &coursepb.CourseResponse{
-		Id:          c.ID,
-		Title:       c.Title,
-		Description: c.Description,
-		TutorId:     c.TutorID,
-		Price:       c.Price,
+		Id:                 c.ID,
+		Title:              c.Title,
+		Description:        c.Description,
+		TutorId:            c.TutorID,
+		Price:              c.Price,
+		CourseType:         c.CourseType,
+		MaxStudents:        c.MaxStudents,
+		EnrollmentDeadline: c.EnrollmentDeadline,
+		IsPublished:        c.IsPublished,
 	}
 }
 
@@ -168,6 +193,25 @@ func (h *CourseHandler) GetCoursesByTag(ctx context.Context, req *coursepb.GetCo
 		return nil, status.Error(codes.InvalidArgument, "tag_name is required")
 	}
 	courses, err := h.svc.GetCoursesByTag(ctx, req.GetTagName(), req.GetLimit(), req.GetOffset())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	list := make([]*coursepb.CourseResponse, 0, len(courses))
+	for _, c := range courses {
+		list = append(list, toProto(c))
+	}
+	return &coursepb.CoursesList{Courses: list}, nil
+}
+
+func (h *CourseHandler) SearchCourses(ctx context.Context, req *coursepb.SearchCoursesRequest) (*coursepb.CoursesList, error) {
+	limit := req.GetLimit()
+	if limit <= 0 {
+		limit = 50
+	}
+	courses, err := h.svc.SearchCourses(ctx,
+		req.GetTutorId(), req.GetTag(), req.GetCourseType(),
+		req.GetMinPrice(), req.GetMaxPrice(), limit, req.GetOffset(),
+	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

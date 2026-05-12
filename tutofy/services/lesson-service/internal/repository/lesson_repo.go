@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"lesson-service/internal/model"
 )
@@ -18,6 +19,9 @@ type LessonRepository interface {
 	UpdateLessonStatus(ctx context.Context, id string, status model.LessonStatus) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, id string) error
 	UpsertAttendance(ctx context.Context, lessonID, studentID string, attended bool) error
+	GetLessonsInRange(ctx context.Context, courseIDs []string, tutorID, fromDate, toDate string) ([]*model.Lesson, error)
+	AddMaterial(ctx context.Context, id, lessonID, fileID, title string) error
+	GetLessonMaterials(ctx context.Context, lessonID string) ([]*LessonMaterial, error)
 }
 
 type postgresRepo struct {
@@ -156,4 +160,87 @@ func (r *postgresRepo) UpsertAttendance(ctx context.Context, lessonID, studentID
 		lessonID, studentID, attended,
 	)
 	return err
+}
+
+func (r *postgresRepo) GetLessonsInRange(ctx context.Context, courseIDs []string, tutorID, fromDate, toDate string) ([]*model.Lesson, error) {
+	var q string
+	var args []any
+
+	if tutorID != "" {
+		q = `SELECT ` + lessonColumns + ` FROM lessons
+		     WHERE tutor_id = $1 AND deleted_at IS NULL
+		     AND scheduled_at >= $2::TIMESTAMPTZ AND scheduled_at <= $3::TIMESTAMPTZ
+		     ORDER BY scheduled_at ASC`
+		args = []any{tutorID, fromDate, toDate}
+	} else if len(courseIDs) > 0 {
+		// Build $1,$2,... for the IN clause
+		placeholders := ""
+		for i, id := range courseIDs {
+			if i > 0 {
+				placeholders += ","
+			}
+			placeholders += "$" + fmt.Sprintf("%d", i+1)
+			args = append(args, id)
+		}
+		n := len(courseIDs) + 1
+		args = append(args, fromDate, toDate)
+		q = `SELECT ` + lessonColumns + ` FROM lessons
+		     WHERE course_id IN (` + placeholders + `) AND deleted_at IS NULL
+		     AND scheduled_at >= $` + fmt.Sprintf("%d", n) + `::TIMESTAMPTZ
+		     AND scheduled_at <= $` + fmt.Sprintf("%d", n+1) + `::TIMESTAMPTZ
+		     ORDER BY scheduled_at ASC`
+	} else {
+		return nil, nil
+	}
+
+	rows, err := r.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var lessons []*model.Lesson
+	for rows.Next() {
+		l, err := scanLessonRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		lessons = append(lessons, l)
+	}
+	return lessons, rows.Err()
+}
+
+type LessonMaterial struct {
+	ID         string
+	LessonID   string
+	FileID     string
+	Title      string
+	UploadedAt string
+}
+
+func (r *postgresRepo) AddMaterial(ctx context.Context, id, lessonID, fileID, title string) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO lesson_materials (id, lesson_id, file_id, title) VALUES ($1, $2, $3, $4)`,
+		id, lessonID, fileID, title,
+	)
+	return err
+}
+
+func (r *postgresRepo) GetLessonMaterials(ctx context.Context, lessonID string) ([]*LessonMaterial, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, lesson_id, file_id, title, uploaded_at::TEXT FROM lesson_materials
+		 WHERE lesson_id = $1 ORDER BY uploaded_at ASC`, lessonID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []*LessonMaterial
+	for rows.Next() {
+		m := &LessonMaterial{}
+		if err := rows.Scan(&m.ID, &m.LessonID, &m.FileID, &m.Title, &m.UploadedAt); err != nil {
+			return nil, err
+		}
+		result = append(result, m)
+	}
+	return result, rows.Err()
 }

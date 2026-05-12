@@ -177,3 +177,45 @@ func (h *LessonHandler) MarkAttendance(ctx context.Context, req *lessonpb.MarkAt
 	}
 	return &lessonpb.Empty{}, nil
 }
+
+func (h *LessonHandler) GetMySchedule(ctx context.Context, req *lessonpb.GetScheduleRequest) (*lessonpb.CourseLessonsList, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	lessons, err := h.svc.GetMySchedule(ctx, callerID, callerRole, req.GetFromDate(), req.GetToDate())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	list := make([]*lessonpb.Lesson, 0, len(lessons))
+	for _, l := range lessons {
+		list = append(list, toProto(l))
+	}
+	return &lessonpb.CourseLessonsList{Lessons: list}, nil
+}
+
+func (h *LessonHandler) AddMaterial(ctx context.Context, req *lessonpb.AddMaterialRequest) (*lessonpb.MaterialResponse, error) {
+	if req.GetLessonId() == "" || req.GetFileId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id and file_id are required")
+	}
+	callerID, callerRole := middleware.UserIDFromContext(ctx), middleware.RoleFromContext(ctx)
+	if err := h.svc.AddMaterial(ctx, callerID, callerRole, req.GetLessonId(), req.GetFileId(), req.GetTitle()); err != nil {
+		return nil, mapError(err)
+	}
+	return &lessonpb.MaterialResponse{LessonId: req.GetLessonId(), FileId: req.GetFileId(), Title: req.GetTitle()}, nil
+}
+
+func (h *LessonHandler) GetLessonMaterials(ctx context.Context, req *lessonpb.GetLessonMaterialsRequest) (*lessonpb.MaterialsList, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	callerID, callerRole := middleware.UserIDFromContext(ctx), middleware.RoleFromContext(ctx)
+	mats, err := h.svc.GetLessonMaterials(ctx, callerID, callerRole, req.GetLessonId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	list := make([]*lessonpb.MaterialResponse, 0, len(mats))
+	for _, m := range mats {
+		list = append(list, &lessonpb.MaterialResponse{Id: m.ID, LessonId: m.LessonID, FileId: m.FileID, Title: m.Title, UploadedAt: m.UploadedAt})
+	}
+	return &lessonpb.MaterialsList{Materials: list}, nil
+}
