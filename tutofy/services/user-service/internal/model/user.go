@@ -17,4 +17,5 @@ type TutorProfile struct {
 	PhotoURL        string
 	Subjects        string // JSON-encoded []string, e.g. `["Math","Physics"]`
 	ExperienceYears int32
+	Certificates    string // JSON-encoded []string, e.g. `["IELTS 8.0","Cambridge C2"]`
 }

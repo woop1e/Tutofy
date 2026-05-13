@@ -14,6 +14,7 @@ import (
 	"enrollment-service/internal/repository"
 	"enrollment-service/internal/service"
 	"enrollment-service/proto/enrollmentpb"
+	"notification-service/proto/notificationpb"
 	"payment-service/proto/paymentpb"
 
 	_ "github.com/lib/pq"
@@ -51,12 +52,19 @@ func main() {
 	}
 	defer paymentConn.Close()
 
-	authClient   := authpb.NewAuthServiceClient(authConn)
-	courseClient := coursepb.NewCourseServiceClient(courseConn)
-	paymentClient := paymentpb.NewPaymentServiceClient(paymentConn)
+	notificationConn, err := grpc.NewClient(cfg.NotificationServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("notification-service dial: %v", err)
+	}
+	defer notificationConn.Close()
+
+	authClient         := authpb.NewAuthServiceClient(authConn)
+	courseClient       := coursepb.NewCourseServiceClient(courseConn)
+	paymentClient      := paymentpb.NewPaymentServiceClient(paymentConn)
+	notificationClient := notificationpb.NewNotificationServiceClient(notificationConn)
 
 	repo := repository.NewPostgresRepo(db)
-	svc := service.NewEnrollmentService(repo, courseClient, paymentClient)
+	svc := service.NewEnrollmentService(repo, courseClient, paymentClient, notificationClient)
 	h := handler.NewEnrollmentHandler(svc)
 
 	grpcServer := grpc.NewServer(

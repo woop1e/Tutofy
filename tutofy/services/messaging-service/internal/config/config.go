@@ -10,7 +10,8 @@ import (
 type Config struct {
 	DBURL           string
 	Port            string
-	AuthServiceAddr string
+	AuthServiceAddr         string
+	NotificationServiceAddr string
 }
 
 func Load() *Config {
@@ -33,9 +34,15 @@ func Load() *Config {
 		authAddr = "localhost:50051"
 	}
 
+	notifAddr := os.Getenv("NOTIFICATION_SERVICE_ADDR")
+	if notifAddr == "" {
+		notifAddr = "localhost:50057"
+	}
+
 	return &Config{
-		DBURL:           dbURL,
-		Port:            port,
-		AuthServiceAddr: authAddr,
+		DBURL:                   dbURL,
+		Port:                    port,
+		AuthServiceAddr:         authAddr,
+		NotificationServiceAddr: notifAddr,
 	}
 }

@@ -19,9 +19,9 @@ type UserService interface {
 	UpdateUser(ctx context.Context, callerID, callerRole, targetID, name, email string) (*model.User, error)
 	GetAllUsers(ctx context.Context, callerRole string, limit, offset int32) ([]*model.User, error)
 	DeleteUser(ctx context.Context, callerRole, targetID string) error
-	UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID, bio, location, photoURL string, subjects []string, age, experienceYears int32) (*model.TutorProfile, error)
+	UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID, bio, location, photoURL string, subjects, certificates []string, age, experienceYears int32) (*model.TutorProfile, error)
 	GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error)
-	SearchTutors(ctx context.Context, subject, location string, limit, offset int32) ([]*model.TutorProfile, error)
+	SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error)
 }
 
 type userService struct {
@@ -83,12 +83,13 @@ func (s *userService) DeleteUser(ctx context.Context, callerRole, targetID strin
 	return err
 }
 
-func (s *userService) UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID, bio, location, photoURL string, subjects []string, age, experienceYears int32) (*model.TutorProfile, error) {
+func (s *userService) UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID, bio, location, photoURL string, subjects, certificates []string, age, experienceYears int32) (*model.TutorProfile, error) {
 	if callerRole != "admin" && callerID != tutorID {
 		return nil, ErrForbidden
 	}
 	subjectsJSON, _ := json.Marshal(subjects)
-	p, err := s.repo.UpdateTutorProfile(ctx, tutorID, bio, location, photoURL, string(subjectsJSON), age, experienceYears)
+	certsJSON, _ := json.Marshal(certificates)
+	p, err := s.repo.UpdateTutorProfile(ctx, tutorID, bio, location, photoURL, string(subjectsJSON), string(certsJSON), age, experienceYears)
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "tutor:"+tutorID).Err()
 	}
@@ -116,9 +117,9 @@ func (s *userService) GetTutorProfile(ctx context.Context, tutorID string) (*mod
 	return p, nil
 }
 
-func (s *userService) SearchTutors(ctx context.Context, subject, location string, limit, offset int32) ([]*model.TutorProfile, error) {
+func (s *userService) SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error) {
 	if limit <= 0 {
 		limit = 50
 	}
-	return s.repo.SearchTutors(ctx, subject, location, limit, offset)
+	return s.repo.SearchTutors(ctx, subject, location, minAge, maxAge, limit, offset)
 }

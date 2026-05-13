@@ -20,6 +20,7 @@ import (
 	"payment-service/proto/paymentpb"
 	"messaging-service/proto/messagingpb"
 	"media-service/proto/mediapb"
+	"review-service/proto/reviewpb"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -49,12 +50,13 @@ func main() {
 	paymentConn      := dial(cfg.PaymentServiceAddr)
 	messagingConn    := dial(cfg.MessagingServiceAddr)
 	mediaConn        := dial(cfg.MediaServiceAddr)
+	reviewConn       := dial(cfg.ReviewServiceAddr)
 
 	// Build handlers.
 	ah  := handler.NewAuthHandler(authpb.NewAuthServiceClient(authConn))
 	uh  := handler.NewUserHandler(userpb.NewUserServiceClient(userConn))
 	ch  := handler.NewCourseHandler(coursepb.NewCourseServiceClient(courseConn))
-	tph := handler.NewTutorPublicProfileHandler(userpb.NewUserServiceClient(userConn), coursepb.NewCourseServiceClient(courseConn))
+	tph := handler.NewTutorPublicProfileHandler(userpb.NewUserServiceClient(userConn), coursepb.NewCourseServiceClient(courseConn), reviewpb.NewReviewServiceClient(reviewConn))
 	eh  := handler.NewEnrollmentHandler(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
 	lh  := handler.NewLessonHandler(lessonpb.NewLessonServiceClient(lessonConn))
 	ash := handler.NewAssignmentHandler(assignmentpb.NewAssignmentServiceClient(assignmentConn))
@@ -103,6 +105,7 @@ func main() {
 	mux.HandleFunc("GET /schedule",                             lh.GetMySchedule)
 	mux.HandleFunc("POST /lessons/{id}/materials",              lh.AddMaterial)
 	mux.HandleFunc("GET /lessons/{id}/materials",               lh.GetLessonMaterials)
+	mux.HandleFunc("GET /lessons/{id}/attendance",              lh.GetAttendance)
 	mux.HandleFunc("PATCH /lessons/{id}/status",          lh.UpdateLessonStatus)
 	mux.HandleFunc("DELETE /lessons/{id}",                lh.DeleteLesson)
 
@@ -139,6 +142,7 @@ func main() {
 	mux.HandleFunc("GET /conversations/{user_id}",        msh.GetConversation)
 
 	// Media
+	mux.HandleFunc("POST /media/upload",                       mdh.UploadFile)
 	mux.HandleFunc("GET /media/{id}/download",            mdh.GetDownloadURL)
 	mux.HandleFunc("DELETE /media/{id}",                  mdh.DeleteFile)
 

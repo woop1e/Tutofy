@@ -8,8 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
     age              INTEGER,
     location         TEXT NOT NULL DEFAULT '',
     photo_url        TEXT NOT NULL DEFAULT '',
-    subjects         TEXT NOT NULL DEFAULT '[]',  -- JSON array e.g. ["Math","Physics"]
+    subjects         TEXT NOT NULL DEFAULT '[]',       -- JSON array e.g. ["Math","Physics"]
     experience_years INTEGER NOT NULL DEFAULT 0,
+    certificates     TEXT NOT NULL DEFAULT '[]',       -- JSON array e.g. ["IELTS 8.0","Cambridge C2"]
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ,
     deleted_at       TIMESTAMPTZ
@@ -22,4 +23,5 @@ CREATE TABLE IF NOT EXISTS users (
 --   ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '',
 --   ADD COLUMN IF NOT EXISTS photo_url TEXT NOT NULL DEFAULT '',
 --   ADD COLUMN IF NOT EXISTS subjects TEXT NOT NULL DEFAULT '[]',
---   ADD COLUMN IF NOT EXISTS experience_years INTEGER NOT NULL DEFAULT 0;
+--   ADD COLUMN IF NOT EXISTS experience_years INTEGER NOT NULL DEFAULT 0,
+--   ADD COLUMN IF NOT EXISTS certificates TEXT NOT NULL DEFAULT '[]';

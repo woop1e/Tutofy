@@ -26,6 +26,11 @@ type NotificationType int32
 const (
 	NotificationType_NOTIFICATION_TYPE_UNSPECIFIED NotificationType = 0
 	NotificationType_NOTIFICATION_TYPE_GRADE       NotificationType = 1
+	NotificationType_NOTIFICATION_TYPE_ENROLLMENT  NotificationType = 2
+	NotificationType_NOTIFICATION_TYPE_NEW_LESSON  NotificationType = 3
+	NotificationType_NOTIFICATION_TYPE_NEW_MESSAGE NotificationType = 4
+	NotificationType_NOTIFICATION_TYPE_ASSIGNMENT  NotificationType = 5
+	NotificationType_NOTIFICATION_TYPE_COURSE_DONE NotificationType = 6
 )
 
 // Enum value maps for NotificationType.
@@ -33,10 +38,20 @@ var (
 	NotificationType_name = map[int32]string{
 		0: "NOTIFICATION_TYPE_UNSPECIFIED",
 		1: "NOTIFICATION_TYPE_GRADE",
+		2: "NOTIFICATION_TYPE_ENROLLMENT",
+		3: "NOTIFICATION_TYPE_NEW_LESSON",
+		4: "NOTIFICATION_TYPE_NEW_MESSAGE",
+		5: "NOTIFICATION_TYPE_ASSIGNMENT",
+		6: "NOTIFICATION_TYPE_COURSE_DONE",
 	}
 	NotificationType_value = map[string]int32{
 		"NOTIFICATION_TYPE_UNSPECIFIED": 0,
 		"NOTIFICATION_TYPE_GRADE":       1,
+		"NOTIFICATION_TYPE_ENROLLMENT":  2,
+		"NOTIFICATION_TYPE_NEW_LESSON":  3,
+		"NOTIFICATION_TYPE_NEW_MESSAGE": 4,
+		"NOTIFICATION_TYPE_ASSIGNMENT":  5,
+		"NOTIFICATION_TYPE_COURSE_DONE": 6,
 	}
 )
 

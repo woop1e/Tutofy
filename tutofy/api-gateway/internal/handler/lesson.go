@@ -138,3 +138,12 @@ func (h *LessonHandler) GetLessonMaterials(w http.ResponseWriter, r *http.Reques
 	}
 	jsonResp(w, http.StatusOK, resp)
 }
+
+func (h *LessonHandler) GetAttendance(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.client.GetAttendance(tokenCtx(r), &lessonpb.GetAttendanceRequest{LessonId: r.PathValue("id")})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}

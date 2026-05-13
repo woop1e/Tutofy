@@ -7,8 +7,13 @@ option go_package = "notification-service/proto/notificationpb";
 import "google/protobuf/timestamp.proto";
 
 enum NotificationType {
-  NOTIFICATION_TYPE_UNSPECIFIED = 0;
-  NOTIFICATION_TYPE_GRADE       = 1;
+  NOTIFICATION_TYPE_UNSPECIFIED   = 0;
+  NOTIFICATION_TYPE_GRADE         = 1;
+  NOTIFICATION_TYPE_ENROLLMENT    = 2;
+  NOTIFICATION_TYPE_NEW_LESSON    = 3;
+  NOTIFICATION_TYPE_NEW_MESSAGE   = 4;
+  NOTIFICATION_TYPE_ASSIGNMENT    = 5;
+  NOTIFICATION_TYPE_COURSE_DONE   = 6;
 }
 
 message Notification {
@@ -46,8 +51,16 @@ message MarkReadRequest {
 
 message MarkReadResponse {}
 
+// Generic internal RPC — any service can notify any user.
+message NotifyUserRequest {
+  string user_id  = 1;
+  int32  type     = 2;  // NotificationType int value
+  string message  = 3;
+}
+
 service NotificationService {
   rpc NotifyGrade        (NotifyGradeRequest)       returns (NotifyGradeResponse);
+  rpc NotifyUser         (NotifyUserRequest)         returns (NotifyGradeResponse);
   rpc GetNotifications   (GetNotificationsRequest)  returns (NotificationsList);
   rpc MarkAsRead         (MarkReadRequest)           returns (MarkReadResponse);
 }

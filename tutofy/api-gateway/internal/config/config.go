@@ -21,6 +21,7 @@ type Config struct {
 	PaymentServiceAddr    string
 	MessagingServiceAddr  string
 	MediaServiceAddr      string
+	ReviewServiceAddr     string
 }
 
 func Load() *Config {
@@ -45,6 +46,7 @@ func Load() *Config {
 		PaymentServiceAddr:    env("PAYMENT_SERVICE_ADDR", "localhost:50061"),
 		MessagingServiceAddr:  env("MESSAGING_SERVICE_ADDR", "localhost:50060"),
 		MediaServiceAddr:      env("MEDIA_SERVICE_ADDR", "localhost:50062"),
+		ReviewServiceAddr:     env("REVIEW_SERVICE_ADDR", "localhost:50065"),
 	}
 }
 

@@ -91,3 +91,14 @@ func mapError(err error) error {
 		return status.Error(codes.Internal, err.Error())
 	}
 }
+
+// NotifyUser is called by any internal service to notify a user.
+func (h *NotificationHandler) NotifyUser(ctx context.Context, req *notificationpb.NotifyUserRequest) (*notificationpb.NotifyGradeResponse, error) {
+	if req.GetUserId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if err := h.svc.NotifyUser(ctx, req.GetUserId(), req.GetType(), req.GetMessage()); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &notificationpb.NotifyGradeResponse{}, nil
+}

@@ -45,6 +45,7 @@ type LessonService interface {
 	GetMySchedule(ctx context.Context, callerID, callerRole, fromDate, toDate string) ([]*model.Lesson, error)
 	AddMaterial(ctx context.Context, callerID, callerRole, lessonID, fileID, title string) error
 	GetLessonMaterials(ctx context.Context, callerID, callerRole, lessonID string) ([]*repository.LessonMaterial, error)
+	GetAttendance(ctx context.Context, callerID, callerRole, lessonID string) ([]*repository.AttendanceRow, error)
 }
 
 type lessonService struct {
@@ -274,3 +275,7 @@ func (s *lessonService) GetLessonMaterials(ctx context.Context, callerID, caller
 	return s.repo.GetLessonMaterials(ctx, lessonID)
 }
 
+
+func (s *lessonService) GetAttendance(ctx context.Context, callerID, callerRole, lessonID string) ([]*repository.AttendanceRow, error) {
+	return s.repo.GetAttendance(ctx, lessonID, callerID, callerRole)
+}

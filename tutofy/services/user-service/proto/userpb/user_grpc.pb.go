@@ -140,18 +140,20 @@ type UpdateTutorProfileRequest struct {
 	PhotoUrl        string   `protobuf:"bytes,5,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
 	Subjects        []string `protobuf:"bytes,6,rep,name=subjects,proto3" json:"subjects,omitempty"`
 	ExperienceYears int32    `protobuf:"varint,7,opt,name=experience_years,json=experienceYears,proto3" json:"experience_years,omitempty"`
+	Certificates    []string `protobuf:"bytes,8,rep,name=certificates,proto3" json:"certificates,omitempty"`
 }
 
 func (x *UpdateTutorProfileRequest) Reset()               { *x = UpdateTutorProfileRequest{} }
 func (x *UpdateTutorProfileRequest) String() string        { return x.UserId }
 func (x *UpdateTutorProfileRequest) ProtoMessage()         {}
-func (x *UpdateTutorProfileRequest) GetUserId() string          { return x.UserId }
-func (x *UpdateTutorProfileRequest) GetBio() string             { return x.Bio }
+func (x *UpdateTutorProfileRequest) GetUserId() string           { return x.UserId }
+func (x *UpdateTutorProfileRequest) GetBio() string              { return x.Bio }
 func (x *UpdateTutorProfileRequest) GetAge() int32               { return x.Age }
-func (x *UpdateTutorProfileRequest) GetLocation() string        { return x.Location }
-func (x *UpdateTutorProfileRequest) GetPhotoUrl() string        { return x.PhotoUrl }
-func (x *UpdateTutorProfileRequest) GetSubjects() []string      { return x.Subjects }
-func (x *UpdateTutorProfileRequest) GetExperienceYears() int32  { return x.ExperienceYears }
+func (x *UpdateTutorProfileRequest) GetLocation() string         { return x.Location }
+func (x *UpdateTutorProfileRequest) GetPhotoUrl() string         { return x.PhotoUrl }
+func (x *UpdateTutorProfileRequest) GetSubjects() []string       { return x.Subjects }
+func (x *UpdateTutorProfileRequest) GetExperienceYears() int32   { return x.ExperienceYears }
+func (x *UpdateTutorProfileRequest) GetCertificates() []string   { return x.Certificates }
 
 type GetTutorProfileRequest struct {
 	state         protoimpl.MessageState
@@ -178,6 +180,7 @@ type TutorProfileResponse struct {
 	PhotoUrl        string   `protobuf:"bytes,7,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
 	Subjects        []string `protobuf:"bytes,8,rep,name=subjects,proto3" json:"subjects,omitempty"`
 	ExperienceYears int32    `protobuf:"varint,9,opt,name=experience_years,json=experienceYears,proto3" json:"experience_years,omitempty"`
+	Certificates    []string `protobuf:"bytes,10,rep,name=certificates,proto3" json:"certificates,omitempty"`
 }
 
 func (x *TutorProfileResponse) Reset()               { *x = TutorProfileResponse{} }
@@ -187,11 +190,12 @@ func (x *TutorProfileResponse) GetId() string                { return x.Id }
 func (x *TutorProfileResponse) GetName() string              { return x.Name }
 func (x *TutorProfileResponse) GetEmail() string             { return x.Email }
 func (x *TutorProfileResponse) GetBio() string               { return x.Bio }
-func (x *TutorProfileResponse) GetAge() int32                 { return x.Age }
+func (x *TutorProfileResponse) GetAge() int32                { return x.Age }
 func (x *TutorProfileResponse) GetLocation() string          { return x.Location }
 func (x *TutorProfileResponse) GetPhotoUrl() string          { return x.PhotoUrl }
 func (x *TutorProfileResponse) GetSubjects() []string        { return x.Subjects }
 func (x *TutorProfileResponse) GetExperienceYears() int32    { return x.ExperienceYears }
+func (x *TutorProfileResponse) GetCertificates() []string    { return x.Certificates }
 
 type GetAllUsersRequest struct {
 	state         protoimpl.MessageState
@@ -446,13 +450,17 @@ type SearchTutorsRequest struct {
 	Location string `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
 	Limit    int32  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset   int32  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	MinAge   int32  `protobuf:"varint,5,opt,name=min_age,json=minAge,proto3" json:"min_age,omitempty"`
+	MaxAge   int32  `protobuf:"varint,6,opt,name=max_age,json=maxAge,proto3" json:"max_age,omitempty"`
 }
 
-func (x *SearchTutorsRequest) Reset()           { *x = SearchTutorsRequest{} }
-func (x *SearchTutorsRequest) String() string    { return "" }
-func (x *SearchTutorsRequest) ProtoMessage()    {}
-func (x *SearchTutorsRequest) GetSubject() string  { return x.Subject }
-func (x *SearchTutorsRequest) GetLocation() string { return x.Location }
+func (x *SearchTutorsRequest) Reset()             { *x = SearchTutorsRequest{} }
+func (x *SearchTutorsRequest) String() string      { return "" }
+func (x *SearchTutorsRequest) ProtoMessage()      {}
+func (x *SearchTutorsRequest) GetSubject() string   { return x.Subject }
+func (x *SearchTutorsRequest) GetLocation() string  { return x.Location }
+func (x *SearchTutorsRequest) GetMinAge() int32     { return x.MinAge }
+func (x *SearchTutorsRequest) GetMaxAge() int32     { return x.MaxAge }
 func (x *SearchTutorsRequest) GetLimit() int32     { return x.Limit }
 func (x *SearchTutorsRequest) GetOffset() int32    { return x.Offset }
 

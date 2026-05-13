@@ -12,7 +12,8 @@ type Config struct {
 	Port               string
 	AuthServiceAddr    string
 	CourseServiceAddr  string
-	PaymentServiceAddr string
+	PaymentServiceAddr      string
+	NotificationServiceAddr string
 }
 
 func Load() *Config {
@@ -45,11 +46,17 @@ func Load() *Config {
 		paymentAddr = "localhost:50061"
 	}
 
+	notifAddr := os.Getenv("NOTIFICATION_SERVICE_ADDR")
+	if notifAddr == "" {
+		notifAddr = "localhost:50057"
+	}
+
 	return &Config{
-		DBURL:              dbURL,
-		Port:               port,
-		AuthServiceAddr:    authAddr,
-		CourseServiceAddr:  courseAddr,
-		PaymentServiceAddr: paymentAddr,
+		DBURL:                   dbURL,
+		Port:                    port,
+		AuthServiceAddr:         authAddr,
+		CourseServiceAddr:       courseAddr,
+		PaymentServiceAddr:      paymentAddr,
+		NotificationServiceAddr: notifAddr,
 	}
 }

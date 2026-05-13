@@ -30,6 +30,7 @@ type LessonServiceClient interface {
 	GetMySchedule(ctx context.Context, in *GetScheduleRequest, opts ...grpc.CallOption) (*CourseLessonsList, error)
 	AddMaterial(ctx context.Context, in *AddMaterialRequest, opts ...grpc.CallOption) (*MaterialResponse, error)
 	GetLessonMaterials(ctx context.Context, in *GetLessonMaterialsRequest, opts ...grpc.CallOption) (*MaterialsList, error)
+	GetAttendance(ctx context.Context, in *GetAttendanceRequest, opts ...grpc.CallOption) (*AttendanceList, error)
 }
 
 type lessonServiceClient struct {
@@ -98,6 +99,7 @@ type LessonServiceServer interface {
 	GetMySchedule(context.Context, *GetScheduleRequest) (*CourseLessonsList, error)
 	AddMaterial(context.Context, *AddMaterialRequest) (*MaterialResponse, error)
 	GetLessonMaterials(context.Context, *GetLessonMaterialsRequest) (*MaterialsList, error)
+	GetAttendance(context.Context, *GetAttendanceRequest) (*AttendanceList, error)
 	mustEmbedUnimplementedLessonServiceServer()
 }
 
@@ -358,4 +360,24 @@ func _LessonService_GetLessonMaterials_Handler(srv interface{}, ctx context.Cont
 	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetLessonMaterials"}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) { return srv.(LessonServiceServer).GetLessonMaterials(ctx, req.(*GetLessonMaterialsRequest)) }
 	return interceptor(ctx, in, info, handler)
+}
+
+func (UnimplementedLessonServiceServer) GetAttendance(context.Context, *GetAttendanceRequest) (*AttendanceList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAttendance not implemented")
+}
+
+func _LessonService_GetAttendance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAttendanceRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).GetAttendance(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetAttendance"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) { return srv.(LessonServiceServer).GetAttendance(ctx, req.(*GetAttendanceRequest)) }
+	return interceptor(ctx, in, info, handler)
+}
+
+func (c *lessonServiceClient) GetAttendance(ctx context.Context, in *GetAttendanceRequest, opts ...grpc.CallOption) (*AttendanceList, error) {
+	out := new(AttendanceList)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetAttendance", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
 }

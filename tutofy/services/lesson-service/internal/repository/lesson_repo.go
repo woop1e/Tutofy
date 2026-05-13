@@ -19,6 +19,7 @@ type LessonRepository interface {
 	UpdateLessonStatus(ctx context.Context, id string, status model.LessonStatus) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, id string) error
 	UpsertAttendance(ctx context.Context, lessonID, studentID string, attended bool) error
+	GetAttendance(ctx context.Context, lessonID, callerID, callerRole string) ([]*AttendanceRow, error)
 	GetLessonsInRange(ctx context.Context, courseIDs []string, tutorID, fromDate, toDate string) ([]*model.Lesson, error)
 	AddMaterial(ctx context.Context, id, lessonID, fileID, title string) error
 	GetLessonMaterials(ctx context.Context, lessonID string) ([]*LessonMaterial, error)
@@ -241,6 +242,43 @@ func (r *postgresRepo) GetLessonMaterials(ctx context.Context, lessonID string) 
 			return nil, err
 		}
 		result = append(result, m)
+	}
+	return result, rows.Err()
+}
+
+type AttendanceRow struct {
+	LessonID  string
+	StudentID string
+	Attended  bool
+}
+
+func (r *postgresRepo) GetAttendance(ctx context.Context, lessonID, callerID, callerRole string) ([]*AttendanceRow, error) {
+	var rows *sql.Rows
+	var err error
+	if callerRole == "student" {
+		// Student sees only their own record
+		rows, err = r.db.QueryContext(ctx,
+			`SELECT lesson_id, student_id, attended FROM lesson_attendance WHERE lesson_id = $1 AND student_id = $2`,
+			lessonID, callerID,
+		)
+	} else {
+		// Tutor/admin sees all
+		rows, err = r.db.QueryContext(ctx,
+			`SELECT lesson_id, student_id, attended FROM lesson_attendance WHERE lesson_id = $1`,
+			lessonID,
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []*AttendanceRow
+	for rows.Next() {
+		a := &AttendanceRow{}
+		if err := rows.Scan(&a.LessonID, &a.StudentID, &a.Attended); err != nil {
+			return nil, err
+		}
+		result = append(result, a)
 	}
 	return result, rows.Err()
 }

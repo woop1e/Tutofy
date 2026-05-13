@@ -124,7 +124,7 @@ func (h *UserHandler) UpdateTutorProfile(ctx context.Context, req *userpb.Update
 
 	p, err := h.svc.UpdateTutorProfile(ctx, callerID, callerRole, req.GetUserId(),
 		req.GetBio(), req.GetLocation(), req.GetPhotoUrl(),
-		req.GetSubjects(), req.GetAge(), req.GetExperienceYears(),
+		req.GetSubjects(), req.GetCertificates(), req.GetAge(), req.GetExperienceYears(),
 	)
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) {
@@ -153,7 +153,6 @@ func (h *UserHandler) GetTutorProfile(ctx context.Context, req *userpb.GetTutorP
 }
 
 func toTutorProto(p *model.TutorProfile) *userpb.TutorProfileResponse {
-	subjects := parseSubjects(p.Subjects)
 	return &userpb.TutorProfileResponse{
 		Id:              p.ID,
 		Name:            p.Name,
@@ -162,8 +161,9 @@ func toTutorProto(p *model.TutorProfile) *userpb.TutorProfileResponse {
 		Age:             p.Age,
 		Location:        p.Location,
 		PhotoUrl:        p.PhotoURL,
-		Subjects:        subjects,
+		Subjects:        parseSubjects(p.Subjects),
 		ExperienceYears: p.ExperienceYears,
+		Certificates:    parseSubjects(p.Certificates), // same JSON []string pattern
 	}
 }
 
@@ -179,7 +179,7 @@ func parseSubjects(raw string) []string {
 }
 
 func (h *UserHandler) SearchTutors(ctx context.Context, req *userpb.SearchTutorsRequest) (*userpb.TutorCardsList, error) {
-	tutors, err := h.svc.SearchTutors(ctx, req.GetSubject(), req.GetLocation(), req.GetLimit(), req.GetOffset())
+	tutors, err := h.svc.SearchTutors(ctx, req.GetSubject(), req.GetLocation(), req.GetMinAge(), req.GetMaxAge(), req.GetLimit(), req.GetOffset())
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

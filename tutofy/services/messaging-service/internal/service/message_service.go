@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"messaging-service/internal/model"
 	"messaging-service/internal/repository"
+	"notification-service/proto/notificationpb"
 
 	"github.com/google/uuid"
 )
@@ -20,11 +22,12 @@ type MessageService interface {
 }
 
 type messageService struct {
-	repo repository.MessageRepository
+	repo               repository.MessageRepository
+	notificationClient notificationpb.NotificationServiceClient
 }
 
-func NewMessageService(repo repository.MessageRepository) MessageService {
-	return &messageService{repo: repo}
+func NewMessageService(repo repository.MessageRepository, notificationClient notificationpb.NotificationServiceClient) MessageService {
+	return &messageService{repo: repo, notificationClient: notificationClient}
 }
 
 func (s *messageService) SendMessage(ctx context.Context, senderID, receiverID, content string) (*model.Message, error) {
@@ -39,6 +42,16 @@ func (s *messageService) SendMessage(ctx context.Context, senderID, receiverID, 
 	if err := s.repo.CreateMessage(ctx, m); err != nil {
 		return nil, err
 	}
+
+	// Notify receiver of new message.
+	if s.notificationClient != nil {
+		go s.notificationClient.NotifyUser(ctx, &notificationpb.NotifyUserRequest{
+			UserId:  receiverID,
+			Type:    4, // NOTIFICATION_TYPE_NEW_MESSAGE
+			Message: fmt.Sprintf("New message from %s", senderID),
+		})
+	}
+
 	return m, nil
 }
 

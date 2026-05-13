@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NotificationServiceClient interface {
 	NotifyGrade(ctx context.Context, in *NotifyGradeRequest, opts ...grpc.CallOption) (*NotifyGradeResponse, error)
+	NotifyUser(ctx context.Context, in *NotifyUserRequest, opts ...grpc.CallOption) (*NotifyGradeResponse, error)
 	GetNotifications(ctx context.Context, in *GetNotificationsRequest, opts ...grpc.CallOption) (*NotificationsList, error)
 	MarkAsRead(ctx context.Context, in *MarkReadRequest, opts ...grpc.CallOption) (*MarkReadResponse, error)
 }
@@ -67,6 +68,7 @@ func (c *notificationServiceClient) MarkAsRead(ctx context.Context, in *MarkRead
 // for forward compatibility
 type NotificationServiceServer interface {
 	NotifyGrade(context.Context, *NotifyGradeRequest) (*NotifyGradeResponse, error)
+	NotifyUser(context.Context, *NotifyUserRequest) (*NotifyGradeResponse, error)
 	GetNotifications(context.Context, *GetNotificationsRequest) (*NotificationsList, error)
 	MarkAsRead(context.Context, *MarkReadRequest) (*MarkReadResponse, error)
 	mustEmbedUnimplementedNotificationServiceServer()
@@ -84,6 +86,9 @@ func (UnimplementedNotificationServiceServer) GetNotifications(context.Context, 
 }
 func (UnimplementedNotificationServiceServer) MarkAsRead(context.Context, *MarkReadRequest) (*MarkReadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MarkAsRead not implemented")
+}
+func (UnimplementedNotificationServiceServer) NotifyUser(context.Context, *NotifyUserRequest) (*NotifyGradeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyUser not implemented")
 }
 func (UnimplementedNotificationServiceServer) mustEmbedUnimplementedNotificationServiceServer() {}
 
@@ -164,6 +169,10 @@ var NotificationService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _NotificationService_NotifyGrade_Handler,
 		},
 		{
+			MethodName: "NotifyUser",
+			Handler:    _NotificationService_NotifyUser_Handler,
+		},
+		{
 			MethodName: "GetNotifications",
 			Handler:    _NotificationService_GetNotifications_Handler,
 		},
@@ -174,4 +183,22 @@ var NotificationService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/notification.proto",
+}
+
+func _NotificationService_NotifyUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotifyUserRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(NotificationServiceServer).NotifyUser(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/notification.NotificationService/NotifyUser"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationServiceServer).NotifyUser(ctx, req.(*NotifyUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func (c *notificationServiceClient) NotifyUser(ctx context.Context, in *NotifyUserRequest, opts ...grpc.CallOption) (*NotifyGradeResponse, error) {
+	out := new(NotifyGradeResponse)
+	err := c.cc.Invoke(ctx, "/notification.NotificationService/NotifyUser", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
 }

@@ -18,6 +18,7 @@ var ErrForbidden = errors.New("forbidden")
 type NotificationService interface {
 	// NotifyGrade is called by grading-service when a grade is submitted.
 	NotifyGrade(ctx context.Context, assignmentID, studentID string, grade float32) error
+	NotifyUser(ctx context.Context, userID string, notifType int32, message string) error
 
 	// GetNotifications returns notifications for the caller.
 	// Students may only fetch their own; admins may fetch any user's.
@@ -65,4 +66,16 @@ func (s *notificationService) MarkAsRead(ctx context.Context, callerID, notifica
 	// MarkAsRead in the repo checks that the notification belongs to callerID,
 	// so no extra ownership check is needed here.
 	return s.repo.MarkAsRead(ctx, notificationID, callerID)
+}
+
+func (s *notificationService) NotifyUser(ctx context.Context, userID string, notifType int32, message string) error {
+	n := &model.Notification{
+		ID:        uuid.NewString(),
+		UserID:    userID,
+		Type:      model.NotificationType(notifType),
+		Message:   message,
+		IsRead:    false,
+		CreatedAt: time.Now(),
+	}
+	return s.repo.CreateNotification(ctx, n)
 }

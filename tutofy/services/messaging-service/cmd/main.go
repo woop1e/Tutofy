@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"auth-service/proto/authpb"
+	"notification-service/proto/notificationpb"
 	"messaging-service/internal/config"
 	"messaging-service/internal/handler"
 	"messaging-service/internal/middleware"
@@ -30,19 +31,22 @@ func main() {
 		log.Fatalf("db ping: %v", err)
 	}
 
-	authConn, err := grpc.NewClient(
-		cfg.AuthServiceAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	authConn, err := grpc.NewClient(cfg.AuthServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("auth-service dial: %v", err)
 	}
 	defer authConn.Close()
 
+	notifConn, err := grpc.NewClient(cfg.NotificationServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("notification-service dial: %v", err)
+	}
+	defer notifConn.Close()
+
 	authClient := authpb.NewAuthServiceClient(authConn)
 
 	repo := repository.NewPostgresRepo(db)
-	svc := service.NewMessageService(repo)
+	svc := service.NewMessageService(repo, notificationpb.NewNotificationServiceClient(notifConn))
 	h := handler.NewMessagingHandler(svc)
 
 	grpcServer := grpc.NewServer(

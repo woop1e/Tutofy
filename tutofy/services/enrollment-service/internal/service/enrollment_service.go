@@ -7,6 +7,7 @@ import (
 	"course-service/proto/coursepb"
 	"enrollment-service/internal/model"
 	"enrollment-service/internal/repository"
+	"notification-service/proto/notificationpb"
 	"payment-service/proto/paymentpb"
 
 	"github.com/google/uuid"
@@ -29,17 +30,24 @@ type EnrollmentService interface {
 }
 
 type enrollmentService struct {
-	repo           repository.EnrollmentRepository
-	courseClient   coursepb.CourseServiceClient
-	paymentClient  paymentpb.PaymentServiceClient
+	repo               repository.EnrollmentRepository
+	courseClient       coursepb.CourseServiceClient
+	paymentClient      paymentpb.PaymentServiceClient
+	notificationClient notificationpb.NotificationServiceClient
 }
 
 func NewEnrollmentService(
 	repo repository.EnrollmentRepository,
 	courseClient coursepb.CourseServiceClient,
 	paymentClient paymentpb.PaymentServiceClient,
+	notificationClient notificationpb.NotificationServiceClient,
 ) EnrollmentService {
-	return &enrollmentService{repo: repo, courseClient: courseClient, paymentClient: paymentClient}
+	return &enrollmentService{
+		repo:               repo,
+		courseClient:       courseClient,
+		paymentClient:      paymentClient,
+		notificationClient: notificationClient,
+	}
 }
 
 func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole, courseID string) (*model.Enrollment, error) {
@@ -57,6 +65,18 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 			return nil, errors.New("course not found")
 		}
 		return nil, errors.New("course service unavailable: " + st.Message())
+	}
+
+	// Enforce max_students capacity for group courses.
+	if course.GetMaxStudents() > 0 {
+		count, err := s.repo.CountEnrollments(ctx, courseID)
+		if err != nil {
+			return nil, errors.New("could not verify course capacity")
+		}
+		if count >= int64(course.GetMaxStudents()) {
+			return nil, status.Errorf(codes.ResourceExhausted,
+				"course is full (%d/%d students enrolled)", count, course.GetMaxStudents())
+		}
 	}
 
 	// If the course has a price, verify the student has a completed payment.
@@ -82,6 +102,16 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 	if err := s.repo.CreateEnrollment(ctx, e); err != nil {
 		return nil, err
 	}
+
+	// Notify the student: enrollment confirmed.
+	if s.notificationClient != nil {
+		go s.notificationClient.NotifyUser(outCtx, &notificationpb.NotifyUserRequest{
+			UserId:  callerID,
+			Type:    2, // NOTIFICATION_TYPE_ENROLLMENT
+			Message: "You have successfully enrolled in course " + courseID,
+		})
+	}
+
 	return e, nil
 }
 

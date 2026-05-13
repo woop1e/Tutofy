@@ -431,6 +431,7 @@ services:
       PAYMENT_SERVICE_ADDR: "payment-service:50061"
       MESSAGING_SERVICE_ADDR: "messaging-service:50060"
       MEDIA_SERVICE_ADDR: "media-service:50062"
+      REVIEW_SERVICE_ADDR: "review-service:50065"
     depends_on:
       auth-service:
         condition: service_started

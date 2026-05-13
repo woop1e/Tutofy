@@ -219,3 +219,23 @@ func (h *LessonHandler) GetLessonMaterials(ctx context.Context, req *lessonpb.Ge
 	}
 	return &lessonpb.MaterialsList{Materials: list}, nil
 }
+
+func (h *LessonHandler) GetAttendance(ctx context.Context, req *lessonpb.GetAttendanceRequest) (*lessonpb.AttendanceList, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	callerID, callerRole := middleware.UserIDFromContext(ctx), middleware.RoleFromContext(ctx)
+	rows, err := h.svc.GetAttendance(ctx, callerID, callerRole, req.GetLessonId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	records := make([]*lessonpb.AttendanceRecord, 0, len(rows))
+	for _, r := range rows {
+		records = append(records, &lessonpb.AttendanceRecord{
+			LessonId:  r.LessonID,
+			StudentId: r.StudentID,
+			Attended:  r.Attended,
+		})
+	}
+	return &lessonpb.AttendanceList{Records: records}, nil
+}

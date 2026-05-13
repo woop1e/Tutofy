@@ -38,6 +38,10 @@ func (h *EnrollmentHandler) EnrollUser(ctx context.Context, req *enrollmentpb.En
 		if errors.Is(err, repository.ErrAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, "already enrolled")
 		}
+		// Pass through gRPC status errors (e.g. ResourceExhausted for capacity).
+		if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown {
+			return nil, err
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return toProto(e), nil

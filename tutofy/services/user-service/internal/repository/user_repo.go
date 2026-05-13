@@ -17,8 +17,8 @@ type UserRepository interface {
 	GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error)
-	UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects string, age, experienceYears int32) (*model.TutorProfile, error)
-	SearchTutors(ctx context.Context, subject, location string, limit, offset int32) ([]*model.TutorProfile, error)
+	UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects, certificates string, age, experienceYears int32) (*model.TutorProfile, error)
+	SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error)
 }
 
 type postgresRepo struct {
@@ -93,9 +93,9 @@ func (r *postgresRepo) GetTutorProfile(ctx context.Context, tutorID string) (*mo
 	p := &model.TutorProfile{}
 	var age sql.NullInt32
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, email, bio, age, location, photo_url, subjects, experience_years
+		`SELECT id, name, email, bio, age, location, photo_url, subjects, experience_years, certificates
 		 FROM users WHERE id = $1 AND role = 'tutor' AND deleted_at IS NULL`, tutorID,
-	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears)
+	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears, &p.Certificates)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -108,16 +108,16 @@ func (r *postgresRepo) GetTutorProfile(ctx context.Context, tutorID string) (*mo
 	return p, nil
 }
 
-func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects string, age, experienceYears int32) (*model.TutorProfile, error) {
+func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects, certificates string, age, experienceYears int32) (*model.TutorProfile, error) {
 	p := &model.TutorProfile{}
 	var dbAge sql.NullInt32
 	err := r.db.QueryRowContext(ctx,
 		`UPDATE users
-		 SET bio = $1, age = $2, location = $3, photo_url = $4, subjects = $5, experience_years = $6, updated_at = NOW()
-		 WHERE id = $7 AND role = 'tutor' AND deleted_at IS NULL
-		 RETURNING id, name, email, bio, age, location, photo_url, subjects, experience_years`,
-		bio, age, location, photoURL, subjects, experienceYears, tutorID,
-	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &dbAge, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears)
+		 SET bio = $1, age = $2, location = $3, photo_url = $4, subjects = $5, experience_years = $6, certificates = $7, updated_at = NOW()
+		 WHERE id = $8 AND role = 'tutor' AND deleted_at IS NULL
+		 RETURNING id, name, email, bio, age, location, photo_url, subjects, experience_years, certificates`,
+		bio, age, location, photoURL, subjects, experienceYears, certificates, tutorID,
+	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &dbAge, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears, &p.Certificates)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -130,8 +130,8 @@ func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID, bio, loc
 	return p, nil
 }
 
-func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location string, limit, offset int32) ([]*model.TutorProfile, error) {
-	q := `SELECT id, name, email, bio, COALESCE(age, 0), location, photo_url, subjects, experience_years
+func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error) {
+	q := `SELECT id, name, email, bio, COALESCE(age, 0), location, photo_url, subjects, experience_years, certificates
 	      FROM users
 	      WHERE role = 'tutor' AND deleted_at IS NULL`
 	args := []any{}
@@ -146,6 +146,16 @@ func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location strin
 		args = append(args, "%"+location+"%")
 		n++
 	}
+	if minAge > 0 {
+		q += ` AND COALESCE(age, 0) >= $` + itoa(n)
+		args = append(args, minAge)
+		n++
+	}
+	if maxAge > 0 {
+		q += ` AND COALESCE(age, 0) <= $` + itoa(n)
+		args = append(args, maxAge)
+		n++
+	}
 	q += ` ORDER BY name LIMIT $` + itoa(n) + ` OFFSET $` + itoa(n+1)
 	args = append(args, limit, offset)
 
@@ -157,7 +167,7 @@ func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location strin
 	var result []*model.TutorProfile
 	for rows.Next() {
 		p := &model.TutorProfile{}
-		if err := rows.Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &p.Age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &p.Age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears, &p.Certificates); err != nil {
 			return nil, err
 		}
 		result = append(result, p)

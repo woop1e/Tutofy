@@ -17,6 +17,7 @@ type EnrollmentRepository interface {
 	CreateEnrollment(ctx context.Context, e *model.Enrollment) error
 	GetEnrollmentsByUser(ctx context.Context, userID string) ([]*model.Enrollment, error)
 	GetEnrollmentsByCourse(ctx context.Context, courseID string) ([]*model.Enrollment, error)
+	CountEnrollments(ctx context.Context, courseID string) (int64, error)
 	DeleteEnrollment(ctx context.Context, userID, courseID string) error
 }
 
@@ -100,4 +101,12 @@ func (r *postgresRepo) GetEnrollmentsByCourse(ctx context.Context, courseID stri
 		result = append(result, e)
 	}
 	return result, rows.Err()
+}
+
+func (r *postgresRepo) CountEnrollments(ctx context.Context, courseID string) (int64, error) {
+	var count int64
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM enrollments WHERE course_id = $1`, courseID,
+	).Scan(&count)
+	return count, err
 }

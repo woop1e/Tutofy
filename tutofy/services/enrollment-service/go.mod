@@ -1,27 +1,29 @@
 module enrollment-service
 
-go 1.22
+go 1.25.9
 
 require (
 	auth-service v0.0.0
 	course-service v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.9
-	google.golang.org/grpc v1.64.0
-	google.golang.org/protobuf v1.34.1
+	github.com/lib/pq v1.12.3
+	google.golang.org/grpc v1.80.0
+	google.golang.org/protobuf v1.36.11
+	notification-service v0.0.0
 	payment-service v0.0.0
 )
 
 require (
-	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240415180920-8c6c420018be // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 )
 
 replace (
 	auth-service => ../auth-service
 	course-service => ../course-service
+	notification-service => ../notification-service
 	payment-service => ../payment-service
 )

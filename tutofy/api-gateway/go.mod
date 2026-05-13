@@ -17,6 +17,7 @@ require (
 	notification-service v0.0.0
 	payment-service v0.0.0
 	progress-service v0.0.0
+	review-service v0.0.0
 	user-service v0.0.0
 )
 
@@ -50,3 +51,5 @@ replace payment-service => ../services/payment-service
 replace messaging-service => ../services/messaging-service
 
 replace media-service => ../services/media-service
+
+replace review-service => ../services/review-service
