@@ -1,6 +1,8 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
 COPY auth-service/ ./auth-service/
+COPY notification-service/ ./notification-service/
+COPY payment-service/ ./payment-service/
 COPY course-service/ ./course-service/
 COPY enrollment-service/ ./enrollment-service/
 WORKDIR /app/enrollment-service

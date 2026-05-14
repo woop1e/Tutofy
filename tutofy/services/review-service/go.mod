@@ -1,13 +1,13 @@
 module review-service
 
-go 1.24.0
+go 1.25.9
 
 require (
 	auth-service v0.0.0
 	enrollment-service v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.12.3
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 	progress-service v0.0.0
