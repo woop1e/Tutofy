@@ -13,15 +13,21 @@ type CreateQuizRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	CourseId string `protobuf:"bytes,1,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
-	Title    string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	CourseId         string `protobuf:"bytes,1,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+	Title            string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	TimeLimitMinutes int32  `protobuf:"varint,3,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
+	MaxAttempts      int32  `protobuf:"varint,4,opt,name=max_attempts,json=maxAttempts,proto3" json:"max_attempts,omitempty"`
+	Deadline         string `protobuf:"bytes,5,opt,name=deadline,proto3" json:"deadline,omitempty"`
 }
 
 func (x *CreateQuizRequest) Reset()          { *x = CreateQuizRequest{} }
 func (x *CreateQuizRequest) String() string   { return x.Title }
 func (x *CreateQuizRequest) ProtoMessage()   {}
-func (x *CreateQuizRequest) GetCourseId() string { return x.CourseId }
-func (x *CreateQuizRequest) GetTitle() string    { return x.Title }
+func (x *CreateQuizRequest) GetCourseId() string        { return x.CourseId }
+func (x *CreateQuizRequest) GetTitle() string           { return x.Title }
+func (x *CreateQuizRequest) GetTimeLimitMinutes() int32 { return x.TimeLimitMinutes }
+func (x *CreateQuizRequest) GetMaxAttempts() int32      { return x.MaxAttempts }
+func (x *CreateQuizRequest) GetDeadline() string        { return x.Deadline }
 
 type AddQuestionRequest struct {
 	state         protoimpl.MessageState
@@ -135,19 +141,25 @@ type QuizResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	Id        string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	CourseId  string `protobuf:"bytes,2,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
-	Title     string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	CreatedAt string `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Id               string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	CourseId         string `protobuf:"bytes,2,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+	Title            string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	CreatedAt        string `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	TimeLimitMinutes int32  `protobuf:"varint,5,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
+	MaxAttempts      int32  `protobuf:"varint,6,opt,name=max_attempts,json=maxAttempts,proto3" json:"max_attempts,omitempty"`
+	Deadline         string `protobuf:"bytes,7,opt,name=deadline,proto3" json:"deadline,omitempty"`
 }
 
 func (x *QuizResponse) Reset()          { *x = QuizResponse{} }
 func (x *QuizResponse) String() string   { return x.Id }
 func (x *QuizResponse) ProtoMessage()   {}
-func (x *QuizResponse) GetId() string         { return x.Id }
-func (x *QuizResponse) GetCourseId() string   { return x.CourseId }
-func (x *QuizResponse) GetTitle() string      { return x.Title }
-func (x *QuizResponse) GetCreatedAt() string  { return x.CreatedAt }
+func (x *QuizResponse) GetId() string               { return x.Id }
+func (x *QuizResponse) GetCourseId() string         { return x.CourseId }
+func (x *QuizResponse) GetTitle() string            { return x.Title }
+func (x *QuizResponse) GetCreatedAt() string        { return x.CreatedAt }
+func (x *QuizResponse) GetTimeLimitMinutes() int32  { return x.TimeLimitMinutes }
+func (x *QuizResponse) GetMaxAttempts() int32       { return x.MaxAttempts }
+func (x *QuizResponse) GetDeadline() string         { return x.Deadline }
 
 type QuestionResponse struct {
 	state         protoimpl.MessageState
@@ -267,6 +279,118 @@ func (x *Empty) Reset()          { *x = Empty{} }
 func (x *Empty) String() string   { return "" }
 func (x *Empty) ProtoMessage()   {}
 
+type GetQuizForAttemptRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	QuizId string `protobuf:"bytes,1,opt,name=quiz_id,json=quizId,proto3" json:"quiz_id,omitempty"`
+}
+
+func (x *GetQuizForAttemptRequest) Reset()          { *x = GetQuizForAttemptRequest{} }
+func (x *GetQuizForAttemptRequest) String() string   { return x.QuizId }
+func (x *GetQuizForAttemptRequest) ProtoMessage()   {}
+func (x *GetQuizForAttemptRequest) GetQuizId() string { return x.QuizId }
+
+type OptionForAttemptResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Id        string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Text      string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	IsCorrect bool   `protobuf:"varint,3,opt,name=is_correct,json=isCorrect,proto3" json:"is_correct,omitempty"`
+}
+
+func (x *OptionForAttemptResponse) Reset()          { *x = OptionForAttemptResponse{} }
+func (t *OptionForAttemptResponse) String() string   { return t.Id }
+func (t *OptionForAttemptResponse) ProtoMessage()   {}
+func (t *OptionForAttemptResponse) GetId() string        { return t.Id }
+func (t *OptionForAttemptResponse) GetText() string      { return t.Text }
+func (t *OptionForAttemptResponse) GetIsCorrect() bool   { return t.IsCorrect }
+
+type QuestionWithOptionsResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Id       string                      `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Text     string                      `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	Position int32                       `protobuf:"varint,3,opt,name=position,proto3" json:"position,omitempty"`
+	Options  []*OptionForAttemptResponse `protobuf:"bytes,4,rep,name=options,proto3" json:"options,omitempty"`
+}
+
+func (x *QuestionWithOptionsResponse) Reset()          { *x = QuestionWithOptionsResponse{} }
+func (x *QuestionWithOptionsResponse) String() string   { return x.Id }
+func (x *QuestionWithOptionsResponse) ProtoMessage()   {}
+func (x *QuestionWithOptionsResponse) GetId() string        { return x.Id }
+func (x *QuestionWithOptionsResponse) GetText() string      { return x.Text }
+func (x *QuestionWithOptionsResponse) GetPosition() int32   { return x.Position }
+func (x *QuestionWithOptionsResponse) GetOptions() []*OptionForAttemptResponse { return x.Options }
+
+type QuizForAttemptResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Id               string                        `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	CourseId         string                        `protobuf:"bytes,2,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+	Title            string                        `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Questions        []*QuestionWithOptionsResponse `protobuf:"bytes,4,rep,name=questions,proto3" json:"questions,omitempty"`
+	TimeLimitMinutes int32                         `protobuf:"varint,5,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
+	MaxAttempts      int32                         `protobuf:"varint,6,opt,name=max_attempts,json=maxAttempts,proto3" json:"max_attempts,omitempty"`
+	Deadline         string                        `protobuf:"bytes,7,opt,name=deadline,proto3" json:"deadline,omitempty"`
+}
+
+func (x *QuizForAttemptResponse) Reset()          { *x = QuizForAttemptResponse{} }
+func (x *QuizForAttemptResponse) String() string   { return x.Id }
+func (x *QuizForAttemptResponse) ProtoMessage()   {}
+func (x *QuizForAttemptResponse) GetId() string               { return x.Id }
+func (x *QuizForAttemptResponse) GetCourseId() string         { return x.CourseId }
+func (x *QuizForAttemptResponse) GetTitle() string            { return x.Title }
+func (x *QuizForAttemptResponse) GetQuestions() []*QuestionWithOptionsResponse { return x.Questions }
+func (x *QuizForAttemptResponse) GetTimeLimitMinutes() int32  { return x.TimeLimitMinutes }
+func (x *QuizForAttemptResponse) GetMaxAttempts() int32       { return x.MaxAttempts }
+func (x *QuizForAttemptResponse) GetDeadline() string         { return x.Deadline }
+
+type UpdateQuizSettingsRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	QuizId           string `protobuf:"bytes,1,opt,name=quiz_id,json=quizId,proto3" json:"quiz_id,omitempty"`
+	TimeLimitMinutes int32  `protobuf:"varint,2,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
+	MaxAttempts      int32  `protobuf:"varint,3,opt,name=max_attempts,json=maxAttempts,proto3" json:"max_attempts,omitempty"`
+	Deadline         string `protobuf:"bytes,4,opt,name=deadline,proto3" json:"deadline,omitempty"`
+}
+
+func (x *UpdateQuizSettingsRequest) Reset()          { *x = UpdateQuizSettingsRequest{} }
+func (x *UpdateQuizSettingsRequest) String() string   { return x.QuizId }
+func (x *UpdateQuizSettingsRequest) ProtoMessage()   {}
+func (x *UpdateQuizSettingsRequest) GetQuizId() string        { return x.QuizId }
+func (x *UpdateQuizSettingsRequest) GetTimeLimitMinutes() int32 { return x.TimeLimitMinutes }
+func (x *UpdateQuizSettingsRequest) GetMaxAttempts() int32    { return x.MaxAttempts }
+func (x *UpdateQuizSettingsRequest) GetDeadline() string      { return x.Deadline }
+
+type GetStudentAttemptsRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	QuizId string `protobuf:"bytes,1,opt,name=quiz_id,json=quizId,proto3" json:"quiz_id,omitempty"`
+}
+
+func (x *GetStudentAttemptsRequest) Reset()          { *x = GetStudentAttemptsRequest{} }
+func (x *GetStudentAttemptsRequest) String() string   { return x.QuizId }
+func (x *GetStudentAttemptsRequest) ProtoMessage()   {}
+func (x *GetStudentAttemptsRequest) GetQuizId() string { return x.QuizId }
+
+type StudentAttemptsResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	AttemptsUsed int32 `protobuf:"varint,1,opt,name=attempts_used,json=attemptsUsed,proto3" json:"attempts_used,omitempty"`
+}
+
+func (x *StudentAttemptsResponse) Reset()          { *x = StudentAttemptsResponse{} }
+func (x *StudentAttemptsResponse) String() string   { return "" }
+func (x *StudentAttemptsResponse) ProtoMessage()   {}
+func (x *StudentAttemptsResponse) GetAttemptsUsed() int32 { return x.AttemptsUsed }
+
 // ── Server interface ──────────────────────────────────────────────────────────
 
 type QuizServiceServer interface {
@@ -275,9 +399,12 @@ type QuizServiceServer interface {
 	AddOption(context.Context, *AddOptionRequest) (*OptionResponse, error)
 	DeleteQuiz(context.Context, *DeleteQuizRequest) (*Empty, error)
 	GetCourseQuizzes(context.Context, *GetCourseQuizzesRequest) (*QuizzesList, error)
+	GetQuizForAttempt(context.Context, *GetQuizForAttemptRequest) (*QuizForAttemptResponse, error)
 	StartAttempt(context.Context, *StartAttemptRequest) (*AttemptResponse, error)
 	SubmitAttempt(context.Context, *SubmitAttemptRequest) (*AttemptResultResponse, error)
 	GetAttemptResult(context.Context, *GetAttemptResultRequest) (*AttemptResultResponse, error)
+	UpdateQuizSettings(context.Context, *UpdateQuizSettingsRequest) (*QuizResponse, error)
+	GetStudentAttempts(context.Context, *GetStudentAttemptsRequest) (*StudentAttemptsResponse, error)
 	mustEmbedUnimplementedQuizServiceServer()
 }
 
@@ -288,9 +415,12 @@ func (UnimplementedQuizServiceServer) AddQuestion(context.Context, *AddQuestionR
 func (UnimplementedQuizServiceServer) AddOption(context.Context, *AddOptionRequest) (*OptionResponse, error)               { return nil, nil }
 func (UnimplementedQuizServiceServer) DeleteQuiz(context.Context, *DeleteQuizRequest) (*Empty, error)                      { return nil, nil }
 func (UnimplementedQuizServiceServer) GetCourseQuizzes(context.Context, *GetCourseQuizzesRequest) (*QuizzesList, error)    { return nil, nil }
+func (UnimplementedQuizServiceServer) GetQuizForAttempt(context.Context, *GetQuizForAttemptRequest) (*QuizForAttemptResponse, error) { return nil, nil }
 func (UnimplementedQuizServiceServer) StartAttempt(context.Context, *StartAttemptRequest) (*AttemptResponse, error)        { return nil, nil }
 func (UnimplementedQuizServiceServer) SubmitAttempt(context.Context, *SubmitAttemptRequest) (*AttemptResultResponse, error) { return nil, nil }
 func (UnimplementedQuizServiceServer) GetAttemptResult(context.Context, *GetAttemptResultRequest) (*AttemptResultResponse, error) { return nil, nil }
+func (UnimplementedQuizServiceServer) UpdateQuizSettings(context.Context, *UpdateQuizSettingsRequest) (*QuizResponse, error) { return nil, nil }
+func (UnimplementedQuizServiceServer) GetStudentAttempts(context.Context, *GetStudentAttemptsRequest) (*StudentAttemptsResponse, error) { return nil, nil }
 func (UnimplementedQuizServiceServer) mustEmbedUnimplementedQuizServiceServer()                                             {}
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -308,9 +438,12 @@ var QuizService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "AddOption", Handler: _QuizService_AddOption_Handler},
 		{MethodName: "DeleteQuiz", Handler: _QuizService_DeleteQuiz_Handler},
 		{MethodName: "GetCourseQuizzes", Handler: _QuizService_GetCourseQuizzes_Handler},
+		{MethodName: "GetQuizForAttempt", Handler: _QuizService_GetQuizForAttempt_Handler},
 		{MethodName: "StartAttempt", Handler: _QuizService_StartAttempt_Handler},
 		{MethodName: "SubmitAttempt", Handler: _QuizService_SubmitAttempt_Handler},
 		{MethodName: "GetAttemptResult", Handler: _QuizService_GetAttemptResult_Handler},
+		{MethodName: "UpdateQuizSettings", Handler: _QuizService_UpdateQuizSettings_Handler},
+		{MethodName: "GetStudentAttempts", Handler: _QuizService_GetStudentAttempts_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "quiz.proto",
@@ -361,6 +494,15 @@ func _QuizService_GetCourseQuizzes_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _QuizService_GetQuizForAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetQuizForAttemptRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(QuizServiceServer).GetQuizForAttempt(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/quiz.QuizService/GetQuizForAttempt"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) { return srv.(QuizServiceServer).GetQuizForAttempt(ctx, req.(*GetQuizForAttemptRequest)) }
+	return interceptor(ctx, in, info, handler)
+}
+
 func _QuizService_StartAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StartAttemptRequest)
 	if err := dec(in); err != nil { return nil, err }
@@ -388,6 +530,24 @@ func _QuizService_GetAttemptResult_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _QuizService_UpdateQuizSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateQuizSettingsRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(QuizServiceServer).UpdateQuizSettings(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/quiz.QuizService/UpdateQuizSettings"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) { return srv.(QuizServiceServer).UpdateQuizSettings(ctx, req.(*UpdateQuizSettingsRequest)) }
+	return interceptor(ctx, in, info, handler)
+}
+
+func _QuizService_GetStudentAttempts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStudentAttemptsRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(QuizServiceServer).GetStudentAttempts(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/quiz.QuizService/GetStudentAttempts"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) { return srv.(QuizServiceServer).GetStudentAttempts(ctx, req.(*GetStudentAttemptsRequest)) }
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client ────────────────────────────────────────────────────────────────────
 
 type QuizServiceClient interface {
@@ -396,9 +556,12 @@ type QuizServiceClient interface {
 	AddOption(ctx context.Context, in *AddOptionRequest, opts ...grpc.CallOption) (*OptionResponse, error)
 	DeleteQuiz(ctx context.Context, in *DeleteQuizRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetCourseQuizzes(ctx context.Context, in *GetCourseQuizzesRequest, opts ...grpc.CallOption) (*QuizzesList, error)
+	GetQuizForAttempt(ctx context.Context, in *GetQuizForAttemptRequest, opts ...grpc.CallOption) (*QuizForAttemptResponse, error)
 	StartAttempt(ctx context.Context, in *StartAttemptRequest, opts ...grpc.CallOption) (*AttemptResponse, error)
 	SubmitAttempt(ctx context.Context, in *SubmitAttemptRequest, opts ...grpc.CallOption) (*AttemptResultResponse, error)
 	GetAttemptResult(ctx context.Context, in *GetAttemptResultRequest, opts ...grpc.CallOption) (*AttemptResultResponse, error)
+	UpdateQuizSettings(ctx context.Context, in *UpdateQuizSettingsRequest, opts ...grpc.CallOption) (*QuizResponse, error)
+	GetStudentAttempts(ctx context.Context, in *GetStudentAttemptsRequest, opts ...grpc.CallOption) (*StudentAttemptsResponse, error)
 }
 
 type quizServiceClient struct{ cc grpc.ClientConnInterface }
@@ -420,6 +583,9 @@ func (c *quizServiceClient) DeleteQuiz(ctx context.Context, in *DeleteQuizReques
 func (c *quizServiceClient) GetCourseQuizzes(ctx context.Context, in *GetCourseQuizzesRequest, opts ...grpc.CallOption) (*QuizzesList, error) {
 	out := new(QuizzesList); err := c.cc.Invoke(ctx, "/quiz.QuizService/GetCourseQuizzes", in, out, opts...); return out, err
 }
+func (c *quizServiceClient) GetQuizForAttempt(ctx context.Context, in *GetQuizForAttemptRequest, opts ...grpc.CallOption) (*QuizForAttemptResponse, error) {
+	out := new(QuizForAttemptResponse); err := c.cc.Invoke(ctx, "/quiz.QuizService/GetQuizForAttempt", in, out, opts...); return out, err
+}
 func (c *quizServiceClient) StartAttempt(ctx context.Context, in *StartAttemptRequest, opts ...grpc.CallOption) (*AttemptResponse, error) {
 	out := new(AttemptResponse); err := c.cc.Invoke(ctx, "/quiz.QuizService/StartAttempt", in, out, opts...); return out, err
 }
@@ -428,4 +594,10 @@ func (c *quizServiceClient) SubmitAttempt(ctx context.Context, in *SubmitAttempt
 }
 func (c *quizServiceClient) GetAttemptResult(ctx context.Context, in *GetAttemptResultRequest, opts ...grpc.CallOption) (*AttemptResultResponse, error) {
 	out := new(AttemptResultResponse); err := c.cc.Invoke(ctx, "/quiz.QuizService/GetAttemptResult", in, out, opts...); return out, err
+}
+func (c *quizServiceClient) UpdateQuizSettings(ctx context.Context, in *UpdateQuizSettingsRequest, opts ...grpc.CallOption) (*QuizResponse, error) {
+	out := new(QuizResponse); err := c.cc.Invoke(ctx, "/quiz.QuizService/UpdateQuizSettings", in, out, opts...); return out, err
+}
+func (c *quizServiceClient) GetStudentAttempts(ctx context.Context, in *GetStudentAttemptsRequest, opts ...grpc.CallOption) (*StudentAttemptsResponse, error) {
+	out := new(StudentAttemptsResponse); err := c.cc.Invoke(ctx, "/quiz.QuizService/GetStudentAttempts", in, out, opts...); return out, err
 }

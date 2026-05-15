@@ -47,6 +47,20 @@ func main() {
 	defer progressConn.Close()
 	defer enrollmentConn.Close()
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS reviews (
+			id         TEXT        PRIMARY KEY,
+			course_id  TEXT        NOT NULL,
+			student_id TEXT        NOT NULL,
+			rating     INT         NOT NULL DEFAULT 0,
+			body       TEXT        NOT NULL DEFAULT '',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			UNIQUE (student_id, course_id)
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewReviewService(
 		repo,

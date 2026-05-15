@@ -1,6 +1,6 @@
 module assignment-service
 
-go 1.22
+go 1.24
 
 require (
 	auth-service v0.0.0

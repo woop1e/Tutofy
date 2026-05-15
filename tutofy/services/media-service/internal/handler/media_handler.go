@@ -86,6 +86,8 @@ func protoFileTypeToModel(t mediapb.FileType) model.FileType {
 		return model.FileTypeAssignment
 	case mediapb.FileType_FILE_TYPE_COURSE_MATERIAL:
 		return model.FileTypeCourseMaterial
+	case mediapb.FileType_FILE_TYPE_USER_DOCUMENT:
+		return model.FileTypeUserDocument
 	default:
 		return model.FileTypeUnspecified
 	}

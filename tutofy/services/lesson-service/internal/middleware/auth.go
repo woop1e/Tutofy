@@ -12,6 +12,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// publicMethods are callable without a JWT token (e.g. public marketplace endpoints).
+var publicMethods = map[string]bool{
+	"/lesson.LessonService/GetTutorBookedSlots": true,
+}
+
 // AuthInterceptor validates the Bearer token and injects user_id + role into context.
 func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterceptor {
 	return func(
@@ -20,6 +25,10 @@ func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterc
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
+		if publicMethods[info.FullMethod] {
+			return handler(ctx, req)
+		}
+
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			return nil, status.Error(codes.Unauthenticated, "missing metadata")

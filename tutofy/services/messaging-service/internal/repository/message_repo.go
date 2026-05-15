@@ -95,3 +95,5 @@ func (r *postgresRepo) GetUserConversations(ctx context.Context, userID string, 
 	}
 	return result, rows.Err()
 }
+
+

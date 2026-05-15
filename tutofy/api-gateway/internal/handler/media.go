@@ -15,8 +15,8 @@ func NewMediaHandler(c mediapb.MediaServiceClient) *MediaHandler { return &Media
 
 // UploadFile accepts multipart/form-data with fields:
 //
-//	course_id  string
-//	file_type  string  ("assignment" | "course_material")
+//	course_id  string  (required for assignment/course_material; omit for user_document)
+//	file_type  string  ("1"/"assignment" | "2"/"course_material" | "3"/"user_document")
 //	file       binary  (the actual file)
 func (h *MediaHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
@@ -25,15 +25,15 @@ func (h *MediaHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	courseID := r.FormValue("course_id")
-	if courseID == "" {
-		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "course_id is required"})
-		return
-	}
 
-	fileTypeStr := r.FormValue("file_type")
-	fileType := mediapb.FileType_FILE_TYPE_COURSE_MATERIAL
-	if fileTypeStr == "assignment" {
+	var fileType mediapb.FileType
+	switch r.FormValue("file_type") {
+	case "1", "assignment":
 		fileType = mediapb.FileType_FILE_TYPE_ASSIGNMENT
+	case "3", "user_document":
+		fileType = mediapb.FileType_FILE_TYPE_USER_DOCUMENT
+	default:
+		fileType = mediapb.FileType_FILE_TYPE_COURSE_MATERIAL
 	}
 
 	f, header, err := r.FormFile("file")

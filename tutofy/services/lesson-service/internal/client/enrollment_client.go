@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"enrollment-service/proto/enrollmentpb"
+	"google.golang.org/grpc/metadata"
 )
 
 // EnrollmentClient is a thin wrapper around the enrollment-service gRPC client
@@ -28,15 +29,18 @@ func NewEnrollmentClient(grpc enrollmentpb.EnrollmentServiceClient) EnrollmentCl
 	return &enrollmentClient{grpc: grpc}
 }
 
+func outCtx(ctx context.Context) context.Context {
+	md, _ := metadata.FromIncomingContext(ctx)
+	return metadata.NewOutgoingContext(ctx, md)
+}
+
 func (c *enrollmentClient) IsEnrolled(ctx context.Context, userID, courseID string) (bool, error) {
-	resp, err := c.grpc.GetCourseEnrollments(ctx, &enrollmentpb.CourseRequest{
-		CourseId: courseID,
-	})
+	resp, err := c.grpc.GetUserEnrollments(outCtx(ctx), &enrollmentpb.UserRequest{UserId: userID})
 	if err != nil {
 		return false, err
 	}
 	for _, e := range resp.GetEnrollments() {
-		if e.GetUserId() == userID {
+		if e.GetCourseId() == courseID {
 			return true, nil
 		}
 	}
@@ -44,7 +48,7 @@ func (c *enrollmentClient) IsEnrolled(ctx context.Context, userID, courseID stri
 }
 
 func (c *enrollmentClient) GetEnrolledStudentIDs(ctx context.Context, courseID string) ([]string, error) {
-	resp, err := c.grpc.GetCourseEnrollments(ctx, &enrollmentpb.CourseRequest{
+	resp, err := c.grpc.GetCourseEnrollments(outCtx(ctx), &enrollmentpb.CourseRequest{
 		CourseId: courseID,
 	})
 	if err != nil {
@@ -58,7 +62,7 @@ func (c *enrollmentClient) GetEnrolledStudentIDs(ctx context.Context, courseID s
 }
 
 func (c *enrollmentClient) GetEnrolledCourseIDs(ctx context.Context, userID string) ([]string, error) {
-	resp, err := c.grpc.GetUserEnrollments(ctx, &enrollmentpb.UserRequest{UserId: userID})
+	resp, err := c.grpc.GetUserEnrollments(outCtx(ctx), &enrollmentpb.UserRequest{UserId: userID})
 	if err != nil {
 		return nil, err
 	}

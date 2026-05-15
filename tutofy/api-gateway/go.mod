@@ -1,6 +1,6 @@
 module api-gateway
 
-go 1.25.10
+go 1.25.0
 
 require (
 	assignment-service v0.0.0
@@ -17,7 +17,9 @@ require (
 	notification-service v0.0.0
 	payment-service v0.0.0
 	progress-service v0.0.0
+	quiz-service v0.0.0
 	review-service v0.0.0
+	submission-service v0.0.0
 	user-service v0.0.0
 )
 
@@ -52,4 +54,8 @@ replace messaging-service => ../services/messaging-service
 
 replace media-service => ../services/media-service
 
+replace quiz-service => ../services/quiz-service
+
 replace review-service => ../services/review-service
+
+replace submission-service => ../services/submission-service

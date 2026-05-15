@@ -39,6 +39,18 @@ func main() {
 		defer rdb.Close()
 	}
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id         TEXT PRIMARY KEY,
+			email      TEXT NOT NULL UNIQUE,
+			password   TEXT NOT NULL,
+			name       TEXT NOT NULL DEFAULT '',
+			role       TEXT NOT NULL DEFAULT 'student'
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewUserRepository(db)
 	svc := service.NewAuthService(repo, cfg.JWTSecret, rdb)
 	h := handler.NewAuthHandler(svc)

@@ -14,21 +14,26 @@ import (
 )
 
 var (
-	ErrForbidden      = errors.New("forbidden")
-	ErrNotTutorAdmin  = errors.New("only tutors and admins can manage quizzes")
-	ErrNotEnrolled    = errors.New("must be enrolled to attempt this quiz")
-	ErrAlreadyDone    = errors.New("attempt already completed")
+	ErrForbidden           = errors.New("forbidden")
+	ErrNotTutorAdmin       = errors.New("only tutors and admins can manage quizzes")
+	ErrNotEnrolled         = errors.New("must be enrolled to attempt this quiz")
+	ErrAlreadyDone         = errors.New("attempt already completed")
+	ErrDeadlinePassed      = errors.New("quiz deadline has passed")
+	ErrNoAttemptsRemaining = errors.New("no attempts remaining")
 )
 
 type QuizService interface {
-	CreateQuiz(ctx context.Context, callerID, callerRole, courseID, title string) (*model.Quiz, error)
+	CreateQuiz(ctx context.Context, callerID, callerRole, courseID, title string, timeLimitMinutes, maxAttempts int32, deadline *time.Time) (*model.Quiz, error)
 	AddQuestion(ctx context.Context, callerRole, quizID, text string, position int32) (*model.Question, error)
 	AddOption(ctx context.Context, callerRole, questionID, text string, isCorrect bool) (*model.Option, error)
 	DeleteQuiz(ctx context.Context, callerRole, quizID string) error
 	GetCourseQuizzes(ctx context.Context, courseID string) ([]*model.Quiz, error)
+	GetQuizForAttempt(ctx context.Context, quizID string) (*model.Quiz, []*model.Question, error)
 	StartAttempt(ctx context.Context, callerID, callerRole, quizID string) (*model.QuizAttempt, error)
 	SubmitAttempt(ctx context.Context, callerID, attemptID string, answers map[string]string) (*model.QuizAttempt, []*GradeItem, error)
 	GetAttemptResult(ctx context.Context, callerID, callerRole, attemptID string) (*model.QuizAttempt, []*GradeItem, error)
+	UpdateQuizSettings(ctx context.Context, callerRole, quizID string, timeLimitMinutes, maxAttempts int32, deadline *time.Time) (*model.Quiz, error)
+	GetStudentAttempts(ctx context.Context, callerID, quizID string) (int, error)
 }
 
 type GradeItem struct {
@@ -52,11 +57,19 @@ func outCtx(ctx context.Context) context.Context {
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func (s *quizService) CreateQuiz(ctx context.Context, callerID, callerRole, courseID, title string) (*model.Quiz, error) {
+func (s *quizService) CreateQuiz(ctx context.Context, callerID, callerRole, courseID, title string, timeLimitMinutes, maxAttempts int32, deadline *time.Time) (*model.Quiz, error) {
 	if callerRole != "tutor" && callerRole != "admin" {
 		return nil, ErrNotTutorAdmin
 	}
-	q := &model.Quiz{ID: uuid.NewString(), CourseID: courseID, Title: title, CreatedAt: time.Now()}
+	q := &model.Quiz{
+		ID:               uuid.NewString(),
+		CourseID:         courseID,
+		Title:            title,
+		TimeLimitMinutes: timeLimitMinutes,
+		MaxAttempts:      maxAttempts,
+		Deadline:         deadline,
+		CreatedAt:        time.Now(),
+	}
 	return q, s.repo.CreateQuiz(ctx, q)
 }
 
@@ -87,6 +100,18 @@ func (s *quizService) GetCourseQuizzes(ctx context.Context, courseID string) ([]
 	return s.repo.GetCourseQuizzes(ctx, courseID)
 }
 
+func (s *quizService) GetQuizForAttempt(ctx context.Context, quizID string) (*model.Quiz, []*model.Question, error) {
+	quiz, err := s.repo.GetQuizByID(ctx, quizID)
+	if err != nil {
+		return nil, nil, err
+	}
+	questions, err := s.repo.GetQuestionsWithOptions(ctx, quizID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return quiz, questions, nil
+}
+
 func (s *quizService) StartAttempt(ctx context.Context, callerID, callerRole, quizID string) (*model.QuizAttempt, error) {
 	if callerRole != "student" {
 		return nil, ErrForbidden
@@ -94,6 +119,20 @@ func (s *quizService) StartAttempt(ctx context.Context, callerID, callerRole, qu
 	quiz, err := s.repo.GetQuizByID(ctx, quizID)
 	if err != nil {
 		return nil, err
+	}
+	// Enforce deadline
+	if quiz.Deadline != nil && time.Now().After(*quiz.Deadline) {
+		return nil, ErrDeadlinePassed
+	}
+	// Enforce attempt limit
+	if quiz.MaxAttempts > 0 {
+		count, err := s.repo.CountCompletedAttempts(ctx, quizID, callerID)
+		if err != nil {
+			return nil, err
+		}
+		if count >= int(quiz.MaxAttempts) {
+			return nil, ErrNoAttemptsRemaining
+		}
 	}
 	// Check enrollment
 	enrollments, err := s.enrollmentClient.GetUserEnrollments(outCtx(ctx), &enrollmentpb.UserRequest{UserId: callerID})
@@ -219,4 +258,18 @@ func (s *quizService) GetAttemptResult(ctx context.Context, callerID, callerRole
 		})
 	}
 	return attempt, grades, nil
+}
+
+func (s *quizService) UpdateQuizSettings(ctx context.Context, callerRole, quizID string, timeLimitMinutes, maxAttempts int32, deadline *time.Time) (*model.Quiz, error) {
+	if callerRole != "tutor" && callerRole != "admin" {
+		return nil, ErrNotTutorAdmin
+	}
+	if err := s.repo.UpdateQuizSettings(ctx, quizID, timeLimitMinutes, maxAttempts, deadline); err != nil {
+		return nil, err
+	}
+	return s.repo.GetQuizByID(ctx, quizID)
+}
+
+func (s *quizService) GetStudentAttempts(ctx context.Context, callerID, quizID string) (int, error) {
+	return s.repo.CountCompletedAttempts(ctx, quizID, callerID)
 }

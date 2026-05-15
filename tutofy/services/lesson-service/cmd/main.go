@@ -69,6 +69,38 @@ func main() {
 		defer nc.Close()
 	}
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS lessons (
+			id               TEXT        PRIMARY KEY,
+			course_id        TEXT        NOT NULL,
+			tutor_id         TEXT        NOT NULL,
+			title            TEXT        NOT NULL,
+			scheduled_at     TIMESTAMPTZ NOT NULL,
+			duration_minutes INTEGER     NOT NULL,
+			video_link       TEXT        NOT NULL DEFAULT '',
+			status           SMALLINT    NOT NULL DEFAULT 1,
+			deleted_at       TIMESTAMPTZ
+		);
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS student_id TEXT NOT NULL DEFAULT '';
+		CREATE TABLE IF NOT EXISTS lesson_attendance (
+			lesson_id  TEXT    NOT NULL,
+			student_id TEXT    NOT NULL,
+			attended   BOOLEAN NOT NULL DEFAULT FALSE,
+			status     TEXT    NOT NULL DEFAULT 'absent',
+			PRIMARY KEY (lesson_id, student_id)
+		);
+		ALTER TABLE lesson_attendance ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'absent';
+		CREATE TABLE IF NOT EXISTS lesson_materials (
+			id          TEXT        PRIMARY KEY,
+			lesson_id   TEXT        NOT NULL,
+			file_id     TEXT        NOT NULL,
+			title       TEXT        NOT NULL DEFAULT '',
+			uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	// Wire up layers.
 	repo := repository.NewPostgresRepo(db)
 	enrollmentClient := client.NewEnrollmentClient(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))

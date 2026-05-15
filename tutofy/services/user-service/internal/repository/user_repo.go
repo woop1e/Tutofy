@@ -12,13 +12,17 @@ import (
 var ErrNotFound = errors.New("user not found")
 
 type UserRepository interface {
+	CreateUser(ctx context.Context, id, email, name, role string) error
 	GetByID(ctx context.Context, id string) (*model.User, error)
 	UpdateUser(ctx context.Context, id, name, email string) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error)
-	UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects, certificates string, age, experienceYears int32) (*model.TutorProfile, error)
+	UpdateTutorProfile(ctx context.Context, tutorID string, p model.TutorProfile) (*model.TutorProfile, error)
 	SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error)
+	ApproveTutor(ctx context.Context, tutorID string) error
+	RejectTutor(ctx context.Context, tutorID string) error
+	GetPendingTutors(ctx context.Context) ([]*model.TutorProfile, error)
 }
 
 type postgresRepo struct {
@@ -27,6 +31,14 @@ type postgresRepo struct {
 
 func NewPostgresRepo(db *sql.DB) UserRepository {
 	return &postgresRepo{db: db}
+}
+
+func (r *postgresRepo) CreateUser(ctx context.Context, id, email, name, role string) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO users (id, email, name, role) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING`,
+		id, email, name, role,
+	)
+	return err
 }
 
 func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.User, error) {
@@ -89,51 +101,63 @@ func (r *postgresRepo) GetAllUsers(ctx context.Context, limit, offset int32) ([]
 	return users, rows.Err()
 }
 
-func (r *postgresRepo) GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error) {
+const tutorSelectCols = `id, name, email, bio, COALESCE(age, 0), location, photo_url, subjects, experience_years, certificates,
+	COALESCE(status,'pending'), COALESCE(phone,''), COALESCE(teaching_language,''), COALESCE(student_level,''),
+	COALESCE(lesson_type,''), COALESCE(hourly_price,0), COALESCE(education,''),
+	COALESCE(available_days,'[]'), COALESCE(available_time_start,''), COALESCE(available_time_end,''), COALESCE(timezone,'')`
+
+func scanTutorProfile(row interface {
+	Scan(...interface{}) error
+}) (*model.TutorProfile, error) {
 	p := &model.TutorProfile{}
-	var age sql.NullInt32
-	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, email, bio, age, location, photo_url, subjects, experience_years, certificates
-		 FROM users WHERE id = $1 AND role = 'tutor' AND deleted_at IS NULL`, tutorID,
-	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears, &p.Certificates)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNotFound
-	}
-	if err != nil {
-		return nil, err
-	}
-	if age.Valid {
-		p.Age = age.Int32
-	}
-	return p, nil
+	err := row.Scan(
+		&p.ID, &p.Name, &p.Email, &p.Bio, &p.Age, &p.Location, &p.PhotoURL,
+		&p.Subjects, &p.ExperienceYears, &p.Certificates,
+		&p.Status, &p.Phone, &p.TeachingLanguage, &p.StudentLevel,
+		&p.LessonType, &p.HourlyPrice, &p.Education,
+		&p.AvailableDays, &p.AvailableTimeStart, &p.AvailableTimeEnd, &p.Timezone,
+	)
+	return p, err
 }
 
-func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID, bio, location, photoURL, subjects, certificates string, age, experienceYears int32) (*model.TutorProfile, error) {
-	p := &model.TutorProfile{}
-	var dbAge sql.NullInt32
-	err := r.db.QueryRowContext(ctx,
-		`UPDATE users
-		 SET bio = $1, age = $2, location = $3, photo_url = $4, subjects = $5, experience_years = $6, certificates = $7, updated_at = NOW()
-		 WHERE id = $8 AND role = 'tutor' AND deleted_at IS NULL
-		 RETURNING id, name, email, bio, age, location, photo_url, subjects, experience_years, certificates`,
-		bio, age, location, photoURL, subjects, experienceYears, certificates, tutorID,
-	).Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &dbAge, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears, &p.Certificates)
+func (r *postgresRepo) GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error) {
+	row := r.db.QueryRowContext(ctx,
+		`SELECT `+tutorSelectCols+` FROM users WHERE id = $1 AND role = 'tutor' AND deleted_at IS NULL`, tutorID,
+	)
+	p, err := scanTutorProfile(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
-	if err != nil {
-		return nil, err
+	return p, err
+}
+
+func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID string, in model.TutorProfile) (*model.TutorProfile, error) {
+	row := r.db.QueryRowContext(ctx,
+		`UPDATE users
+		 SET bio = $1, age = $2, location = $3, photo_url = $4, subjects = $5, experience_years = $6, certificates = $7,
+		     phone = $8, teaching_language = $9, student_level = $10, lesson_type = $11,
+		     hourly_price = $12, education = $13, available_days = $14,
+		     available_time_start = $15, available_time_end = $16, timezone = $17,
+		     updated_at = NOW()
+		 WHERE id = $18 AND role = 'tutor' AND deleted_at IS NULL
+		 RETURNING `+tutorSelectCols,
+		in.Bio, in.Age, in.Location, in.PhotoURL, in.Subjects, in.ExperienceYears, in.Certificates,
+		in.Phone, in.TeachingLanguage, in.StudentLevel, in.LessonType,
+		in.HourlyPrice, in.Education, in.AvailableDays,
+		in.AvailableTimeStart, in.AvailableTimeEnd, in.Timezone,
+		tutorID,
+	)
+	p, err := scanTutorProfile(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
 	}
-	if dbAge.Valid {
-		p.Age = dbAge.Int32
-	}
-	return p, nil
+	return p, err
 }
 
 func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error) {
-	q := `SELECT id, name, email, bio, COALESCE(age, 0), location, photo_url, subjects, experience_years, certificates
+	q := `SELECT ` + tutorSelectCols + `
 	      FROM users
-	      WHERE role = 'tutor' AND deleted_at IS NULL`
+	      WHERE role = 'tutor' AND deleted_at IS NULL AND COALESCE(status,'pending') = 'approved'`
 	args := []any{}
 	n := 1
 	if subject != "" {
@@ -166,13 +190,62 @@ func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location strin
 	defer rows.Close()
 	var result []*model.TutorProfile
 	for rows.Next() {
-		p := &model.TutorProfile{}
-		if err := rows.Scan(&p.ID, &p.Name, &p.Email, &p.Bio, &p.Age, &p.Location, &p.PhotoURL, &p.Subjects, &p.ExperienceYears, &p.Certificates); err != nil {
+		p, err := scanTutorProfile(rows)
+		if err != nil {
 			return nil, err
 		}
 		result = append(result, p)
 	}
 	return result, rows.Err()
+}
+
+func (r *postgresRepo) GetPendingTutors(ctx context.Context) ([]*model.TutorProfile, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT `+tutorSelectCols+` FROM users WHERE role = 'tutor' AND deleted_at IS NULL AND COALESCE(status,'pending') = 'pending' ORDER BY name`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []*model.TutorProfile
+	for rows.Next() {
+		p, err := scanTutorProfile(rows)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, rows.Err()
+}
+
+func (r *postgresRepo) ApproveTutor(ctx context.Context, tutorID string) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET status = 'approved', updated_at = NOW() WHERE id = $1 AND role = 'tutor' AND deleted_at IS NULL`,
+		tutorID,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *postgresRepo) RejectTutor(ctx context.Context, tutorID string) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET status = 'rejected', updated_at = NOW() WHERE id = $1 AND role = 'tutor' AND deleted_at IS NULL`,
+		tutorID,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func itoa(n int) string {

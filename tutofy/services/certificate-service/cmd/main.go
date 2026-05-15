@@ -44,6 +44,18 @@ func main() {
 	defer authConn.Close()
 	defer progressConn.Close()
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS certificates (
+			id         TEXT        PRIMARY KEY,
+			student_id TEXT        NOT NULL,
+			course_id  TEXT        NOT NULL,
+			issued_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			UNIQUE (student_id, course_id)
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewCertificateService(repo, progresspb.NewProgressServiceClient(progressConn))
 	h := handler.NewCertificateHandler(svc)

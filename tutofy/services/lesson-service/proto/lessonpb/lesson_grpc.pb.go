@@ -31,6 +31,11 @@ type LessonServiceClient interface {
 	AddMaterial(ctx context.Context, in *AddMaterialRequest, opts ...grpc.CallOption) (*MaterialResponse, error)
 	GetLessonMaterials(ctx context.Context, in *GetLessonMaterialsRequest, opts ...grpc.CallOption) (*MaterialsList, error)
 	GetAttendance(ctx context.Context, in *GetAttendanceRequest, opts ...grpc.CallOption) (*AttendanceList, error)
+	MarkAttendance(ctx context.Context, in *MarkAttendanceRequest, opts ...grpc.CallOption) (*Empty, error)
+	SetVideoLink(ctx context.Context, in *SetVideoLinkRequest, opts ...grpc.CallOption) (*Lesson, error)
+	GetStudentLessons(ctx context.Context, in *GetStudentLessonsRequest, opts ...grpc.CallOption) (*CourseLessonsList, error)
+	GetTutorBookedSlots(ctx context.Context, in *GetTutorBookedSlotsRequest, opts ...grpc.CallOption) (*TutorBookedSlotsResponse, error)
+	GetTutorIndividualLessons(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CourseLessonsList, error)
 }
 
 type lessonServiceClient struct {
@@ -100,6 +105,10 @@ type LessonServiceServer interface {
 	AddMaterial(context.Context, *AddMaterialRequest) (*MaterialResponse, error)
 	GetLessonMaterials(context.Context, *GetLessonMaterialsRequest) (*MaterialsList, error)
 	GetAttendance(context.Context, *GetAttendanceRequest) (*AttendanceList, error)
+	SetVideoLink(context.Context, *SetVideoLinkRequest) (*Lesson, error)
+	GetStudentLessons(context.Context, *GetStudentLessonsRequest) (*CourseLessonsList, error)
+	GetTutorBookedSlots(context.Context, *GetTutorBookedSlotsRequest) (*TutorBookedSlotsResponse, error)
+	GetTutorIndividualLessons(context.Context, *Empty) (*CourseLessonsList, error)
 	mustEmbedUnimplementedLessonServiceServer()
 }
 
@@ -271,6 +280,26 @@ var LessonService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetLessonMaterials",
 			Handler:    _LessonService_GetLessonMaterials_Handler,
 		},
+		{
+			MethodName: "GetAttendance",
+			Handler:    _LessonService_GetAttendance_Handler,
+		},
+		{
+			MethodName: "SetVideoLink",
+			Handler:    _LessonService_SetVideoLink_Handler,
+		},
+		{
+			MethodName: "GetStudentLessons",
+			Handler:    _LessonService_GetStudentLessons_Handler,
+		},
+		{
+			MethodName: "GetTutorBookedSlots",
+			Handler:    _LessonService_GetTutorBookedSlots_Handler,
+		},
+		{
+			MethodName: "GetTutorIndividualLessons",
+			Handler:    _LessonService_GetTutorIndividualLessons_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/lesson.proto",
@@ -380,4 +409,99 @@ func (c *lessonServiceClient) GetAttendance(ctx context.Context, in *GetAttendan
 	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetAttendance", in, out, opts...)
 	if err != nil { return nil, err }
 	return out, nil
+}
+
+func (c *lessonServiceClient) MarkAttendance(ctx context.Context, in *MarkAttendanceRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/MarkAttendance", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
+}
+
+func (UnimplementedLessonServiceServer) SetVideoLink(context.Context, *SetVideoLinkRequest) (*Lesson, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetVideoLink not implemented")
+}
+
+func _LessonService_SetVideoLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetVideoLinkRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).SetVideoLink(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/SetVideoLink"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).SetVideoLink(ctx, req.(*SetVideoLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func (c *lessonServiceClient) SetVideoLink(ctx context.Context, in *SetVideoLinkRequest, opts ...grpc.CallOption) (*Lesson, error) {
+	out := new(Lesson)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/SetVideoLink", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
+}
+
+func (c *lessonServiceClient) GetStudentLessons(ctx context.Context, in *GetStudentLessonsRequest, opts ...grpc.CallOption) (*CourseLessonsList, error) {
+	out := new(CourseLessonsList)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetStudentLessons", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
+}
+
+func (UnimplementedLessonServiceServer) GetStudentLessons(context.Context, *GetStudentLessonsRequest) (*CourseLessonsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStudentLessons not implemented")
+}
+
+func _LessonService_GetStudentLessons_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStudentLessonsRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).GetStudentLessons(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetStudentLessons"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).GetStudentLessons(ctx, req.(*GetStudentLessonsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func (c *lessonServiceClient) GetTutorBookedSlots(ctx context.Context, in *GetTutorBookedSlotsRequest, opts ...grpc.CallOption) (*TutorBookedSlotsResponse, error) {
+	out := new(TutorBookedSlotsResponse)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetTutorBookedSlots", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
+}
+
+func (UnimplementedLessonServiceServer) GetTutorBookedSlots(context.Context, *GetTutorBookedSlotsRequest) (*TutorBookedSlotsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTutorBookedSlots not implemented")
+}
+
+func (c *lessonServiceClient) GetTutorIndividualLessons(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CourseLessonsList, error) {
+	out := new(CourseLessonsList)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetTutorIndividualLessons", in, out, opts...)
+	if err != nil { return nil, err }
+	return out, nil
+}
+
+func (UnimplementedLessonServiceServer) GetTutorIndividualLessons(context.Context, *Empty) (*CourseLessonsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTutorIndividualLessons not implemented")
+}
+
+func _LessonService_GetTutorIndividualLessons_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).GetTutorIndividualLessons(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetTutorIndividualLessons"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).GetTutorIndividualLessons(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LessonService_GetTutorBookedSlots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTutorBookedSlotsRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).GetTutorBookedSlots(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetTutorBookedSlots"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).GetTutorBookedSlots(ctx, req.(*GetTutorBookedSlotsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }

@@ -41,6 +41,19 @@ func main() {
 
 	authClient := authpb.NewAuthServiceClient(authConn)
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS payments (
+			id         TEXT        PRIMARY KEY,
+			user_id    TEXT        NOT NULL,
+			course_id  TEXT        NOT NULL,
+			amount     DOUBLE PRECISION NOT NULL DEFAULT 0,
+			status     TEXT        NOT NULL DEFAULT 'pending',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewPaymentService(repo)
 	h := handler.NewPaymentHandler(svc)

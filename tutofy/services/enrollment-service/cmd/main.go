@@ -63,6 +63,17 @@ func main() {
 	paymentClient      := paymentpb.NewPaymentServiceClient(paymentConn)
 	notificationClient := notificationpb.NewNotificationServiceClient(notificationConn)
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS enrollments (
+			id        TEXT PRIMARY KEY,
+			user_id   TEXT NOT NULL,
+			course_id TEXT NOT NULL,
+			UNIQUE (user_id, course_id)
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewEnrollmentService(repo, courseClient, paymentClient, notificationClient)
 	h := handler.NewEnrollmentHandler(svc)

@@ -27,6 +27,8 @@ type QuizRepository interface {
 	SaveAnswers(ctx context.Context, answers []*model.AttemptAnswer) error
 	CompleteAttempt(ctx context.Context, attemptID string, score, total int, completedAt time.Time) error
 	GetAttemptAnswers(ctx context.Context, attemptID string) ([]*model.AttemptAnswer, error)
+	CountCompletedAttempts(ctx context.Context, quizID, studentID string) (int, error)
+	UpdateQuizSettings(ctx context.Context, quizID string, timeLimitMinutes, maxAttempts int32, deadline *time.Time) error
 }
 
 type postgresRepo struct{ db *sql.DB }
@@ -35,8 +37,9 @@ func NewPostgresRepo(db *sql.DB) QuizRepository { return &postgresRepo{db: db} }
 
 func (r *postgresRepo) CreateQuiz(ctx context.Context, q *model.Quiz) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO quizzes (id, course_id, title, created_at) VALUES ($1, $2, $3, $4)`,
-		q.ID, q.CourseID, q.Title, q.CreatedAt,
+		`INSERT INTO quizzes (id, course_id, title, time_limit_minutes, max_attempts, deadline, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		q.ID, q.CourseID, q.Title, q.TimeLimitMinutes, q.MaxAttempts, q.Deadline, q.CreatedAt,
 	)
 	return err
 }
@@ -71,18 +74,27 @@ func (r *postgresRepo) DeleteQuiz(ctx context.Context, id string) error {
 
 func (r *postgresRepo) GetQuizByID(ctx context.Context, id string) (*model.Quiz, error) {
 	q := &model.Quiz{}
+	var deadline sql.NullTime
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, course_id, title, created_at FROM quizzes WHERE id = $1`, id,
-	).Scan(&q.ID, &q.CourseID, &q.Title, &q.CreatedAt)
+		`SELECT id, course_id, title, time_limit_minutes, max_attempts, deadline, created_at
+		 FROM quizzes WHERE id = $1`, id,
+	).Scan(&q.ID, &q.CourseID, &q.Title, &q.TimeLimitMinutes, &q.MaxAttempts, &deadline, &q.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
-	return q, err
+	if err != nil {
+		return nil, err
+	}
+	if deadline.Valid {
+		q.Deadline = &deadline.Time
+	}
+	return q, nil
 }
 
 func (r *postgresRepo) GetCourseQuizzes(ctx context.Context, courseID string) ([]*model.Quiz, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, course_id, title, created_at FROM quizzes WHERE course_id = $1 ORDER BY created_at`, courseID,
+		`SELECT id, course_id, title, time_limit_minutes, max_attempts, deadline, created_at
+		 FROM quizzes WHERE course_id = $1 ORDER BY created_at`, courseID,
 	)
 	if err != nil {
 		return nil, err
@@ -91,8 +103,12 @@ func (r *postgresRepo) GetCourseQuizzes(ctx context.Context, courseID string) ([
 	var result []*model.Quiz
 	for rows.Next() {
 		q := &model.Quiz{}
-		if err := rows.Scan(&q.ID, &q.CourseID, &q.Title, &q.CreatedAt); err != nil {
+		var deadline sql.NullTime
+		if err := rows.Scan(&q.ID, &q.CourseID, &q.Title, &q.TimeLimitMinutes, &q.MaxAttempts, &deadline, &q.CreatedAt); err != nil {
 			return nil, err
+		}
+		if deadline.Valid {
+			q.Deadline = &deadline.Time
 		}
 		result = append(result, q)
 	}
@@ -197,4 +213,22 @@ func (r *postgresRepo) GetAttemptAnswers(ctx context.Context, attemptID string) 
 		result = append(result, a)
 	}
 	return result, rows.Err()
+}
+
+func (r *postgresRepo) CountCompletedAttempts(ctx context.Context, quizID, studentID string) (int, error) {
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM quiz_attempts
+		 WHERE quiz_id = $1 AND student_id = $2 AND completed_at IS NOT NULL`,
+		quizID, studentID,
+	).Scan(&count)
+	return count, err
+}
+
+func (r *postgresRepo) UpdateQuizSettings(ctx context.Context, quizID string, timeLimitMinutes, maxAttempts int32, deadline *time.Time) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE quizzes SET time_limit_minutes = $1, max_attempts = $2, deadline = $3 WHERE id = $4`,
+		timeLimitMinutes, maxAttempts, deadline, quizID,
+	)
+	return err
 }

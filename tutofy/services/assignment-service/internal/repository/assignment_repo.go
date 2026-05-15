@@ -28,7 +28,7 @@ func NewPostgresRepo(db *sql.DB) AssignmentRepository {
 
 func (r *postgresRepo) CreateAssignment(ctx context.Context, a *model.Assignment) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO assignments (id, title, description, course_id, due_date) VALUES ($1, $2, $3, $4, NULLIF($5, ''))`,
+		`INSERT INTO assignments (id, title, description, course_id, due_date) VALUES ($1, $2, $3, $4, NULLIF($5, '')::TIMESTAMPTZ)`,
 		a.ID, a.Title, a.Description, a.CourseID, a.DueDate,
 	)
 	return err
@@ -71,7 +71,7 @@ func (r *postgresRepo) GetByCourseID(ctx context.Context, courseID string, limit
 func (r *postgresRepo) UpdateAssignment(ctx context.Context, id, title, description, dueDate string) (*model.Assignment, error) {
 	a := &model.Assignment{}
 	err := r.db.QueryRowContext(ctx,
-		`UPDATE assignments SET title = $1, description = $2, due_date = NULLIF($3, '')
+		`UPDATE assignments SET title = $1, description = $2, due_date = NULLIF($3, '')::TIMESTAMPTZ
 		 WHERE id = $4
 		 RETURNING id, title, description, course_id, COALESCE(due_date::TEXT, '')`,
 		title, description, dueDate, id,

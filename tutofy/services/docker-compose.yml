@@ -36,7 +36,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tutofy"]
       interval: 5s
@@ -78,6 +78,7 @@ services:
     build:
       context: .
       dockerfile: auth-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/auth?sslmode=disable"
       PORT: "50051"
@@ -88,14 +89,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    ports:
-      - "50051:50051"
     restart: unless-stopped
 
   user-service:
     build:
       context: .
       dockerfile: user-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/users?sslmode=disable"
       PORT: "50052"
@@ -108,14 +108,13 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
-    ports:
-      - "50052:50052"
     restart: unless-stopped
 
   course-service:
     build:
       context: .
       dockerfile: course-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/courses?sslmode=disable"
       PORT: "50053"
@@ -128,19 +127,19 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
-    ports:
-      - "50053:50053"
     restart: unless-stopped
 
   enrollment-service:
     build:
       context: .
       dockerfile: enrollment-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/enrollments?sslmode=disable"
       PORT: "50054"
       AUTH_SERVICE_ADDR: "auth-service:50051"
       COURSE_SERVICE_ADDR: "course-service:50053"
+      NOTIFICATION_SERVICE_ADDR: "notification-service:50057"
     depends_on:
       postgres:
         condition: service_healthy
@@ -148,14 +147,15 @@ services:
         condition: service_started
       course-service:
         condition: service_started
-    ports:
-      - "50054:50054"
+      notification-service:
+        condition: service_started
     restart: unless-stopped
 
   lesson-service:
     build:
       context: .
       dockerfile: lesson-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/lessons?sslmode=disable"
       PORT: "50055"
@@ -175,40 +175,38 @@ services:
         condition: service_started
       enrollment-service:
         condition: service_started
-    ports:
-      - "50055:50055"
     restart: unless-stopped
 
   grading-service:
     build:
       context: .
       dockerfile: grading-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/grading?sslmode=disable"
       PORT: "50056"
       AUTH_SERVICE_ADDR: "auth-service:50051"
       ASSIGNMENT_SERVICE_ADDR: "assignment-service:50059"
       ENROLLMENT_SERVICE_ADDR: "enrollment-service:50054"
-      NATS_ADDR: "nats://nats:4222"
+      NOTIFICATION_SERVICE_ADDR: "notification-service:50057"
     depends_on:
       postgres:
         condition: service_healthy
-      nats:
-        condition: service_started
       auth-service:
         condition: service_started
       assignment-service:
         condition: service_started
       enrollment-service:
         condition: service_started
-    ports:
-      - "50056:50056"
+      notification-service:
+        condition: service_started
     restart: unless-stopped
 
   notification-service:
     build:
       context: .
       dockerfile: notification-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/notifications?sslmode=disable"
       PORT: "50057"
@@ -221,14 +219,13 @@ services:
         condition: service_started
       auth-service:
         condition: service_started
-    ports:
-      - "50057:50057"
     restart: unless-stopped
 
   progress-service:
     build:
       context: .
       dockerfile: progress-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/progress?sslmode=disable"
       PORT: "50058"
@@ -241,14 +238,13 @@ services:
         condition: service_started
       auth-service:
         condition: service_started
-    ports:
-      - "50058:50058"
     restart: unless-stopped
 
   assignment-service:
     build:
       context: .
       dockerfile: assignment-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/assignments?sslmode=disable"
       PORT: "50059"
@@ -261,31 +257,32 @@ services:
         condition: service_started
       course-service:
         condition: service_started
-    ports:
-      - "50059:50059"
     restart: unless-stopped
 
   messaging-service:
     build:
       context: .
       dockerfile: messaging-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/messaging?sslmode=disable"
       PORT: "50060"
       AUTH_SERVICE_ADDR: "auth-service:50051"
+      NOTIFICATION_SERVICE_ADDR: "notification-service:50057"
     depends_on:
       postgres:
         condition: service_healthy
       auth-service:
         condition: service_started
-    ports:
-      - "50060:50060"
+      notification-service:
+        condition: service_started
     restart: unless-stopped
 
   payment-service:
     build:
       context: .
       dockerfile: payment-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/payments?sslmode=disable"
       PORT: "50061"
@@ -295,20 +292,20 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
-    ports:
-      - "50061:50061"
     restart: unless-stopped
 
   media-service:
     build:
       context: .
       dockerfile: media-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/media?sslmode=disable"
       PORT: "50062"
       AUTH_SERVICE_ADDR: "auth-service:50051"
       ENROLLMENT_SERVICE_ADDR: "enrollment-service:50054"
       S3_ENDPOINT: "http://minio:9000"
+      S3_PUBLIC_ENDPOINT: "http://localhost:9000"
       S3_ACCESS_KEY_ID: "minioadmin"
       S3_SECRET_ACCESS_KEY: "minioadmin"
       S3_BUCKET: "tutofy-media"
@@ -322,14 +319,13 @@ services:
         condition: service_started
       createbuckets:
         condition: service_completed_successfully
-    ports:
-      - "50062:50062"
     restart: unless-stopped
 
   submission-service:
     build:
       context: .
       dockerfile: submission-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/submissions?sslmode=disable"
       PORT: "50063"
@@ -345,14 +341,13 @@ services:
         condition: service_started
       enrollment-service:
         condition: service_started
-    ports:
-      - "50063:50063"
     restart: unless-stopped
 
   quiz-service:
     build:
       context: .
       dockerfile: quiz-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/quizzes?sslmode=disable"
       PORT: "50064"
@@ -366,14 +361,13 @@ services:
         condition: service_started
       enrollment-service:
         condition: service_started
-    ports:
-      - "50064:50064"
     restart: unless-stopped
 
   review-service:
     build:
       context: .
       dockerfile: review-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/reviews?sslmode=disable"
       PORT: "50065"
@@ -389,14 +383,13 @@ services:
         condition: service_started
       enrollment-service:
         condition: service_started
-    ports:
-      - "50065:50065"
     restart: unless-stopped
 
   certificate-service:
     build:
       context: .
       dockerfile: certificate-service/Dockerfile
+      network: host
     environment:
       DB_URL: "postgres://tutofy:secret@postgres/certificates?sslmode=disable"
       PORT: "50066"
@@ -409,14 +402,13 @@ services:
         condition: service_started
       progress-service:
         condition: service_started
-    ports:
-      - "50066:50066"
     restart: unless-stopped
 
   api-gateway:
     build:
       context: ..
       dockerfile: api-gateway/Dockerfile
+      network: host
     environment:
       PORT: "8080"
       AUTH_SERVICE_ADDR: "auth-service:50051"
@@ -432,6 +424,8 @@ services:
       MESSAGING_SERVICE_ADDR: "messaging-service:50060"
       MEDIA_SERVICE_ADDR: "media-service:50062"
       REVIEW_SERVICE_ADDR: "review-service:50065"
+      SUBMISSION_SERVICE_ADDR: "submission-service:50063"
+      QUIZ_SERVICE_ADDR: "quiz-service:50064"
     depends_on:
       auth-service:
         condition: service_started

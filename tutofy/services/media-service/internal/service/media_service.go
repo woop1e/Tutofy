@@ -59,14 +59,16 @@ func (s *mediaService) UploadFile(
 	fileType model.FileType,
 	data []byte,
 ) (*model.MediaFile, error) {
-	// Students upload assignment files; tutors and admins upload course materials.
 	switch fileType {
 	case model.FileTypeCourseMaterial:
 		if callerRole != "tutor" && callerRole != "admin" {
 			return nil, ErrForbidden
 		}
 	case model.FileTypeAssignment:
-		if callerRole == "student" {
+		if callerID == "" {
+			return nil, ErrForbidden
+		}
+		if callerRole == "student" && courseID != "" {
 			enrolled, err := s.enrollment.IsEnrolled(ctx, callerID, courseID)
 			if err != nil {
 				return nil, err
@@ -74,7 +76,11 @@ func (s *mediaService) UploadFile(
 			if !enrolled {
 				return nil, ErrNotEnrolled
 			}
-		} else if callerRole != "admin" {
+		} else if callerRole != "student" && callerRole != "admin" {
+			return nil, ErrForbidden
+		}
+	case model.FileTypeUserDocument:
+		if callerID == "" {
 			return nil, ErrForbidden
 		}
 	default:
@@ -158,18 +164,16 @@ func (s *mediaService) DeleteFile(ctx context.Context, callerID, callerRole, fil
 
 // --- helpers ---
 
-// buildS3Key produces a structured path: courses/<courseID>/<type>/<fileID>_<fileName>
+// buildS3Key produces a structured path for each file type.
 func buildS3Key(courseID string, fileType model.FileType, fileID, fileName string) string {
-	var folder string
 	switch fileType {
+	case model.FileTypeUserDocument:
+		return fmt.Sprintf("users/documents/%s_%s", fileID, fileName)
 	case model.FileTypeAssignment:
-		folder = "assignments"
-	case model.FileTypeCourseMaterial:
-		folder = "materials"
+		return fmt.Sprintf("courses/%s/assignments/%s_%s", courseID, fileID, fileName)
 	default:
-		folder = "misc"
+		return fmt.Sprintf("courses/%s/materials/%s_%s", courseID, fileID, fileName)
 	}
-	return fmt.Sprintf("courses/%s/%s/%s_%s", courseID, folder, fileID, fileName)
 }
 
 // detectContentType returns a basic MIME type based on file extension.

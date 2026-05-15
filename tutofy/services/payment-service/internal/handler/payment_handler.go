@@ -81,9 +81,10 @@ func (h *PaymentHandler) CompletePayment(ctx context.Context, req *paymentpb.Upd
 		return nil, status.Error(codes.InvalidArgument, "payment_id is required")
 	}
 
+	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	p, err := h.svc.CompletePayment(ctx, callerRole, req.GetPaymentId())
+	p, err := h.svc.CompletePayment(ctx, callerID, callerRole, req.GetPaymentId())
 	if err != nil {
 		return nil, mapError(err)
 	}

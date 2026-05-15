@@ -45,6 +45,19 @@ func main() {
 
 	authClient := authpb.NewAuthServiceClient(authConn)
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS messages (
+			id          TEXT        PRIMARY KEY,
+			sender_id   TEXT        NOT NULL,
+			receiver_id TEXT        NOT NULL,
+			content     TEXT        NOT NULL DEFAULT '',
+			is_read     BOOLEAN     NOT NULL DEFAULT FALSE,
+			created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewMessageService(repo, notificationpb.NewNotificationServiceClient(notifConn))
 	h := handler.NewMessagingHandler(svc)

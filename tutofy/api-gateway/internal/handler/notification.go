@@ -13,10 +13,14 @@ func NewNotificationHandler(c notificationpb.NotificationServiceClient) *Notific
 }
 
 func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	unreadOnly := q.Get("unread_only") == "true"
+	userID := userIDFromToken(r)
+	if userID == "" {
+		jsonResp(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	unreadOnly := r.URL.Query().Get("unread_only") == "true"
 	resp, err := h.client.GetNotifications(tokenCtx(r), &notificationpb.GetNotificationsRequest{
-		UserId:     q.Get("user_id"),
+		UserId:     userID,
 		UnreadOnly: unreadOnly,
 	})
 	if err != nil {

@@ -1,6 +1,6 @@
 module enrollment-service
 
-go 1.25.9
+go 1.24
 
 require (
 	auth-service v0.0.0

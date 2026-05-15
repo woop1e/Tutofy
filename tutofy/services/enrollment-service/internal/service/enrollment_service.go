@@ -105,7 +105,9 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 
 	// Notify the student: enrollment confirmed.
 	if s.notificationClient != nil {
-		go s.notificationClient.NotifyUser(outCtx, &notificationpb.NotifyUserRequest{
+		md, _ := metadata.FromIncomingContext(ctx)
+		notifCtx := metadata.NewOutgoingContext(context.Background(), md)
+		go s.notificationClient.NotifyUser(notifCtx, &notificationpb.NotifyUserRequest{
 			UserId:  callerID,
 			Type:    2, // NOTIFICATION_TYPE_ENROLLMENT
 			Message: "You have successfully enrolled in course " + courseID,

@@ -47,6 +47,19 @@ func main() {
 	authClient := authpb.NewAuthServiceClient(authConn)
 	courseClient := coursepb.NewCourseServiceClient(courseConn)
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS assignments (
+			id          TEXT PRIMARY KEY,
+			title       TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			course_id   TEXT NOT NULL,
+			due_date    TIMESTAMPTZ,
+			deleted_at  TIMESTAMPTZ
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewAssignmentService(repo, courseClient)
 	h := handler.NewAssignmentHandler(svc)

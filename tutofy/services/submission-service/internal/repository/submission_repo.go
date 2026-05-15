@@ -26,7 +26,11 @@ func (r *postgresRepo) Create(ctx context.Context, s *model.Submission) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO submissions (id, assignment_id, student_id, content, file_id, status, submitted_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)
-		 ON CONFLICT (assignment_id, student_id) DO NOTHING`,
+		 ON CONFLICT (assignment_id, student_id) DO UPDATE
+		 SET content = EXCLUDED.content,
+		     file_id = EXCLUDED.file_id,
+		     status  = EXCLUDED.status,
+		     submitted_at = NOW()`,
 		s.ID, s.AssignmentID, s.StudentID, s.Content, s.FileID, string(s.Status), s.SubmittedAt,
 	)
 	return err

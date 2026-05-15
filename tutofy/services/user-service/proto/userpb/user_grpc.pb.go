@@ -9,6 +9,24 @@ import (
 
 // ── Messages ─────────────────────────────────────────────────────────────────
 
+type CreateUserRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Name  string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Role  string `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
+}
+
+func (x *CreateUserRequest) Reset()         { *x = CreateUserRequest{} }
+func (x *CreateUserRequest) String() string  { return x.Id }
+func (x *CreateUserRequest) ProtoMessage()  {}
+func (x *CreateUserRequest) GetId() string    { return x.Id }
+func (x *CreateUserRequest) GetEmail() string { return x.Email }
+func (x *CreateUserRequest) GetName() string  { return x.Name }
+func (x *CreateUserRequest) GetRole() string  { return x.Role }
+
 type GetUserRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -133,14 +151,24 @@ type UpdateTutorProfileRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	UserId          string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Bio             string   `protobuf:"bytes,2,opt,name=bio,proto3" json:"bio,omitempty"`
-	Age             int32    `protobuf:"varint,3,opt,name=age,proto3" json:"age,omitempty"`
-	Location        string   `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
-	PhotoUrl        string   `protobuf:"bytes,5,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
-	Subjects        []string `protobuf:"bytes,6,rep,name=subjects,proto3" json:"subjects,omitempty"`
-	ExperienceYears int32    `protobuf:"varint,7,opt,name=experience_years,json=experienceYears,proto3" json:"experience_years,omitempty"`
-	Certificates    []string `protobuf:"bytes,8,rep,name=certificates,proto3" json:"certificates,omitempty"`
+	UserId             string   `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Bio                string   `protobuf:"bytes,2,opt,name=bio,proto3" json:"bio,omitempty"`
+	Age                int32    `protobuf:"varint,3,opt,name=age,proto3" json:"age,omitempty"`
+	Location           string   `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
+	PhotoUrl           string   `protobuf:"bytes,5,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
+	Subjects           []string `protobuf:"bytes,6,rep,name=subjects,proto3" json:"subjects,omitempty"`
+	ExperienceYears    int32    `protobuf:"varint,7,opt,name=experience_years,json=experienceYears,proto3" json:"experience_years,omitempty"`
+	Certificates       []string `protobuf:"bytes,8,rep,name=certificates,proto3" json:"certificates,omitempty"`
+	Phone              string   `protobuf:"bytes,9,opt,name=phone,proto3" json:"phone,omitempty"`
+	TeachingLanguage   string   `protobuf:"bytes,10,opt,name=teaching_language,json=teachingLanguage,proto3" json:"teaching_language,omitempty"`
+	StudentLevel       string   `protobuf:"bytes,11,opt,name=student_level,json=studentLevel,proto3" json:"student_level,omitempty"`
+	LessonType         string   `protobuf:"bytes,12,opt,name=lesson_type,json=lessonType,proto3" json:"lesson_type,omitempty"`
+	HourlyPrice        int32    `protobuf:"varint,13,opt,name=hourly_price,json=hourlyPrice,proto3" json:"hourly_price,omitempty"`
+	Education          string   `protobuf:"bytes,14,opt,name=education,proto3" json:"education,omitempty"`
+	AvailableDays      []string `protobuf:"bytes,15,rep,name=available_days,json=availableDays,proto3" json:"available_days,omitempty"`
+	AvailableTimeStart string   `protobuf:"bytes,16,opt,name=available_time_start,json=availableTimeStart,proto3" json:"available_time_start,omitempty"`
+	AvailableTimeEnd   string   `protobuf:"bytes,17,opt,name=available_time_end,json=availableTimeEnd,proto3" json:"available_time_end,omitempty"`
+	Timezone           string   `protobuf:"bytes,18,opt,name=timezone,proto3" json:"timezone,omitempty"`
 }
 
 func (x *UpdateTutorProfileRequest) Reset()               { *x = UpdateTutorProfileRequest{} }
@@ -154,6 +182,16 @@ func (x *UpdateTutorProfileRequest) GetPhotoUrl() string         { return x.Phot
 func (x *UpdateTutorProfileRequest) GetSubjects() []string       { return x.Subjects }
 func (x *UpdateTutorProfileRequest) GetExperienceYears() int32   { return x.ExperienceYears }
 func (x *UpdateTutorProfileRequest) GetCertificates() []string   { return x.Certificates }
+func (x *UpdateTutorProfileRequest) GetPhone() string            { return x.Phone }
+func (x *UpdateTutorProfileRequest) GetTeachingLanguage() string { return x.TeachingLanguage }
+func (x *UpdateTutorProfileRequest) GetStudentLevel() string     { return x.StudentLevel }
+func (x *UpdateTutorProfileRequest) GetLessonType() string       { return x.LessonType }
+func (x *UpdateTutorProfileRequest) GetHourlyPrice() int32       { return x.HourlyPrice }
+func (x *UpdateTutorProfileRequest) GetEducation() string        { return x.Education }
+func (x *UpdateTutorProfileRequest) GetAvailableDays() []string  { return x.AvailableDays }
+func (x *UpdateTutorProfileRequest) GetAvailableTimeStart() string { return x.AvailableTimeStart }
+func (x *UpdateTutorProfileRequest) GetAvailableTimeEnd() string   { return x.AvailableTimeEnd }
+func (x *UpdateTutorProfileRequest) GetTimezone() string           { return x.Timezone }
 
 type GetTutorProfileRequest struct {
 	state         protoimpl.MessageState
@@ -171,31 +209,53 @@ type TutorProfileResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	Id              string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name            string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Email           string   `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Bio             string   `protobuf:"bytes,4,opt,name=bio,proto3" json:"bio,omitempty"`
-	Age             int32    `protobuf:"varint,5,opt,name=age,proto3" json:"age,omitempty"`
-	Location        string   `protobuf:"bytes,6,opt,name=location,proto3" json:"location,omitempty"`
-	PhotoUrl        string   `protobuf:"bytes,7,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
-	Subjects        []string `protobuf:"bytes,8,rep,name=subjects,proto3" json:"subjects,omitempty"`
-	ExperienceYears int32    `protobuf:"varint,9,opt,name=experience_years,json=experienceYears,proto3" json:"experience_years,omitempty"`
-	Certificates    []string `protobuf:"bytes,10,rep,name=certificates,proto3" json:"certificates,omitempty"`
+	Id                 string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name               string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Email              string   `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Bio                string   `protobuf:"bytes,4,opt,name=bio,proto3" json:"bio,omitempty"`
+	Age                int32    `protobuf:"varint,5,opt,name=age,proto3" json:"age,omitempty"`
+	Location           string   `protobuf:"bytes,6,opt,name=location,proto3" json:"location,omitempty"`
+	PhotoUrl           string   `protobuf:"bytes,7,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
+	Subjects           []string `protobuf:"bytes,8,rep,name=subjects,proto3" json:"subjects,omitempty"`
+	ExperienceYears    int32    `protobuf:"varint,9,opt,name=experience_years,json=experienceYears,proto3" json:"experience_years,omitempty"`
+	Certificates       []string `protobuf:"bytes,10,rep,name=certificates,proto3" json:"certificates,omitempty"`
+	Status             string   `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
+	Phone              string   `protobuf:"bytes,12,opt,name=phone,proto3" json:"phone,omitempty"`
+	TeachingLanguage   string   `protobuf:"bytes,13,opt,name=teaching_language,json=teachingLanguage,proto3" json:"teaching_language,omitempty"`
+	StudentLevel       string   `protobuf:"bytes,14,opt,name=student_level,json=studentLevel,proto3" json:"student_level,omitempty"`
+	LessonType         string   `protobuf:"bytes,15,opt,name=lesson_type,json=lessonType,proto3" json:"lesson_type,omitempty"`
+	HourlyPrice        int32    `protobuf:"varint,16,opt,name=hourly_price,json=hourlyPrice,proto3" json:"hourly_price,omitempty"`
+	Education          string   `protobuf:"bytes,17,opt,name=education,proto3" json:"education,omitempty"`
+	AvailableDays      []string `protobuf:"bytes,18,rep,name=available_days,json=availableDays,proto3" json:"available_days,omitempty"`
+	AvailableTimeStart string   `protobuf:"bytes,19,opt,name=available_time_start,json=availableTimeStart,proto3" json:"available_time_start,omitempty"`
+	AvailableTimeEnd   string   `protobuf:"bytes,20,opt,name=available_time_end,json=availableTimeEnd,proto3" json:"available_time_end,omitempty"`
+	Timezone           string   `protobuf:"bytes,21,opt,name=timezone,proto3" json:"timezone,omitempty"`
 }
 
 func (x *TutorProfileResponse) Reset()               { *x = TutorProfileResponse{} }
 func (x *TutorProfileResponse) String() string        { return x.Id }
 func (x *TutorProfileResponse) ProtoMessage()         {}
-func (x *TutorProfileResponse) GetId() string                { return x.Id }
-func (x *TutorProfileResponse) GetName() string              { return x.Name }
-func (x *TutorProfileResponse) GetEmail() string             { return x.Email }
-func (x *TutorProfileResponse) GetBio() string               { return x.Bio }
-func (x *TutorProfileResponse) GetAge() int32                { return x.Age }
-func (x *TutorProfileResponse) GetLocation() string          { return x.Location }
-func (x *TutorProfileResponse) GetPhotoUrl() string          { return x.PhotoUrl }
-func (x *TutorProfileResponse) GetSubjects() []string        { return x.Subjects }
-func (x *TutorProfileResponse) GetExperienceYears() int32    { return x.ExperienceYears }
-func (x *TutorProfileResponse) GetCertificates() []string    { return x.Certificates }
+func (x *TutorProfileResponse) GetId() string                   { return x.Id }
+func (x *TutorProfileResponse) GetName() string                 { return x.Name }
+func (x *TutorProfileResponse) GetEmail() string                { return x.Email }
+func (x *TutorProfileResponse) GetBio() string                  { return x.Bio }
+func (x *TutorProfileResponse) GetAge() int32                   { return x.Age }
+func (x *TutorProfileResponse) GetLocation() string             { return x.Location }
+func (x *TutorProfileResponse) GetPhotoUrl() string             { return x.PhotoUrl }
+func (x *TutorProfileResponse) GetSubjects() []string           { return x.Subjects }
+func (x *TutorProfileResponse) GetExperienceYears() int32       { return x.ExperienceYears }
+func (x *TutorProfileResponse) GetCertificates() []string       { return x.Certificates }
+func (x *TutorProfileResponse) GetStatus() string               { return x.Status }
+func (x *TutorProfileResponse) GetPhone() string                { return x.Phone }
+func (x *TutorProfileResponse) GetTeachingLanguage() string     { return x.TeachingLanguage }
+func (x *TutorProfileResponse) GetStudentLevel() string         { return x.StudentLevel }
+func (x *TutorProfileResponse) GetLessonType() string           { return x.LessonType }
+func (x *TutorProfileResponse) GetHourlyPrice() int32           { return x.HourlyPrice }
+func (x *TutorProfileResponse) GetEducation() string            { return x.Education }
+func (x *TutorProfileResponse) GetAvailableDays() []string      { return x.AvailableDays }
+func (x *TutorProfileResponse) GetAvailableTimeStart() string   { return x.AvailableTimeStart }
+func (x *TutorProfileResponse) GetAvailableTimeEnd() string     { return x.AvailableTimeEnd }
+func (x *TutorProfileResponse) GetTimezone() string             { return x.Timezone }
 
 type GetAllUsersRequest struct {
 	state         protoimpl.MessageState
@@ -221,9 +281,46 @@ func (x *Empty) Reset()        { *x = Empty{} }
 func (x *Empty) String() string { return "" }
 func (x *Empty) ProtoMessage() {}
 
+type ApproveTutorRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	TutorId string `protobuf:"bytes,1,opt,name=tutor_id,json=tutorId,proto3" json:"tutor_id,omitempty"`
+}
+
+func (x *ApproveTutorRequest) Reset()         { *x = ApproveTutorRequest{} }
+func (x *ApproveTutorRequest) String() string  { return x.TutorId }
+func (x *ApproveTutorRequest) ProtoMessage()  {}
+func (x *ApproveTutorRequest) GetTutorId() string { return x.TutorId }
+
+type RejectTutorRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	TutorId string `protobuf:"bytes,1,opt,name=tutor_id,json=tutorId,proto3" json:"tutor_id,omitempty"`
+}
+
+func (x *RejectTutorRequest) Reset()         { *x = RejectTutorRequest{} }
+func (x *RejectTutorRequest) String() string  { return x.TutorId }
+func (x *RejectTutorRequest) ProtoMessage()  {}
+func (x *RejectTutorRequest) GetTutorId() string { return x.TutorId }
+
+type PendingTutorsList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Tutors []*TutorProfileResponse `protobuf:"bytes,1,rep,name=tutors,proto3" json:"tutors,omitempty"`
+}
+
+func (x *PendingTutorsList) Reset()          { *x = PendingTutorsList{} }
+func (x *PendingTutorsList) String() string   { return "" }
+func (x *PendingTutorsList) ProtoMessage()   {}
+func (x *PendingTutorsList) GetTutors() []*TutorProfileResponse { return x.Tutors }
+
 // ── Server interface ──────────────────────────────────────────────────────────
 
 type UserServiceServer interface {
+	CreateUser(context.Context, *CreateUserRequest) (*UserResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*UserResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UserResponse, error)
 	GetAllUsers(context.Context, *GetAllUsersRequest) (*UsersList, error)
@@ -231,11 +328,17 @@ type UserServiceServer interface {
 	UpdateTutorProfile(context.Context, *UpdateTutorProfileRequest) (*TutorProfileResponse, error)
 	GetTutorProfile(context.Context, *GetTutorProfileRequest) (*TutorProfileResponse, error)
 	SearchTutors(context.Context, *SearchTutorsRequest) (*TutorCardsList, error)
+	ApproveTutor(context.Context, *ApproveTutorRequest) (*Empty, error)
+	RejectTutor(context.Context, *RejectTutorRequest) (*Empty, error)
+	GetPendingTutors(context.Context, *Empty) (*PendingTutorsList, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
 type UnimplementedUserServiceServer struct{}
 
+func (UnimplementedUserServiceServer) CreateUser(context.Context, *CreateUserRequest) (*UserResponse, error) {
+	return nil, nil
+}
 func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) (*UserResponse, error) {
 	return nil, nil
 }
@@ -257,6 +360,15 @@ func (UnimplementedUserServiceServer) GetTutorProfile(context.Context, *GetTutor
 func (UnimplementedUserServiceServer) SearchTutors(context.Context, *SearchTutorsRequest) (*TutorCardsList, error) {
 	return nil, nil
 }
+func (UnimplementedUserServiceServer) ApproveTutor(context.Context, *ApproveTutorRequest) (*Empty, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) RejectTutor(context.Context, *RejectTutorRequest) (*Empty, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) GetPendingTutors(context.Context, *Empty) (*PendingTutorsList, error) {
+	return nil, nil
+}
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -269,6 +381,7 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "user.UserService",
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{MethodName: "CreateUser", Handler: _UserService_CreateUser_Handler},
 		{MethodName: "GetUser", Handler: _UserService_GetUser_Handler},
 		{MethodName: "UpdateUser", Handler: _UserService_UpdateUser_Handler},
 		{MethodName: "GetAllUsers", Handler: _UserService_GetAllUsers_Handler},
@@ -276,9 +389,27 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "UpdateTutorProfile", Handler: _UserService_UpdateTutorProfile_Handler},
 		{MethodName: "GetTutorProfile", Handler: _UserService_GetTutorProfile_Handler},
 		{MethodName: "SearchTutors", Handler: _UserService_SearchTutors_Handler},
+		{MethodName: "ApproveTutor", Handler: _UserService_ApproveTutor_Handler},
+		{MethodName: "RejectTutor", Handler: _UserService_RejectTutor_Handler},
+		{MethodName: "GetPendingTutors", Handler: _UserService_GetPendingTutors_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "user.proto",
+}
+
+func _UserService_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CreateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/CreateUser"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CreateUser(ctx, req.(*CreateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -386,9 +517,55 @@ func _UserService_SearchTutors_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_ApproveTutor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApproveTutorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ApproveTutor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/ApproveTutor"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ApproveTutor(ctx, req.(*ApproveTutorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_RejectTutor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RejectTutorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).RejectTutor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/RejectTutor"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).RejectTutor(ctx, req.(*RejectTutorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetPendingTutors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetPendingTutors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/GetPendingTutors"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetPendingTutors(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client interface ──────────────────────────────────────────────────────────
 
 type UserServiceClient interface {
+	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	GetAllUsers(ctx context.Context, in *GetAllUsersRequest, opts ...grpc.CallOption) (*UsersList, error)
@@ -396,12 +573,21 @@ type UserServiceClient interface {
 	UpdateTutorProfile(ctx context.Context, in *UpdateTutorProfileRequest, opts ...grpc.CallOption) (*TutorProfileResponse, error)
 	GetTutorProfile(ctx context.Context, in *GetTutorProfileRequest, opts ...grpc.CallOption) (*TutorProfileResponse, error)
 	SearchTutors(ctx context.Context, in *SearchTutorsRequest, opts ...grpc.CallOption) (*TutorCardsList, error)
+	ApproveTutor(ctx context.Context, in *ApproveTutorRequest, opts ...grpc.CallOption) (*Empty, error)
+	RejectTutor(ctx context.Context, in *RejectTutorRequest, opts ...grpc.CallOption) (*Empty, error)
+	GetPendingTutors(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*PendingTutorsList, error)
 }
 
 type userServiceClient struct{ cc grpc.ClientConnInterface }
 
 func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
+}
+
+func (c *userServiceClient) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+	out := new(UserResponse)
+	err := c.cc.Invoke(ctx, "/user.UserService/CreateUser", in, out, opts...)
+	return out, err
 }
 
 func (c *userServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
@@ -437,6 +623,24 @@ func (c *userServiceClient) UpdateTutorProfile(ctx context.Context, in *UpdateTu
 func (c *userServiceClient) GetTutorProfile(ctx context.Context, in *GetTutorProfileRequest, opts ...grpc.CallOption) (*TutorProfileResponse, error) {
 	out := new(TutorProfileResponse)
 	err := c.cc.Invoke(ctx, "/user.UserService/GetTutorProfile", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) ApproveTutor(ctx context.Context, in *ApproveTutorRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/user.UserService/ApproveTutor", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) RejectTutor(ctx context.Context, in *RejectTutorRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/user.UserService/RejectTutor", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) GetPendingTutors(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*PendingTutorsList, error) {
+	out := new(PendingTutorsList)
+	err := c.cc.Invoke(ctx, "/user.UserService/GetPendingTutors", in, out, opts...)
 	return out, err
 }
 

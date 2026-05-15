@@ -52,6 +52,26 @@ func main() {
 		defer rdb.Close()
 	}
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id               TEXT PRIMARY KEY,
+			email            TEXT NOT NULL UNIQUE,
+			name             TEXT NOT NULL DEFAULT '',
+			role             TEXT NOT NULL DEFAULT 'student',
+			bio              TEXT NOT NULL DEFAULT '',
+			age              INT,
+			location         TEXT NOT NULL DEFAULT '',
+			photo_url        TEXT NOT NULL DEFAULT '',
+			subjects         TEXT NOT NULL DEFAULT '',
+			experience_years INT NOT NULL DEFAULT 0,
+			certificates     TEXT NOT NULL DEFAULT '',
+			updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			deleted_at       TIMESTAMPTZ
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewUserService(repo, rdb)
 	h := handler.NewUserHandler(svc)

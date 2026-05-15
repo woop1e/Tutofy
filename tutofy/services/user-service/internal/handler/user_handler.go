@@ -26,6 +26,16 @@ func NewUserHandler(svc service.UserService) *UserHandler {
 	return &UserHandler{svc: svc}
 }
 
+func (h *UserHandler) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.UserResponse, error) {
+	if req.GetId() == "" || req.GetEmail() == "" || req.GetName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "id, email, and name are required")
+	}
+	if err := h.svc.CreateUser(ctx, req.GetId(), req.GetEmail(), req.GetName(), req.GetRole()); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &userpb.UserResponse{Id: req.GetId(), Email: req.GetEmail(), Name: req.GetName(), Role: req.GetRole()}, nil
+}
+
 func (h *UserHandler) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*userpb.UserResponse, error) {
 	user, err := h.svc.GetUser(ctx, req.GetUserId())
 	if err != nil {
@@ -122,10 +132,31 @@ func (h *UserHandler) UpdateTutorProfile(ctx context.Context, req *userpb.Update
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	p, err := h.svc.UpdateTutorProfile(ctx, callerID, callerRole, req.GetUserId(),
-		req.GetBio(), req.GetLocation(), req.GetPhotoUrl(),
-		req.GetSubjects(), req.GetCertificates(), req.GetAge(), req.GetExperienceYears(),
-	)
+	subjectsJSON, _ := json.Marshal(req.GetSubjects())
+	certsJSON, _ := json.Marshal(req.GetCertificates())
+	daysJSON, _ := json.Marshal(req.GetAvailableDays())
+
+	in := model.TutorProfile{
+		Bio:                req.GetBio(),
+		Age:                req.GetAge(),
+		Location:           req.GetLocation(),
+		PhotoURL:           req.GetPhotoUrl(),
+		Subjects:           string(subjectsJSON),
+		ExperienceYears:    req.GetExperienceYears(),
+		Certificates:       string(certsJSON),
+		Phone:              req.GetPhone(),
+		TeachingLanguage:   req.GetTeachingLanguage(),
+		StudentLevel:       req.GetStudentLevel(),
+		LessonType:         req.GetLessonType(),
+		HourlyPrice:        req.GetHourlyPrice(),
+		Education:          req.GetEducation(),
+		AvailableDays:      string(daysJSON),
+		AvailableTimeStart: req.GetAvailableTimeStart(),
+		AvailableTimeEnd:   req.GetAvailableTimeEnd(),
+		Timezone:           req.GetTimezone(),
+	}
+
+	p, err := h.svc.UpdateTutorProfile(ctx, callerID, callerRole, req.GetUserId(), in)
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			return nil, status.Error(codes.PermissionDenied, "forbidden")
@@ -154,20 +185,31 @@ func (h *UserHandler) GetTutorProfile(ctx context.Context, req *userpb.GetTutorP
 
 func toTutorProto(p *model.TutorProfile) *userpb.TutorProfileResponse {
 	return &userpb.TutorProfileResponse{
-		Id:              p.ID,
-		Name:            p.Name,
-		Email:           p.Email,
-		Bio:             p.Bio,
-		Age:             p.Age,
-		Location:        p.Location,
-		PhotoUrl:        p.PhotoURL,
-		Subjects:        parseSubjects(p.Subjects),
-		ExperienceYears: p.ExperienceYears,
-		Certificates:    parseSubjects(p.Certificates), // same JSON []string pattern
+		Id:                 p.ID,
+		Name:               p.Name,
+		Email:              p.Email,
+		Bio:                p.Bio,
+		Age:                p.Age,
+		Location:           p.Location,
+		PhotoUrl:           p.PhotoURL,
+		Subjects:           parseJSONStrings(p.Subjects),
+		ExperienceYears:    p.ExperienceYears,
+		Certificates:       parseJSONStrings(p.Certificates),
+		Status:             p.Status,
+		Phone:              p.Phone,
+		TeachingLanguage:   p.TeachingLanguage,
+		StudentLevel:       p.StudentLevel,
+		LessonType:         p.LessonType,
+		HourlyPrice:        p.HourlyPrice,
+		Education:          p.Education,
+		AvailableDays:      parseJSONStrings(p.AvailableDays),
+		AvailableTimeStart: p.AvailableTimeStart,
+		AvailableTimeEnd:   p.AvailableTimeEnd,
+		Timezone:           p.Timezone,
 	}
 }
 
-func parseSubjects(raw string) []string {
+func parseJSONStrings(raw string) []string {
 	if raw == "" || raw == "[]" || raw == "null" {
 		return []string{}
 	}
@@ -188,4 +230,48 @@ func (h *UserHandler) SearchTutors(ctx context.Context, req *userpb.SearchTutors
 		list = append(list, toTutorProto(p))
 	}
 	return &userpb.TutorCardsList{Tutors: list}, nil
+}
+
+func (h *UserHandler) ApproveTutor(ctx context.Context, req *userpb.ApproveTutorRequest) (*userpb.Empty, error) {
+	callerRole := middleware.RoleFromContext(ctx)
+	if err := h.svc.ApproveTutor(ctx, callerRole, req.GetTutorId()); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "tutor not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &userpb.Empty{}, nil
+}
+
+func (h *UserHandler) RejectTutor(ctx context.Context, req *userpb.RejectTutorRequest) (*userpb.Empty, error) {
+	callerRole := middleware.RoleFromContext(ctx)
+	if err := h.svc.RejectTutor(ctx, callerRole, req.GetTutorId()); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "tutor not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &userpb.Empty{}, nil
+}
+
+func (h *UserHandler) GetPendingTutors(ctx context.Context, _ *userpb.Empty) (*userpb.PendingTutorsList, error) {
+	callerRole := middleware.RoleFromContext(ctx)
+	tutors, err := h.svc.GetPendingTutors(ctx, callerRole)
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	list := make([]*userpb.TutorProfileResponse, 0, len(tutors))
+	for _, p := range tutors {
+		list = append(list, toTutorProto(p))
+	}
+	return &userpb.PendingTutorsList{Tutors: list}, nil
 }

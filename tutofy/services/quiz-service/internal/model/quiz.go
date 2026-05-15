@@ -3,10 +3,13 @@ package model
 import "time"
 
 type Quiz struct {
-	ID        string
-	CourseID  string
-	Title     string
-	CreatedAt time.Time
+	ID               string
+	CourseID         string
+	Title            string
+	TimeLimitMinutes int32
+	MaxAttempts      int32
+	Deadline         *time.Time
+	CreatedAt        time.Time
 }
 
 type Question struct {

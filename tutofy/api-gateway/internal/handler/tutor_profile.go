@@ -75,7 +75,7 @@ func (h *TutorPublicProfileHandler) SearchTutors(w http.ResponseWriter, r *http.
 	q := r.URL.Query()
 	minRating := parseFloat64(q.Get("min_rating"))
 
-	resp, err := h.userClient.SearchTutors(tokenCtx(r), &userpb.SearchTutorsRequest{
+	resp, err := h.userClient.SearchTutors(context.Background(), &userpb.SearchTutorsRequest{
 		Subject:  q.Get("subject"),
 		Location: q.Get("location"),
 		MinAge:   parseInt32(q.Get("min_age")),

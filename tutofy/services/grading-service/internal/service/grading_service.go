@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
 
@@ -10,20 +9,13 @@ import (
 	"enrollment-service/proto/enrollmentpb"
 	"grading-service/internal/model"
 	"grading-service/internal/repository"
+	"notification-service/proto/notificationpb"
 
 	"github.com/google/uuid"
-	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
-
-type gradeEvent struct {
-	AssignmentID string  `json:"assignment_id"`
-	StudentID    string  `json:"student_id"`
-	Grade        float32 `json:"grade"`
-	Feedback     string  `json:"feedback"`
-}
 
 var (
 	ErrForbidden   = errors.New("forbidden")
@@ -38,23 +30,23 @@ type GradingService interface {
 }
 
 type gradingService struct {
-	repo             repository.GradeRepository
-	assignmentClient assignmentpb.AssignmentServiceClient
-	enrollmentClient enrollmentpb.EnrollmentServiceClient
-	nc               *nats.Conn
+	repo               repository.GradeRepository
+	assignmentClient   assignmentpb.AssignmentServiceClient
+	enrollmentClient   enrollmentpb.EnrollmentServiceClient
+	notificationClient notificationpb.NotificationServiceClient
 }
 
 func NewGradingService(
 	repo repository.GradeRepository,
 	assignmentClient assignmentpb.AssignmentServiceClient,
 	enrollmentClient enrollmentpb.EnrollmentServiceClient,
-	nc *nats.Conn,
+	notificationClient notificationpb.NotificationServiceClient,
 ) GradingService {
 	return &gradingService{
-		repo:             repo,
-		assignmentClient: assignmentClient,
-		enrollmentClient: enrollmentClient,
-		nc:               nc,
+		repo:               repo,
+		assignmentClient:   assignmentClient,
+		enrollmentClient:   enrollmentClient,
+		notificationClient: notificationClient,
 	}
 }
 
@@ -99,12 +91,19 @@ func (s *gradingService) SubmitGrade(ctx context.Context, callerRole, assignment
 		return nil, err
 	}
 
-	if s.nc != nil {
-		if data, err := json.Marshal(gradeEvent{AssignmentID: assignmentID, StudentID: studentID, Grade: grade, Feedback: feedback}); err == nil {
-			if err := s.nc.Publish("grade.submitted", data); err != nil {
-				log.Printf("warn: NATS publish grade.submitted failed: %v", err)
+	if s.notificationClient != nil {
+		md, _ := metadata.FromIncomingContext(ctx)
+		notifCtx := metadata.NewOutgoingContext(context.Background(), md)
+		go func() {
+			_, err := s.notificationClient.NotifyGrade(notifCtx, &notificationpb.NotifyGradeRequest{
+				AssignmentId: assignmentID,
+				StudentId:    studentID,
+				Grade:        grade,
+			})
+			if err != nil {
+				log.Printf("warn: grade notification failed for student %s: %v", studentID, err)
 			}
-		}
+		}()
 	}
 
 	return g, nil

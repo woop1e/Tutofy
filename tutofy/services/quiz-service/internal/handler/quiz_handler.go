@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"time"
 
 	"quiz-service/internal/middleware"
 	"quiz-service/internal/model"
@@ -21,12 +22,15 @@ type QuizHandler struct {
 
 func NewQuizHandler(svc service.QuizService) *QuizHandler { return &QuizHandler{svc: svc} }
 
+func (h *QuizHandler) mustEmbedUnimplementedQuizServiceServer() {}
+
 func (h *QuizHandler) CreateQuiz(ctx context.Context, req *quizpb.CreateQuizRequest) (*quizpb.QuizResponse, error) {
 	if req.GetCourseId() == "" || req.GetTitle() == "" {
 		return nil, status.Error(codes.InvalidArgument, "course_id and title are required")
 	}
 	callerID, callerRole := middleware.UserIDFromContext(ctx), middleware.RoleFromContext(ctx)
-	q, err := h.svc.CreateQuiz(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle())
+	deadline := parseDeadline(req.GetDeadline())
+	q, err := h.svc.CreateQuiz(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetTimeLimitMinutes(), req.GetMaxAttempts(), deadline)
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -82,6 +86,35 @@ func (h *QuizHandler) GetCourseQuizzes(ctx context.Context, req *quizpb.GetCours
 	return &quizpb.QuizzesList{Quizzes: list}, nil
 }
 
+func (h *QuizHandler) GetQuizForAttempt(ctx context.Context, req *quizpb.GetQuizForAttemptRequest) (*quizpb.QuizForAttemptResponse, error) {
+	if req.GetQuizId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "quiz_id is required")
+	}
+	quiz, questions, err := h.svc.GetQuizForAttempt(ctx, req.GetQuizId())
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	qProtos := make([]*quizpb.QuestionWithOptionsResponse, 0, len(questions))
+	for _, q := range questions {
+		opts := make([]*quizpb.OptionForAttemptResponse, 0, len(q.Options))
+		for _, o := range q.Options {
+			opts = append(opts, &quizpb.OptionForAttemptResponse{Id: o.ID, Text: o.Text, IsCorrect: o.IsCorrect})
+		}
+		qProtos = append(qProtos, &quizpb.QuestionWithOptionsResponse{
+			Id: q.ID, Text: q.Text, Position: int32(q.Position), Options: opts,
+		})
+	}
+	return &quizpb.QuizForAttemptResponse{
+		Id:               quiz.ID,
+		CourseId:         quiz.CourseID,
+		Title:            quiz.Title,
+		TimeLimitMinutes: quiz.TimeLimitMinutes,
+		MaxAttempts:      quiz.MaxAttempts,
+		Deadline:         formatDeadline(quiz.Deadline),
+		Questions:        qProtos,
+	}, nil
+}
+
 func (h *QuizHandler) StartAttempt(ctx context.Context, req *quizpb.StartAttemptRequest) (*quizpb.AttemptResponse, error) {
 	if req.GetQuizId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "quiz_id is required")
@@ -122,14 +155,42 @@ func (h *QuizHandler) GetAttemptResult(ctx context.Context, req *quizpb.GetAttem
 	return resultToProto(attempt, grades), nil
 }
 
+func (h *QuizHandler) UpdateQuizSettings(ctx context.Context, req *quizpb.UpdateQuizSettingsRequest) (*quizpb.QuizResponse, error) {
+	if req.GetQuizId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "quiz_id is required")
+	}
+	callerRole := middleware.RoleFromContext(ctx)
+	deadline := parseDeadline(req.GetDeadline())
+	q, err := h.svc.UpdateQuizSettings(ctx, callerRole, req.GetQuizId(), req.GetTimeLimitMinutes(), req.GetMaxAttempts(), deadline)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return quizToProto(q), nil
+}
+
+func (h *QuizHandler) GetStudentAttempts(ctx context.Context, req *quizpb.GetStudentAttemptsRequest) (*quizpb.StudentAttemptsResponse, error) {
+	if req.GetQuizId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "quiz_id is required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	count, err := h.svc.GetStudentAttempts(ctx, callerID, req.GetQuizId())
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return &quizpb.StudentAttemptsResponse{AttemptsUsed: int32(count)}, nil
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 func quizToProto(q *model.Quiz) *quizpb.QuizResponse {
 	return &quizpb.QuizResponse{
-		Id:        q.ID,
-		CourseId:  q.CourseID,
-		Title:     q.Title,
-		CreatedAt: q.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		Id:               q.ID,
+		CourseId:         q.CourseID,
+		Title:            q.Title,
+		TimeLimitMinutes: q.TimeLimitMinutes,
+		MaxAttempts:      q.MaxAttempts,
+		Deadline:         formatDeadline(q.Deadline),
+		CreatedAt:        q.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
 
@@ -172,6 +233,24 @@ func resultToProto(a *model.QuizAttempt, grades []*service.GradeItem) *quizpb.At
 	}
 }
 
+func parseDeadline(s string) *time.Time {
+	if s == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return nil
+	}
+	return &t
+}
+
+func formatDeadline(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
+}
+
 func mapErr(err error) error {
 	switch {
 	case errors.Is(err, service.ErrForbidden), errors.Is(err, service.ErrNotTutorAdmin):
@@ -180,6 +259,10 @@ func mapErr(err error) error {
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, service.ErrAlreadyDone):
 		return status.Error(codes.AlreadyExists, err.Error())
+	case errors.Is(err, service.ErrDeadlinePassed):
+		return status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, service.ErrNoAttemptsRemaining):
+		return status.Error(codes.ResourceExhausted, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	default:

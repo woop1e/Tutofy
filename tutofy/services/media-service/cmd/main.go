@@ -41,6 +41,7 @@ func main() {
 	// Connect to S3 / MinIO.
 	s3Client, err := storage.NewClient(ctx, storage.Config{
 		Endpoint:        cfg.S3Endpoint,
+		PublicEndpoint:  cfg.S3PublicEndpoint,
 		AccessKeyID:     cfg.S3AccessKeyID,
 		SecretAccessKey: cfg.S3SecretAccessKey,
 		Bucket:          cfg.S3Bucket,
@@ -66,6 +67,20 @@ func main() {
 		log.Fatalf("failed to connect to enrollment-service: %v", err)
 	}
 	defer enrollmentConn.Close()
+
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS media_files (
+			id          TEXT        PRIMARY KEY,
+			course_id   TEXT        NOT NULL,
+			uploader_id TEXT        NOT NULL,
+			file_name   TEXT        NOT NULL DEFAULT '',
+			s3_key      TEXT        NOT NULL DEFAULT '',
+			file_type   INT         NOT NULL DEFAULT 0,
+			created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
 
 	// Wire up layers.
 	repo := repository.NewPostgresRepo(db)

@@ -11,7 +11,15 @@ import (
 	"notification-service/proto/notificationpb"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/metadata"
 )
+
+// detachedCtx returns a background context that carries the incoming auth metadata
+// from ctx but is not tied to the request lifetime.
+func detachedCtx(ctx context.Context) context.Context {
+	md, _ := metadata.FromIncomingContext(ctx)
+	return metadata.NewOutgoingContext(context.Background(), md)
+}
 
 var ErrForbidden = errors.New("forbidden")
 
@@ -45,7 +53,8 @@ func (s *messageService) SendMessage(ctx context.Context, senderID, receiverID, 
 
 	// Notify receiver of new message.
 	if s.notificationClient != nil {
-		go s.notificationClient.NotifyUser(ctx, &notificationpb.NotifyUserRequest{
+		notifCtx := detachedCtx(ctx)
+		go s.notificationClient.NotifyUser(notifCtx, &notificationpb.NotifyUserRequest{
 			UserId:  receiverID,
 			Type:    4, // NOTIFICATION_TYPE_NEW_MESSAGE
 			Message: fmt.Sprintf("New message from %s", senderID),
@@ -62,4 +71,5 @@ func (s *messageService) GetConversation(ctx context.Context, callerID, otherUse
 func (s *messageService) GetUserConversations(ctx context.Context, callerID string, limit, offset int32) ([]*model.ConversationItem, error) {
 	return s.repo.GetUserConversations(ctx, callerID, limit, offset)
 }
+
 

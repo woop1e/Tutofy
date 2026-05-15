@@ -8,12 +8,12 @@ import (
 )
 
 type Config struct {
-	DBURL                 string
-	Port                  string
-	AuthServiceAddr       string
-	AssignmentServiceAddr string
-	EnrollmentServiceAddr string
-	NATSAddr              string
+	DBURL                   string
+	Port                    string
+	AuthServiceAddr         string
+	AssignmentServiceAddr   string
+	EnrollmentServiceAddr   string
+	NotificationServiceAddr string
 }
 
 func Load() *Config {
@@ -46,17 +46,17 @@ func Load() *Config {
 		enrollmentAddr = "localhost:50054"
 	}
 
-	natsAddr := os.Getenv("NATS_ADDR")
-	if natsAddr == "" {
-		natsAddr = "nats://localhost:4222"
+	notificationAddr := os.Getenv("NOTIFICATION_SERVICE_ADDR")
+	if notificationAddr == "" {
+		notificationAddr = "localhost:50057"
 	}
 
 	return &Config{
-		DBURL:                 dbURL,
-		Port:                  port,
-		AuthServiceAddr:       authAddr,
-		AssignmentServiceAddr: assignmentAddr,
-		EnrollmentServiceAddr: enrollmentAddr,
-		NATSAddr:              natsAddr,
+		DBURL:                   dbURL,
+		Port:                    port,
+		AuthServiceAddr:         authAddr,
+		AssignmentServiceAddr:   assignmentAddr,
+		EnrollmentServiceAddr:   enrollmentAddr,
+		NotificationServiceAddr: notificationAddr,
 	}
 }

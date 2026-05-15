@@ -17,6 +17,7 @@ type Lesson struct {
 	ID              string
 	CourseID        string
 	TutorID         string
+	StudentID       string // set for individual (non-course) lessons
 	Title           string
 	ScheduledAt     time.Time
 	DurationMinutes int32

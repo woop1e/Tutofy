@@ -59,6 +59,26 @@ func main() {
 	defer authConn.Close()
 	authClient := authpb.NewAuthServiceClient(authConn)
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS lesson_events (
+			lesson_id  TEXT     NOT NULL,
+			student_id TEXT     NOT NULL,
+			course_id  TEXT     NOT NULL,
+			status     SMALLINT NOT NULL,
+			PRIMARY KEY (lesson_id, student_id)
+		);
+		CREATE TABLE IF NOT EXISTS progress (
+			student_id        TEXT    NOT NULL,
+			course_id         TEXT    NOT NULL,
+			completed_lessons INTEGER NOT NULL DEFAULT 0,
+			cancelled_lessons INTEGER NOT NULL DEFAULT 0,
+			planned_lessons   INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (student_id, course_id)
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	// Wire up layers.
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewProgressService(repo)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"lesson-service/internal/model"
 )
@@ -17,12 +18,16 @@ type LessonRepository interface {
 	GetLessonByID(ctx context.Context, id string) (*model.Lesson, error)
 	GetCourseLessons(ctx context.Context, courseID string, limit, offset int32) ([]*model.Lesson, error)
 	UpdateLessonStatus(ctx context.Context, id string, status model.LessonStatus) (*model.Lesson, error)
+	UpdateVideoLink(ctx context.Context, lessonID, videoLink string) (*model.Lesson, error)
 	DeleteLesson(ctx context.Context, id string) error
-	UpsertAttendance(ctx context.Context, lessonID, studentID string, attended bool) error
+	UpsertAttendance(ctx context.Context, lessonID, studentID, status string) error
 	GetAttendance(ctx context.Context, lessonID, callerID, callerRole string) ([]*AttendanceRow, error)
 	GetLessonsInRange(ctx context.Context, courseIDs []string, tutorID, fromDate, toDate string) ([]*model.Lesson, error)
 	AddMaterial(ctx context.Context, id, lessonID, fileID, title string) error
 	GetLessonMaterials(ctx context.Context, lessonID string) ([]*LessonMaterial, error)
+	GetStudentLessons(ctx context.Context, studentID string) ([]*model.Lesson, error)
+	GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error)
+	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
 }
 
 type postgresRepo struct {
@@ -46,13 +51,13 @@ func NewPostgresRepo(db *sql.DB) LessonRepository {
 	return &postgresRepo{db: db}
 }
 
-const lessonColumns = `id, course_id, tutor_id, title, scheduled_at, duration_minutes, video_link, status`
+const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status`
 
 func (r *postgresRepo) CreateLesson(ctx context.Context, lesson *model.Lesson) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO lessons (id, course_id, tutor_id, title, scheduled_at, duration_minutes, video_link, status)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		lesson.ID, lesson.CourseID, lesson.TutorID, lesson.Title,
+		`INSERT INTO lessons (id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		lesson.ID, lesson.CourseID, lesson.TutorID, lesson.StudentID, lesson.Title,
 		lesson.ScheduledAt, lesson.DurationMinutes, lesson.VideoLink, int32(lesson.Status),
 	)
 	return err
@@ -101,6 +106,21 @@ func (r *postgresRepo) UpdateLessonStatus(ctx context.Context, id string, status
 	return l, nil
 }
 
+func (r *postgresRepo) UpdateVideoLink(ctx context.Context, lessonID, videoLink string) (*model.Lesson, error) {
+	row := r.db.QueryRowContext(ctx,
+		`UPDATE lessons SET video_link = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING `+lessonColumns,
+		videoLink, lessonID,
+	)
+	l, err := scanLesson(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return l, nil
+}
+
 func (r *postgresRepo) DeleteLesson(ctx context.Context, id string) error {
 	res, err := r.db.ExecContext(ctx, `UPDATE lessons SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
@@ -126,7 +146,7 @@ func scanLesson(s scanner) (*model.Lesson, error) {
 	l := &model.Lesson{}
 	var status int32
 	err := s.Scan(
-		&l.ID, &l.CourseID, &l.TutorID, &l.Title,
+		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status,
 	)
 	if err != nil {
@@ -143,7 +163,7 @@ func scanLessonRow(rows *sql.Rows) (*model.Lesson, error) {
 	l := &model.Lesson{}
 	var status int32
 	err := rows.Scan(
-		&l.ID, &l.CourseID, &l.TutorID, &l.Title,
+		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status,
 	)
 	if err != nil {
@@ -153,12 +173,13 @@ func scanLessonRow(rows *sql.Rows) (*model.Lesson, error) {
 	return l, nil
 }
 
-func (r *postgresRepo) UpsertAttendance(ctx context.Context, lessonID, studentID string, attended bool) error {
+func (r *postgresRepo) UpsertAttendance(ctx context.Context, lessonID, studentID, status string) error {
+	attended := status == "present"
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO lesson_attendance (lesson_id, student_id, attended)
-		 VALUES ($1, $2, $3)
-		 ON CONFLICT (lesson_id, student_id) DO UPDATE SET attended = EXCLUDED.attended`,
-		lessonID, studentID, attended,
+		`INSERT INTO lesson_attendance (lesson_id, student_id, attended, status)
+		 VALUES ($1, $2, $3, $4)
+		 ON CONFLICT (lesson_id, student_id) DO UPDATE SET attended = EXCLUDED.attended, status = EXCLUDED.status`,
+		lessonID, studentID, attended, status,
 	)
 	return err
 }
@@ -246,10 +267,84 @@ func (r *postgresRepo) GetLessonMaterials(ctx context.Context, lessonID string) 
 	return result, rows.Err()
 }
 
+// GetStudentLessons returns individual (non-course) lessons booked by the given student.
+func (r *postgresRepo) GetStudentLessons(ctx context.Context, studentID string) ([]*model.Lesson, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT `+lessonColumns+`
+		 FROM lessons
+		 WHERE student_id = $1 AND course_id = '' AND deleted_at IS NULL
+		 ORDER BY scheduled_at ASC`,
+		studentID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var lessons []*model.Lesson
+	for rows.Next() {
+		l, err := scanLessonRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		lessons = append(lessons, l)
+	}
+	return lessons, rows.Err()
+}
+
 type AttendanceRow struct {
 	LessonID  string
 	StudentID string
 	Attended  bool
+	Status    string
+}
+
+// GetTutorIndividualLessons returns all individual (non-course) lessons for a tutor.
+func (r *postgresRepo) GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT `+lessonColumns+` FROM lessons
+		 WHERE tutor_id = $1 AND course_id = '' AND deleted_at IS NULL
+		 ORDER BY scheduled_at DESC`,
+		tutorID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var lessons []*model.Lesson
+	for rows.Next() {
+		l, err := scanLessonRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		lessons = append(lessons, l)
+	}
+	return lessons, rows.Err()
+}
+
+// GetTutorBookedSlots returns the scheduled_at times of all upcoming, non-cancelled
+// individual (non-course) lessons for a given tutor. Used by the public marketplace
+// profile page to hide already-booked hour-slots from new students.
+func (r *postgresRepo) GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT scheduled_at FROM lessons
+		 WHERE tutor_id = $1 AND course_id = '' AND deleted_at IS NULL AND status != $2
+		 AND scheduled_at > NOW()
+		 ORDER BY scheduled_at ASC`,
+		tutorID, int32(model.LessonStatusCancelled),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var slots []time.Time
+	for rows.Next() {
+		var t time.Time
+		if err := rows.Scan(&t); err != nil {
+			return nil, err
+		}
+		slots = append(slots, t)
+	}
+	return slots, rows.Err()
 }
 
 func (r *postgresRepo) GetAttendance(ctx context.Context, lessonID, callerID, callerRole string) ([]*AttendanceRow, error) {
@@ -258,13 +353,13 @@ func (r *postgresRepo) GetAttendance(ctx context.Context, lessonID, callerID, ca
 	if callerRole == "student" {
 		// Student sees only their own record
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT lesson_id, student_id, attended FROM lesson_attendance WHERE lesson_id = $1 AND student_id = $2`,
+			`SELECT lesson_id, student_id, attended, COALESCE(status,'absent') FROM lesson_attendance WHERE lesson_id = $1 AND student_id = $2`,
 			lessonID, callerID,
 		)
 	} else {
 		// Tutor/admin sees all
 		rows, err = r.db.QueryContext(ctx,
-			`SELECT lesson_id, student_id, attended FROM lesson_attendance WHERE lesson_id = $1`,
+			`SELECT lesson_id, student_id, attended, COALESCE(status,'absent') FROM lesson_attendance WHERE lesson_id = $1`,
 			lessonID,
 		)
 	}
@@ -275,7 +370,7 @@ func (r *postgresRepo) GetAttendance(ctx context.Context, lessonID, callerID, ca
 	var result []*AttendanceRow
 	for rows.Next() {
 		a := &AttendanceRow{}
-		if err := rows.Scan(&a.LessonID, &a.StudentID, &a.Attended); err != nil {
+		if err := rows.Scan(&a.LessonID, &a.StudentID, &a.Attended, &a.Status); err != nil {
 			return nil, err
 		}
 		result = append(result, a)

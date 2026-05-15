@@ -23,14 +23,16 @@ type AttendanceRecord struct {
 	LessonId  string `protobuf:"bytes,1,opt,name=lesson_id,json=lessonId,proto3" json:"lesson_id,omitempty"`
 	StudentId string `protobuf:"bytes,2,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
 	Attended  bool   `protobuf:"varint,3,opt,name=attended,proto3" json:"attended,omitempty"`
+	Status    string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"` // "present"|"absent"|"excused"
 }
 
-func (x *AttendanceRecord) Reset()            { *x = AttendanceRecord{} }
-func (x *AttendanceRecord) String() string     { return x.LessonId }
-func (x *AttendanceRecord) ProtoMessage()     {}
+func (x *AttendanceRecord) Reset()               { *x = AttendanceRecord{} }
+func (x *AttendanceRecord) String() string        { return x.LessonId }
+func (x *AttendanceRecord) ProtoMessage()        {}
 func (x *AttendanceRecord) GetLessonId() string  { return x.LessonId }
 func (x *AttendanceRecord) GetStudentId() string { return x.StudentId }
 func (x *AttendanceRecord) GetAttended() bool    { return x.Attended }
+func (x *AttendanceRecord) GetStatus() string    { return x.Status }
 
 type AttendanceList struct {
 	state         protoimpl.MessageState

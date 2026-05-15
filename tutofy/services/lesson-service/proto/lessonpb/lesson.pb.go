@@ -86,6 +86,7 @@ type Lesson struct {
 	DurationMinutes int32                  `protobuf:"varint,6,opt,name=duration_minutes,json=durationMinutes,proto3" json:"duration_minutes,omitempty"`
 	VideoLink       string                 `protobuf:"bytes,7,opt,name=video_link,json=videoLink,proto3" json:"video_link,omitempty"`
 	Status          LessonStatus           `protobuf:"varint,8,opt,name=status,proto3,enum=lesson.LessonStatus" json:"status,omitempty"`
+	StudentId       string                 `protobuf:"bytes,9,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
 }
 
 func (x *Lesson) Reset() {
@@ -165,6 +166,13 @@ func (x *Lesson) GetDurationMinutes() int32 {
 func (x *Lesson) GetVideoLink() string {
 	if x != nil {
 		return x.VideoLink
+	}
+	return ""
+}
+
+func (x *Lesson) GetStudentId() string {
+	if x != nil {
+		return x.StudentId
 	}
 	return ""
 }

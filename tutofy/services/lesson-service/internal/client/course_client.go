@@ -24,7 +24,7 @@ func NewCourseClient(grpc coursepb.CourseServiceClient) CourseClient {
 }
 
 func (c *courseClient) CourseExists(ctx context.Context, courseID string) error {
-	_, err := c.grpc.GetCourse(ctx, &coursepb.GetCourseRequest{CourseId: courseID})
+	_, err := c.grpc.GetCourse(outCtx(ctx), &coursepb.GetCourseRequest{CourseId: courseID})
 	if err != nil {
 		st, _ := status.FromError(err)
 		if st.Code() == codes.NotFound {

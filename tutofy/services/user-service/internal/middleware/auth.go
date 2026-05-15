@@ -11,6 +11,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// publicMethods are callable without a valid JWT token.
+var publicMethods = map[string]bool{
+	"/user.UserService/SearchTutors":    true,
+	"/user.UserService/GetTutorProfile": true,
+}
+
 func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -18,6 +24,10 @@ func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterc
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
+		if publicMethods[info.FullMethod] {
+			return handler(ctx, req)
+		}
+
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			return nil, status.Error(codes.Unauthenticated, "missing metadata")

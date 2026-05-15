@@ -15,9 +15,9 @@ import (
 	"grading-service/internal/repository"
 	"grading-service/internal/service"
 	"grading-service/proto/gradingpb"
+	"notification-service/proto/notificationpb"
 
 	_ "github.com/lib/pq"
-	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -52,21 +52,32 @@ func main() {
 	}
 	defer enrollmentConn.Close()
 
-	nc, err := nats.Connect(cfg.NATSAddr)
+	notificationConn, err := grpc.NewClient(cfg.NotificationServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Printf("warn: NATS unavailable at %s — notifications disabled: %v", cfg.NATSAddr, err)
-		nc = nil
+		log.Fatalf("notification-service dial: %v", err)
 	}
-	if nc != nil {
-		defer nc.Close()
-	}
+	defer notificationConn.Close()
 
-	authClient       := authpb.NewAuthServiceClient(authConn)
-	assignmentClient := assignmentpb.NewAssignmentServiceClient(assignmentConn)
-	enrollmentClient := enrollmentpb.NewEnrollmentServiceClient(enrollmentConn)
+	authClient         := authpb.NewAuthServiceClient(authConn)
+	assignmentClient   := assignmentpb.NewAssignmentServiceClient(assignmentConn)
+	enrollmentClient   := enrollmentpb.NewEnrollmentServiceClient(enrollmentConn)
+	notificationClient := notificationpb.NewNotificationServiceClient(notificationConn)
+
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS grades (
+			id            TEXT    PRIMARY KEY,
+			assignment_id TEXT    NOT NULL,
+			student_id    TEXT    NOT NULL,
+			grade         REAL    NOT NULL DEFAULT 0,
+			feedback      TEXT    NOT NULL DEFAULT '',
+			UNIQUE (assignment_id, student_id)
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
 
 	repo := repository.NewPostgresRepo(db)
-	svc  := service.NewGradingService(repo, assignmentClient, enrollmentClient, nc)
+	svc  := service.NewGradingService(repo, assignmentClient, enrollmentClient, notificationClient)
 	h    := handler.NewGradingHandler(svc)
 
 	grpcServer := grpc.NewServer(

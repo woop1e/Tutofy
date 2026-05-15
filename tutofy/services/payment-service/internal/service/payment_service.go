@@ -21,7 +21,7 @@ type PaymentService interface {
 	CreatePayment(ctx context.Context, callerID, courseID string, amount float64) (*model.Payment, error)
 	GetPayment(ctx context.Context, callerID, callerRole, paymentID string) (*model.Payment, error)
 	GetUserPayments(ctx context.Context, callerID, callerRole, userID string, limit, offset int32) ([]*model.Payment, error)
-	CompletePayment(ctx context.Context, callerRole, paymentID string) (*model.Payment, error)
+	CompletePayment(ctx context.Context, callerID, callerRole, paymentID string) (*model.Payment, error)
 	FailPayment(ctx context.Context, callerRole, paymentID string) (*model.Payment, error)
 	CheckCoursePayment(ctx context.Context, userID, courseID string) (bool, error)
 }
@@ -67,13 +67,13 @@ func (s *paymentService) GetUserPayments(ctx context.Context, callerID, callerRo
 	return s.repo.GetByUserID(ctx, userID, limit, offset)
 }
 
-func (s *paymentService) CompletePayment(ctx context.Context, callerRole, paymentID string) (*model.Payment, error) {
-	if callerRole != "admin" {
-		return nil, ErrForbidden
-	}
+func (s *paymentService) CompletePayment(ctx context.Context, callerID, callerRole, paymentID string) (*model.Payment, error) {
 	p, err := s.repo.GetByID(ctx, paymentID)
 	if err != nil {
 		return nil, err
+	}
+	if callerRole != "admin" && p.UserID != callerID {
+		return nil, ErrForbidden
 	}
 	if p.Status != model.StatusPending {
 		return nil, ErrInvalidTransition

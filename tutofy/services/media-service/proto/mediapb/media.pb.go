@@ -26,6 +26,7 @@ const (
 	FileType_FILE_TYPE_UNSPECIFIED     FileType = 0
 	FileType_FILE_TYPE_ASSIGNMENT      FileType = 1 // uploaded by student
 	FileType_FILE_TYPE_COURSE_MATERIAL FileType = 2 // uploaded by tutor
+	FileType_FILE_TYPE_USER_DOCUMENT   FileType = 3 // certificates, profile files
 )
 
 // Enum value maps for FileType.
@@ -34,11 +35,13 @@ var (
 		0: "FILE_TYPE_UNSPECIFIED",
 		1: "FILE_TYPE_ASSIGNMENT",
 		2: "FILE_TYPE_COURSE_MATERIAL",
+		3: "FILE_TYPE_USER_DOCUMENT",
 	}
 	FileType_value = map[string]int32{
 		"FILE_TYPE_UNSPECIFIED":     0,
 		"FILE_TYPE_ASSIGNMENT":      1,
 		"FILE_TYPE_COURSE_MATERIAL": 2,
+		"FILE_TYPE_USER_DOCUMENT":   3,
 	}
 )
 

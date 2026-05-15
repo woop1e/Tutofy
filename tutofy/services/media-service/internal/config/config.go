@@ -15,7 +15,8 @@ type Config struct {
 	EnrollmentSvcAddr string
 
 	// S3 / MinIO settings
-	S3Endpoint        string // leave empty for real AWS S3
+	S3Endpoint        string // internal endpoint, e.g. http://minio:9000
+	S3PublicEndpoint  string // browser-reachable endpoint, e.g. http://localhost:9000
 	S3AccessKeyID     string
 	S3SecretAccessKey string
 	S3Bucket          string
@@ -62,7 +63,8 @@ func Load() *Config {
 		Port:              port,
 		AuthServiceAddr:   authAddr,
 		EnrollmentSvcAddr: enrollmentAddr,
-		S3Endpoint:        os.Getenv("S3_ENDPOINT"), // e.g. http://localhost:9000 for MinIO
+		S3Endpoint:        os.Getenv("S3_ENDPOINT"),        // e.g. http://minio:9000
+		S3PublicEndpoint:  os.Getenv("S3_PUBLIC_ENDPOINT"), // e.g. http://localhost:9000
 		S3AccessKeyID:     os.Getenv("S3_ACCESS_KEY_ID"),
 		S3SecretAccessKey: os.Getenv("S3_SECRET_ACCESS_KEY"),
 		S3Bucket:          s3Bucket,

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"enrollment-service/proto/enrollmentpb"
+	"google.golang.org/grpc/metadata"
 )
 
 // EnrollmentClient checks whether a user is enrolled in a course.
@@ -21,14 +22,16 @@ func NewEnrollmentClient(grpc enrollmentpb.EnrollmentServiceClient) EnrollmentCl
 }
 
 func (c *enrollmentClient) IsEnrolled(ctx context.Context, userID, courseID string) (bool, error) {
-	resp, err := c.grpc.GetCourseEnrollments(ctx, &enrollmentpb.CourseRequest{
-		CourseId: courseID,
+	md, _ := metadata.FromIncomingContext(ctx)
+	outCtx := metadata.NewOutgoingContext(ctx, md)
+	resp, err := c.grpc.GetUserEnrollments(outCtx, &enrollmentpb.UserRequest{
+		UserId: userID,
 	})
 	if err != nil {
 		return false, err
 	}
 	for _, e := range resp.GetEnrollments() {
-		if e.GetUserId() == userID {
+		if e.GetCourseId() == courseID {
 			return true, nil
 		}
 	}

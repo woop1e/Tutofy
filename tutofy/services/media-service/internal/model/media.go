@@ -9,6 +9,7 @@ const (
 	FileTypeUnspecified    FileType = 0
 	FileTypeAssignment     FileType = 1
 	FileTypeCourseMaterial FileType = 2
+	FileTypeUserDocument   FileType = 3 // certificates, profile files — any authenticated user
 )
 
 // MediaFile holds metadata about an uploaded file

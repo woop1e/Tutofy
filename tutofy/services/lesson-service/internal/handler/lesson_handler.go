@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"time"
 
 	"lesson-service/internal/middleware"
 	"lesson-service/internal/model"
@@ -11,6 +12,7 @@ import (
 	"lesson-service/proto/lessonpb"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -34,8 +36,21 @@ func (h *LessonHandler) CreateLesson(ctx context.Context, req *lessonpb.CreateLe
 		return nil, status.Error(codes.InvalidArgument, "duration_minutes must be greater than 0")
 	case req.GetScheduledAt() == nil || req.GetScheduledAt().AsTime().IsZero():
 		return nil, status.Error(codes.InvalidArgument, "scheduled_at is required")
-	case req.GetCourseId() == "":
-		return nil, status.Error(codes.InvalidArgument, "course_id is required")
+	}
+
+	// Individual 1-on-1 booking: course_id is empty, tutor_id passed via metadata.
+	if req.GetCourseId() == "" {
+		md, _ := metadata.FromIncomingContext(ctx)
+		tutorIDs := md.Get("x-tutor-id")
+		if len(tutorIDs) == 0 || tutorIDs[0] == "" {
+			return nil, status.Error(codes.InvalidArgument, "course_id is required (or x-tutor-id for individual booking)")
+		}
+		studentID := middleware.UserIDFromContext(ctx)
+		lesson, err := h.svc.BookIndividualLesson(ctx, tutorIDs[0], studentID, req.GetTitle(), req.GetScheduledAt().AsTime(), req.GetDurationMinutes())
+		if err != nil {
+			return nil, mapError(err)
+		}
+		return toProto(lesson), nil
 	}
 
 	callerID := middleware.UserIDFromContext(ctx)
@@ -116,6 +131,7 @@ func toProto(l *model.Lesson) *lessonpb.Lesson {
 		Id:              l.ID,
 		CourseId:        l.CourseID,
 		TutorId:         l.TutorID,
+		StudentId:       l.StudentID,
 		Title:           l.Title,
 		ScheduledAt:     timestamppb.New(l.ScheduledAt),
 		DurationMinutes: l.DurationMinutes,
@@ -163,16 +179,33 @@ func mapError(err error) error {
 	}
 }
 
+func (h *LessonHandler) SetVideoLink(ctx context.Context, req *lessonpb.SetVideoLinkRequest) (*lessonpb.Lesson, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	lesson, err := h.svc.SetVideoLink(ctx, callerID, callerRole, req.GetLessonId(), req.GetVideoLink())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return toProto(lesson), nil
+}
+
 func (h *LessonHandler) MarkAttendance(ctx context.Context, req *lessonpb.MarkAttendanceRequest) (*lessonpb.Empty, error) {
 	if req.GetLessonId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
 	}
-	if len(req.GetStudentIds()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "student_ids must not be empty")
+	if len(req.GetRecords()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "records must not be empty")
 	}
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
-	if err := h.svc.MarkAttendance(ctx, callerID, callerRole, req.GetLessonId(), req.GetStudentIds(), req.GetAttended()); err != nil {
+	entries := make([]service.AttendanceEntry, len(req.GetRecords()))
+	for i, r := range req.GetRecords() {
+		entries[i] = service.AttendanceEntry{StudentID: r.GetStudentId(), Status: r.GetStatus()}
+	}
+	if err := h.svc.MarkAttendance(ctx, callerID, callerRole, req.GetLessonId(), entries); err != nil {
 		return nil, mapError(err)
 	}
 	return &lessonpb.Empty{}, nil
@@ -220,6 +253,53 @@ func (h *LessonHandler) GetLessonMaterials(ctx context.Context, req *lessonpb.Ge
 	return &lessonpb.MaterialsList{Materials: list}, nil
 }
 
+func (h *LessonHandler) GetStudentLessons(ctx context.Context, req *lessonpb.GetStudentLessonsRequest) (*lessonpb.CourseLessonsList, error) {
+	studentID := req.GetStudentId()
+	if studentID == "" {
+		studentID = middleware.UserIDFromContext(ctx)
+	}
+	lessons, err := h.svc.GetStudentLessons(ctx, studentID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	list := make([]*lessonpb.Lesson, 0, len(lessons))
+	for _, l := range lessons {
+		list = append(list, toProto(l))
+	}
+	return &lessonpb.CourseLessonsList{Lessons: list}, nil
+}
+
+func (h *LessonHandler) GetTutorIndividualLessons(ctx context.Context, _ *lessonpb.Empty) (*lessonpb.CourseLessonsList, error) {
+	tutorID := middleware.UserIDFromContext(ctx)
+	if tutorID == "" {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+	lessons, err := h.svc.GetTutorIndividualLessons(ctx, tutorID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	list := make([]*lessonpb.Lesson, 0, len(lessons))
+	for _, l := range lessons {
+		list = append(list, toProto(l))
+	}
+	return &lessonpb.CourseLessonsList{Lessons: list}, nil
+}
+
+func (h *LessonHandler) GetTutorBookedSlots(ctx context.Context, req *lessonpb.GetTutorBookedSlotsRequest) (*lessonpb.TutorBookedSlotsResponse, error) {
+	if req.GetTutorId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tutor_id is required")
+	}
+	slots, err := h.svc.GetTutorBookedSlots(ctx, req.GetTutorId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	result := make([]string, len(slots))
+	for i, t := range slots {
+		result[i] = t.UTC().Format(time.RFC3339)
+	}
+	return &lessonpb.TutorBookedSlotsResponse{ScheduledAts: result}, nil
+}
+
 func (h *LessonHandler) GetAttendance(ctx context.Context, req *lessonpb.GetAttendanceRequest) (*lessonpb.AttendanceList, error) {
 	if req.GetLessonId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
@@ -235,6 +315,7 @@ func (h *LessonHandler) GetAttendance(ctx context.Context, req *lessonpb.GetAtte
 			LessonId:  r.LessonID,
 			StudentId: r.StudentID,
 			Attended:  r.Attended,
+			Status:    r.Status,
 		})
 	}
 	return &lessonpb.AttendanceList{Records: records}, nil

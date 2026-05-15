@@ -51,6 +51,19 @@ func main() {
 	}
 	defer authConn.Close()
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS notifications (
+			id         TEXT        PRIMARY KEY,
+			user_id    TEXT        NOT NULL,
+			type       INT         NOT NULL DEFAULT 0,
+			message    TEXT        NOT NULL DEFAULT '',
+			is_read    BOOLEAN     NOT NULL DEFAULT FALSE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	// Wire up layers.
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewNotificationService(repo)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	_ "github.com/lib/pq"
 	"auth-service/proto/authpb"
@@ -20,6 +21,19 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+const schema = `
+CREATE TABLE IF NOT EXISTS submissions (
+    id            TEXT PRIMARY KEY,
+    assignment_id TEXT NOT NULL,
+    student_id    TEXT NOT NULL,
+    content       TEXT NOT NULL DEFAULT '',
+    file_id       TEXT NOT NULL DEFAULT '',
+    status        TEXT NOT NULL DEFAULT 'submitted',
+    submitted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (assignment_id, student_id)
+);
+`
+
 func main() {
 	cfg := config.Load()
 
@@ -28,8 +42,21 @@ func main() {
 		log.Fatalf("db open: %v", err)
 	}
 	defer db.Close()
-	if err := db.Ping(); err != nil {
-		log.Fatalf("db ping: %v", err)
+
+	var pingErr error
+	for i := 1; i <= 15; i++ {
+		if pingErr = db.Ping(); pingErr == nil {
+			break
+		}
+		log.Printf("db ping attempt %d/15: %v — retrying in %ds", i, pingErr, i*2)
+		time.Sleep(time.Duration(i*2) * time.Second)
+	}
+	if pingErr != nil {
+		log.Fatalf("db unreachable: %v", pingErr)
+	}
+
+	if _, err := db.Exec(schema); err != nil {
+		log.Fatalf("migrate: %v", err)
 	}
 
 	authConn, err := grpc.NewClient(cfg.AuthServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))

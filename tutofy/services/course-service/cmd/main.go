@@ -53,6 +53,34 @@ func main() {
 		defer rdb.Close()
 	}
 
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS courses (
+			id                  TEXT PRIMARY KEY,
+			title               TEXT NOT NULL,
+			description         TEXT NOT NULL DEFAULT '',
+			tutor_id            TEXT NOT NULL,
+			price               DOUBLE PRECISION NOT NULL DEFAULT 0,
+			course_type         TEXT NOT NULL DEFAULT 'group',
+			max_students        INT NOT NULL DEFAULT 5,
+			enrollment_deadline TIMESTAMPTZ,
+			is_published        BOOLEAN NOT NULL DEFAULT FALSE,
+			created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			deleted_at          TIMESTAMPTZ
+		);
+		CREATE TABLE IF NOT EXISTS tags (
+			id   TEXT PRIMARY KEY,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE IF NOT EXISTS course_tags (
+			course_id TEXT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+			tag_id    TEXT NOT NULL REFERENCES tags(id)    ON DELETE CASCADE,
+			PRIMARY KEY (course_id, tag_id)
+		);
+	`); err != nil {
+		log.Fatalf("schema migration: %v", err)
+	}
+
 	repo := repository.NewPostgresRepo(db)
 	svc := service.NewCourseService(repo, rdb)
 	h := handler.NewCourseHandler(svc)
