@@ -2,6 +2,7 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /app
 # Copy all service directories (gateway imports their proto packages)
 COPY services/auth-service/ ./services/auth-service/
+COPY services/review-service/ ./services/review-service/
 COPY services/user-service/ ./services/user-service/
 COPY services/course-service/ ./services/course-service/
 COPY services/enrollment-service/ ./services/enrollment-service/
