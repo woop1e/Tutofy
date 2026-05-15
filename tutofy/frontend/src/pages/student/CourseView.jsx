@@ -1,0 +1,634 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import StudentSidebar from '../../components/layout/StudentSidebar';
+import { lessonsAPI } from '../../api/lessons';
+import { assignmentsAPI } from '../../api/assignments';
+import { coursesAPI } from '../../api/courses';
+import { submissionsAPI } from '../../api/submissions';
+import { mediaAPI } from '../../api/media';
+import { quizzesAPI } from '../../api/quizzes';
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+function parseDate(val) {
+  if (!val) return null;
+  if (typeof val === 'object' && val.seconds != null) return new Date(Number(val.seconds) * 1000);
+  const s = String(val).replace(' ', 'T');
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDate(val) {
+  const d = parseDate(val);
+  if (!d) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDuration(mins) {
+  if (!mins) return null;
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function getMonday(d) {
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const m = new Date(d);
+  m.setDate(m.getDate() + diff);
+  m.setHours(0, 0, 0, 0);
+  return m;
+}
+
+function groupIntoWeeks(items) {
+  const withDate = items.filter(i => i._date);
+  const noDate   = items.filter(i => !i._date);
+  const result   = [];
+
+  if (noDate.length) result.push({ label: 'General', dateRange: '', items: noDate });
+  if (!withDate.length) return result;
+
+  const weekStart = getMonday(withDate[0]._date);
+  const MS_WEEK   = 7 * 24 * 3600 * 1000;
+  const weekMap   = new Map();
+
+  withDate.forEach(item => {
+    const key = Math.max(0, Math.floor((item._date - weekStart) / MS_WEEK));
+    if (!weekMap.has(key)) weekMap.set(key, []);
+    weekMap.get(key).push(item);
+  });
+
+  let n = 1;
+  [...weekMap.keys()].sort((a, b) => a - b).forEach(key => {
+    const ws  = new Date(weekStart.getTime() + key * MS_WEEK);
+    const we  = new Date(ws.getTime() + 6 * 24 * 3600 * 1000);
+    const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    result.push({ label: `Week ${n++}`, dateRange: `${fmt(ws)} – ${fmt(we)}`, items: weekMap.get(key) });
+  });
+  return result;
+}
+
+// ── icons ─────────────────────────────────────────────────────────────────────
+
+const VideoIcon = ({ color = '#4c6eff' }) => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke={color} strokeWidth="1.5">
+    <path d="M3 6a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/>
+    <path d="M15 9l4-2v6l-4-2" stroke={color} strokeWidth="1.5"/>
+  </svg>
+);
+
+const DocIcon = ({ color = '#ffa61a' }) => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke={color} strokeWidth="1.5">
+    <path d="M5 2h8l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+    <path d="M13 2v4h4M7 9h6M7 12h6M7 15h4" strokeLinecap="round"/>
+  </svg>
+);
+
+const ChevronDown = ({ open }) => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"
+    className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+    <path d="M4 6l4 4 4-4"/>
+  </svg>
+);
+
+const QuizIcon = ({ color = '#935bf5' }) => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke={color} strokeWidth="1.5">
+    <path d="M10 18a8 8 0 100-16 8 8 0 000 16z"/>
+    <path d="M7.5 8a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5" strokeLinecap="round"/>
+    <circle cx="10" cy="14" r="0.5" fill={color}/>
+  </svg>
+);
+
+const CheckCircle = () => (
+  <div className="w-5 h-5 rounded-full bg-[#22be70] flex items-center justify-center flex-shrink-0">
+    <svg viewBox="0 0 10 10" fill="none" className="w-3 h-3">
+      <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  </div>
+);
+
+// ── component ─────────────────────────────────────────────────────────────────
+
+const CourseView = () => {
+  const { isAuthenticated, role, user } = useAuth();
+  const navigate = useNavigate();
+  const { id: courseId } = useParams();
+
+  const [course,      setCourse]      = useState(null);
+  const [lessons,     setLessons]     = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [quizzes,     setQuizzes]     = useState([]);
+  const [loading,     setLoading]     = useState(true);
+
+  const [expandedWeeks,  setExpandedWeeks]  = useState(new Set([0]));
+  const [expandedItem,   setExpandedItem]   = useState(null);
+
+  const [answers,        setAnswers]        = useState({});
+  const [files,          setFiles]          = useState({});
+  const [submitting,     setSubmitting]     = useState(null);
+  const [submitted,      setSubmitted]      = useState({});
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [submitError,    setSubmitError]    = useState({});
+
+  useEffect(() => {
+    if (!isAuthenticated || role !== 'student') navigate('/login', { replace: true });
+  }, [isAuthenticated, role, navigate]);
+
+  useEffect(() => {
+    if (!courseId) return;
+    setLoading(true);
+    Promise.all([
+      coursesAPI.getCourseById(courseId).catch(() => null),
+      lessonsAPI.getCourseLessons(courseId).catch(() => ({})),
+      assignmentsAPI.getCourseAssignments(courseId).catch(() => ({})),
+      quizzesAPI.getCourseQuizzes(courseId).catch(() => ({})),
+    ]).then(([cRes, lRes, aRes, qRes]) => {
+      setCourse(cRes?.course || cRes);
+      const ls = lRes?.lessons || lRes || [];
+      setLessons(Array.isArray(ls) ? ls : []);
+      const as = aRes?.assignments || aRes || [];
+      setAssignments(Array.isArray(as) ? as : []);
+      const qs = qRes?.quizzes || qRes || [];
+      setQuizzes(Array.isArray(qs) ? qs : []);
+    }).finally(() => setLoading(false));
+  }, [courseId]);
+
+  const allItems = useMemo(() => {
+    const items = [
+      ...lessons.map(l => ({ ...l, _type: 'lesson',     _date: parseDate(l.scheduled_at) })),
+      ...assignments.map(a => ({ ...a, _type: 'assignment', _date: parseDate(a.due_date) })),
+      ...quizzes.map(q => ({ ...q, _type: 'quiz', _date: null })),
+    ];
+    return items.sort((a, b) => {
+      if (!a._date && !b._date) return 0;
+      if (!a._date) return 1;
+      if (!b._date) return -1;
+      return a._date - b._date;
+    });
+  }, [lessons, assignments, quizzes]);
+
+  const weeks = useMemo(() => groupIntoWeeks(allItems), [allItems]);
+
+  const firstLesson = useMemo(() => lessons
+    .slice().sort((a, b) => {
+      const da = parseDate(a.scheduled_at) || new Date(0);
+      const db = parseDate(b.scheduled_at) || new Date(0);
+      return da - db;
+    })[0], [lessons]);
+
+  const toggleWeek = idx =>
+    setExpandedWeeks(prev => { const s = new Set(prev); s.has(idx) ? s.delete(idx) : s.add(idx); return s; });
+
+  const toggleItem = id =>
+    setExpandedItem(prev => prev === id ? null : id);
+
+  const handleSubmit = async (assignmentId) => {
+    const content = (answers[assignmentId] || '').trim();
+    const file    = files[assignmentId];
+    if (!content && !file) return;
+    setSubmitting(assignmentId);
+    setSubmitError(p => ({ ...p, [assignmentId]: null }));
+    try {
+      let fileId = '';
+      if (file) {
+        setUploadProgress(p => ({ ...p, [assignmentId]: true }));
+        try {
+          const up = await mediaAPI.uploadFile(file, courseId, 1);
+          fileId = up?.file_id || up?.fileId || '';
+        } catch (uploadErr) {
+          console.warn('File upload failed, submitting without attachment:', uploadErr);
+          setSubmitError(p => ({ ...p, [assignmentId]: 'File upload failed — submitting text answer only.' }));
+        }
+        setUploadProgress(p => ({ ...p, [assignmentId]: false }));
+      }
+      if (!content && !fileId) {
+        setSubmitError(p => ({ ...p, [assignmentId]: 'File upload failed and no text answer provided.' }));
+        return;
+      }
+      await submissionsAPI.submitAssignment({ assignment_id: assignmentId, content, file_id: fileId });
+      setSubmitted(p => ({ ...p, [assignmentId]: true }));
+      setExpandedItem(null);
+    } catch (e) {
+      console.error(e);
+      setSubmitError(p => ({ ...p, [assignmentId]: 'Submission failed. Please try again.' }));
+      setUploadProgress(p => ({ ...p, [assignmentId]: false }));
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const removeFile  = id => setFiles(p => ({ ...p, [id]: null }));
+  const pickFile    = (id, e) => { const f = e.target.files?.[0]; if (f) setFiles(p => ({ ...p, [id]: f })); };
+
+  const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S';
+
+  // nav between items inside the flat list
+  const itemIndex = id => allItems.findIndex(i => i.id === id);
+  const prevItem  = id => { const i = itemIndex(id); return i > 0 ? allItems[i - 1] : null; };
+  const nextItem  = id => { const i = itemIndex(id); return i < allItems.length - 1 ? allItems[i + 1] : null; };
+
+  const goToItem = item => {
+    if (!item) return;
+    if (item._type === 'lesson')     navigate(`/student/courses/${courseId}/lessons/${item.id}`);
+    else { setExpandedItem(item.id); }
+  };
+
+  if (loading) return (
+    <div className="flex min-h-screen bg-[#f3f4f7]">
+      <StudentSidebar />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+      <StudentSidebar />
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top bar */}
+        <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-6 justify-between flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link to="/student/courses" className="text-[#8a90a1] text-[13px] hover:text-[#181b26] transition-colors flex-shrink-0 flex items-center gap-1">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+                <path d="M10 13L5 8l5-5"/>
+              </svg>
+              My Courses
+            </Link>
+            <div className="w-px h-4 bg-[#e8eaef] flex-shrink-0" />
+            <p className="text-[#181b26] text-[14px] font-semibold truncate">{course?.title || 'Course'}</p>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-[rgba(76,110,255,0.12)] flex items-center justify-center">
+              <span className="text-[#4c6eff] text-[12px] font-bold">{initials}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main scroll area */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+
+          {/* Course header card */}
+          <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
+                <h1 className="text-[#181b26] text-[22px] font-bold leading-tight mb-1">
+                  {course?.title || 'Course'}
+                </h1>
+                {course?.description && (
+                  <p className="text-[#8a90a1] text-[13px] leading-relaxed max-w-xl">{course.description}</p>
+                )}
+                <div className="flex flex-wrap items-center gap-4 mt-4 text-[12px] text-[#8a90a1]">
+                  <span className="flex items-center gap-1.5">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
+                      <path d="M15 10l-4.553 2.276A1 1 0 019 11.277V4.723a1 1 0 011.447-.894L15 6M2 4a2 2 0 012-2h5a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4z"/>
+                    </svg>
+                    {lessons.length} lesson{lessons.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
+                      <path d="M4 2h6l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                      <path d="M9 2v3h3M6 8h4M6 11h4" strokeLinecap="round"/>
+                    </svg>
+                    {assignments.length} assignment{assignments.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
+                      <rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 2v2M11 2v2M2 7h12"/>
+                    </svg>
+                    {weeks.length} week{weeks.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+              {firstLesson && (
+                <Link
+                  to={`/student/courses/${courseId}/lessons/${firstLesson.id}`}
+                  className="flex-shrink-0 bg-[#4c6eff] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:bg-[#3a56e0] transition-colors flex items-center gap-2"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+                    <polygon points="4,2 13,8 4,14" fill="white" stroke="none"/>
+                  </svg>
+                  Start Learning
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Empty state */}
+          {weeks.length === 0 && !loading && (
+            <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-14 text-center">
+              <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-3">
+                <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-8 h-8"><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 3v14M4 7h4M4 11h4" strokeLinecap="round"/></svg>
+              </div>
+              <p className="text-[#181b26] text-[16px] font-bold mb-1">No content yet</p>
+              <p className="text-[#8a90a1] text-[13px]">The tutor hasn't added any lessons or assignments to this course yet.</p>
+            </div>
+          )}
+
+          {/* Week sections */}
+          {weeks.map((week, wi) => {
+            const open = expandedWeeks.has(wi);
+            return (
+              <div key={wi} className="bg-white rounded-[16px] border border-[#f0f0f5] overflow-hidden">
+
+                {/* Week header */}
+                <button
+                  onClick={() => toggleWeek(wi)}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8f9fc] transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-[8px] bg-[rgba(76,110,255,0.08)] flex items-center justify-center flex-shrink-0">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="#4c6eff" strokeWidth="1.4" className="w-4 h-4">
+                        <rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 2v2M11 2v2M2 7h12"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[#181b26] text-[14px] font-bold leading-tight">{week.label}</p>
+                      {week.dateRange && <p className="text-[#8a90a1] text-[11px] mt-0.5">{week.dateRange}</p>}
+                    </div>
+                    <span className="text-[11px] text-[#8a90a1] bg-[#f0f0f5] px-2 py-0.5 rounded-full">
+                      {week.items.length} item{week.items.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <ChevronDown open={open} />
+                </button>
+
+                {/* Items list */}
+                {open && (
+                  <div className="border-t border-[#f0f0f5]">
+                    {week.items.map((item, ii) => {
+                      const isLesson     = item._type === 'lesson';
+                      const isAssignment = item._type === 'assignment';
+                      const isQuiz       = item._type === 'quiz';
+                      const isExpanded   = expandedItem === item.id;
+                      const isDone       = submitted[item.id];
+                      const isLast       = ii === week.items.length - 1;
+
+                      const iconBg = isLesson ? 'bg-[rgba(76,110,255,0.08)]'
+                                   : isQuiz   ? 'bg-[rgba(147,91,245,0.08)]'
+                                   :            'bg-[rgba(255,166,26,0.1)]';
+
+                      return (
+                        <div key={item.id} className={!isLast ? 'border-b border-[#f0f0f5]' : ''}>
+
+                          {/* Item row */}
+                          <div
+                            onClick={() => {
+                              if (isLesson) navigate(`/student/courses/${courseId}/lessons/${item.id}`);
+                              else if (isQuiz) navigate(`/student/courses/${courseId}/quizzes/${item.id}`);
+                              else toggleItem(item.id);
+                            }}
+                            className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f8f9fc] cursor-pointer transition-colors group"
+                          >
+                            {/* Type icon */}
+                            <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+                              {isLesson ? <VideoIcon /> : isQuiz ? <QuizIcon /> : <DocIcon />}
+                            </div>
+
+                            {/* Title + meta */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-[#181b26] text-[13px] font-semibold truncate group-hover:text-[#4c6eff] transition-colors">
+                                  {item.title}
+                                </p>
+                                {isQuiz && (
+                                  <span className="text-[10px] bg-[rgba(147,91,245,0.1)] text-[#935bf5] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">Quiz</span>
+                                )}
+                                {isDone && (
+                                  <span className="text-[10px] bg-[#edfbf4] text-[#22be70] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
+                                    Submitted
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[11px] text-[#8a90a1]">
+                                {isLesson && (
+                                  <>
+                                    <span className="flex items-center gap-1">
+                                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-3 h-3">
+                                        <circle cx="6" cy="6" r="5"/><path d="M6 4v2.5l1.5 1.5"/>
+                                      </svg>
+                                      {formatDuration(item.duration_minutes) || 'Video'}
+                                    </span>
+                                    {item._date && (
+                                      <span className="flex items-center gap-1">
+                                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-3 h-3">
+                                          <rect x="1" y="2" width="10" height="9" rx="1.5"/>
+                                          <path d="M4 1.5v1M8 1.5v1M1 5h10"/>
+                                        </svg>
+                                        {formatDate(item.scheduled_at)}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                {isAssignment && (
+                                  <>
+                                    {item._date && (
+                                      <span className="flex items-center gap-1">
+                                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-3 h-3">
+                                          <rect x="1" y="2" width="10" height="9" rx="1.5"/>
+                                          <path d="M4 1.5v1M8 1.5v1M1 5h10"/>
+                                        </svg>
+                                        Due {formatDate(item.due_date)}
+                                      </span>
+                                    )}
+                                    {item.max_score != null && (
+                                      <span>{item.max_score} pts</span>
+                                    )}
+                                  </>
+                                )}
+                                {isQuiz && <span>Tap to start</span>}
+                              </div>
+                            </div>
+
+                            {/* Right indicator */}
+                            <div className="flex-shrink-0 flex items-center gap-2">
+                              {isDone && <CheckCircle />}
+                              {(isLesson || isQuiz) && (
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                                  isQuiz
+                                    ? 'bg-[rgba(147,91,245,0.08)] group-hover:bg-[rgba(147,91,245,0.16)]'
+                                    : 'bg-[rgba(76,110,255,0.08)] group-hover:bg-[rgba(76,110,255,0.16)]'
+                                }`}>
+                                  <svg viewBox="0 0 12 12" fill="none" stroke={isQuiz ? '#935bf5' : '#4c6eff'} strokeWidth="1.5" className="w-3 h-3">
+                                    <path d="M4 2l4 4-4 4"/>
+                                  </svg>
+                                </div>
+                              )}
+                              {isAssignment && (
+                                <ChevronDown open={isExpanded} />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Expanded assignment panel */}
+                          {isAssignment && isExpanded && (
+                            <div className="bg-[#fafbff] border-t border-[#f0f0f5] px-5 py-5">
+
+                              {/* Assignment detail */}
+                              <div className="mb-4">
+                                {item.description && (
+                                  <p className="text-[#4c5162] text-[13px] leading-relaxed mb-3">{item.description}</p>
+                                )}
+                                <div className="flex flex-wrap gap-2">
+                                  {item._date && (
+                                    <span className="text-[11px] bg-[rgba(255,166,26,0.12)] text-[#ffa61a] font-semibold px-2.5 py-1 rounded-full">
+                                      Due {formatDate(item.due_date)}
+                                    </span>
+                                  )}
+                                  {item.max_score != null && (
+                                    <span className="text-[11px] bg-[rgba(76,110,255,0.08)] text-[#4c6eff] font-semibold px-2.5 py-1 rounded-full">
+                                      {item.max_score} pts
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {submitted[item.id] ? (
+                                <div className="bg-[#edfbf4] rounded-[12px] p-4 flex items-start gap-3">
+                                  <CheckCircle />
+                                  <div>
+                                    <p className="text-[#22be70] text-[13px] font-semibold">Assignment submitted!</p>
+                                    <p className="text-[#22be70]/70 text-[12px] mt-0.5">Sent to the tutor for review.</p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  {/* Text answer */}
+                                  <div>
+                                    <p className="text-[#181b26] text-[12px] font-semibold mb-1.5">Your Answer</p>
+                                    <textarea
+                                      value={answers[item.id] || ''}
+                                      onChange={e => setAnswers(p => ({ ...p, [item.id]: e.target.value }))}
+                                      placeholder="Type your answer here... (optional if uploading a file)"
+                                      rows={3}
+                                      className="w-full border border-[#e8eaef] rounded-[10px] px-3 py-2.5 text-[13px] text-[#181b26] placeholder-[#b0b5c4] resize-none focus:outline-none focus:border-[#4c6eff] focus:ring-2 focus:ring-[rgba(76,110,255,0.08)] transition-all bg-white"
+                                    />
+                                  </div>
+
+                                  {/* File upload */}
+                                  <div>
+                                    <p className="text-[#181b26] text-[12px] font-semibold mb-1.5">
+                                      Attach File <span className="text-[#8a90a1] font-normal">(optional)</span>
+                                    </p>
+                                    {files[item.id] ? (
+                                      <div className="flex items-center gap-3 bg-white border border-[#e8eaef] rounded-[10px] px-3 py-2.5">
+                                        <div className="w-8 h-8 rounded-[8px] bg-[rgba(76,110,255,0.08)] flex items-center justify-center flex-shrink-0">
+                                          <svg viewBox="0 0 16 16" fill="none" stroke="#4c6eff" strokeWidth="1.4" className="w-4 h-4">
+                                            <path d="M4 2h6l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                                            <path d="M10 2v3h3"/>
+                                          </svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[#181b26] text-[12px] font-medium truncate">{files[item.id].name}</p>
+                                          <p className="text-[#8a90a1] text-[11px]">
+                                            {files[item.id].size < 1048576
+                                              ? `${(files[item.id].size / 1024).toFixed(1)} KB`
+                                              : `${(files[item.id].size / 1048576).toFixed(1)} MB`}
+                                          </p>
+                                        </div>
+                                        <button onClick={() => removeFile(item.id)}
+                                          className="w-6 h-6 rounded-full bg-[#f0f0f5] hover:bg-[#fee2e2] flex items-center justify-center flex-shrink-0 transition-colors">
+                                          <svg viewBox="0 0 10 10" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-3 h-3">
+                                            <path d="M2 2l6 6M8 2L2 8"/>
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <label className="flex items-center gap-3 border-2 border-dashed border-[#e8eaef] rounded-[10px] px-4 py-3 cursor-pointer hover:border-[#4c6eff] hover:bg-[rgba(76,110,255,0.02)] transition-colors group">
+                                        <div className="w-8 h-8 rounded-full bg-[rgba(76,110,255,0.08)] group-hover:bg-[rgba(76,110,255,0.14)] flex items-center justify-center flex-shrink-0 transition-colors">
+                                          <svg viewBox="0 0 16 16" fill="none" stroke="#4c6eff" strokeWidth="1.4" className="w-4 h-4">
+                                            <path d="M8 10V5M6 7l2-2 2 2"/>
+                                            <path d="M3 12a3 3 0 010-6 4 4 0 017.9-1A3 3 0 0113 12H3z"/>
+                                          </svg>
+                                        </div>
+                                        <div>
+                                          <p className="text-[#181b26] text-[12px] font-semibold">Click to upload a file</p>
+                                          <p className="text-[#8a90a1] text-[11px]">PDF, DOCX, TXT, PNG, JPG, ZIP — up to 32 MB</p>
+                                        </div>
+                                        <input type="file" className="hidden"
+                                          accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.zip"
+                                          onChange={e => pickFile(item.id, e)} />
+                                      </label>
+                                    )}
+                                  </div>
+
+                                  {submitError[item.id] && (
+                                    <p className="text-[#f24545] text-[12px] flex items-center gap-1.5">
+                                      <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
+                                        <circle cx="7" cy="7" r="6.5" fill="#fee2e2" stroke="#f24545" strokeWidth="0.8"/>
+                                        <path d="M7 4v3.5M7 9v.5" stroke="#f24545" strokeWidth="1.2" strokeLinecap="round"/>
+                                      </svg>
+                                      {submitError[item.id]}
+                                    </p>
+                                  )}
+
+                                  {/* Submit + nav */}
+                                  <div className="flex items-center gap-2 pt-1">
+                                    {/* Prev item */}
+                                    {prevItem(item.id) && (
+                                      <button
+                                        onClick={() => goToItem(prevItem(item.id))}
+                                        title="Previous item"
+                                        className="w-9 h-9 rounded-[8px] border border-[#e8eaef] flex items-center justify-center text-[#8a90a1] hover:border-[#4c6eff] hover:text-[#4c6eff] transition-colors flex-shrink-0"
+                                      >
+                                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+                                          <path d="M10 13L5 8l5-5"/>
+                                        </svg>
+                                      </button>
+                                    )}
+
+                                    <button
+                                      onClick={() => handleSubmit(item.id)}
+                                      disabled={submitting === item.id || (!(answers[item.id] || '').trim() && !files[item.id])}
+                                      className="flex-1 bg-[#4c6eff] text-white text-[13px] font-semibold py-2.5 rounded-[10px] hover:bg-[#3a56e0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      {submitting === item.id ? (
+                                        <>
+                                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                          {uploadProgress[item.id] ? 'Uploading...' : 'Submitting...'}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+                                            <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3M8 2v8M5 5l3-3 3 3"/>
+                                          </svg>
+                                          Submit Assignment
+                                        </>
+                                      )}
+                                    </button>
+
+                                    {/* Next item */}
+                                    {nextItem(item.id) && (
+                                      <button
+                                        onClick={() => goToItem(nextItem(item.id))}
+                                        title="Next item"
+                                        className="w-9 h-9 rounded-[8px] border border-[#e8eaef] flex items-center justify-center text-[#8a90a1] hover:border-[#4c6eff] hover:text-[#4c6eff] transition-colors flex-shrink-0"
+                                      >
+                                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+                                          <path d="M6 3l5 5-5 5"/>
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CourseView;

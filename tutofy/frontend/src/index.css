@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary: #4c6eff;
+  --color-primary-light: rgba(76, 110, 255, 0.08);
+  --color-purple: #935bf5;
+  --color-teal: #00beb7;
+  --color-orange: #ff8032;
+  --color-yellow: #ffce22;
+  --color-dark: #181b26;
+  --color-body: #4c5162;
+  --color-muted: #8a90a1;
+  --color-light-muted: #d2d4d9;
+  --color-bg: #f8f9fc;
+  --color-surface: #fafafc;
+  --color-border: #f3f4f7;
+
+  /* Border radius */
+  --radius-btn: 10px;
+  --radius-card: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-cta: 0 10px 15px -3px rgba(76, 110, 255, 0.35), 0 4px 6px -2px rgba(76, 110, 255, 0.35);
+
+  /* Font */
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f8f9fc;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+/* Moodle-style note/label rendering */
+.prose-note h1 { font-size: 1.25rem; font-weight: 700; color: #181b26; margin: 0.75rem 0 0.4rem; }
+.prose-note h2 { font-size: 1.05rem; font-weight: 700; color: #181b26; margin: 0.65rem 0 0.35rem; }
+.prose-note h3 { font-size: 0.9rem;  font-weight: 600; color: #181b26; margin: 0.5rem 0 0.25rem; }
+.prose-note p  { margin: 0.25rem 0; }
+.prose-note ul, .prose-note ol { padding-left: 1.25rem; margin: 0.35rem 0; }
+.prose-note li { margin: 0.15rem 0; }
+.prose-note strong { font-weight: 600; color: #181b26; }
+.prose-note em    { font-style: italic; }
+.prose-note code  { background: #f0f0f5; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; font-family: 'Fira Mono', monospace; }
+.prose-note br    { display: block; content: ''; margin: 0.2rem 0; }
