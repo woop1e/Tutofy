@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+﻿﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { notificationsAPI } from '../../api/notifications';
 
 const TYPE_ICON = {
@@ -14,7 +14,7 @@ const TYPE_ICON = {
     </svg>
   ),
   3: ( // NEW_LESSON
-    <svg viewBox="0 0 16 16" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0">
+    <svg viewBox="0 0 16 16" fill="none" stroke="#0d9488" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0">
       <rect x="2" y="2" width="12" height="12" rx="1.5"/>
       <path d="M5 6h6M5 9h4" strokeLinecap="round"/>
     </svg>
@@ -46,7 +46,7 @@ const DEFAULT_ICON = (
 
 function fmtTime(ts) {
   if (!ts) return '';
-  // protobuf Timestamp serialized by encoding/json → {seconds, nanos}
+  // protobuf Timestamp serialized by encoding/json ←' {seconds, nanos}
   let d;
   if (typeof ts === 'string') {
     d = new Date(ts);
@@ -111,7 +111,7 @@ const NotificationBell = ({ dark = false }) => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
-  const bellColor = dark ? 'text-white/70 hover:text-white' : 'text-[#8a90a1] hover:text-[#4c6eff]';
+  const bellColor = dark ? 'text-white/70 hover:text-white' : 'text-[#6b6f7d] hover:text-[#0d9488]';
   const badgeBg = dark ? 'bg-red-500' : 'bg-red-500';
 
   return (
@@ -134,11 +134,11 @@ const NotificationBell = ({ dark = false }) => {
       {open && (
         <div className="absolute left-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-[#f0f0f5] z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#f0f0f5]">
-            <span className="text-[13px] font-semibold text-[#181b26]">Notifications</span>
+            <span className="text-[13px] font-semibold text-[#0c0d12]">Notifications</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="text-[11px] text-[#4c6eff] hover:underline"
+                className="text-[11px] text-[#0d9488] hover:underline"
               >
                 Mark all read
               </button>
@@ -147,7 +147,7 @@ const NotificationBell = ({ dark = false }) => {
 
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-[13px] text-[#8a90a1]">
+              <div className="px-4 py-8 text-center text-[13px] text-[#6b6f7d]">
                 No notifications yet
               </div>
             ) : (
@@ -156,20 +156,20 @@ const NotificationBell = ({ dark = false }) => {
                   key={n.id}
                   onClick={() => markRead(n)}
                   className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-[#f8f9fc] transition-colors border-b border-[#f8f9fc] last:border-0 ${
-                    !n.is_read ? 'bg-[rgba(76,110,255,0.03)]' : ''
+                    !n.is_read ? 'bg-[rgba(13,148,136,0.03)]' : ''
                   }`}
                 >
                   <div className="mt-0.5">
                     {TYPE_ICON[n.type] || DEFAULT_ICON}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[12px] leading-snug ${n.is_read ? 'text-[#4c5162]' : 'text-[#181b26] font-medium'}`}>
+                    <p className={`text-[12px] leading-snug ${n.is_read ? 'text-[#383a44]' : 'text-[#0c0d12] font-medium'}`}>
                       {n.message}
                     </p>
                     <p className="text-[11px] text-[#b0b5c4] mt-0.5">{fmtTime(n.created_at)}</p>
                   </div>
                   {!n.is_read && (
-                    <div className="w-2 h-2 rounded-full bg-[#4c6eff] flex-shrink-0 mt-1.5" />
+                    <div className="w-2 h-2 rounded-full bg-[#0d9488] flex-shrink-0 mt-1.5" />
                   )}
                 </button>
               ))

@@ -19,6 +19,11 @@ type CreateCourseRequest struct {
 	CourseType          string  `protobuf:"bytes,4,opt,name=course_type,json=courseType,proto3" json:"course_type,omitempty"`
 	MaxStudents         int32   `protobuf:"varint,5,opt,name=max_students,json=maxStudents,proto3" json:"max_students,omitempty"`
 	EnrollmentDeadline  string  `protobuf:"bytes,6,opt,name=enrollment_deadline,json=enrollmentDeadline,proto3" json:"enrollment_deadline,omitempty"`
+	TotalLessons        int32   `protobuf:"varint,7,opt,name=total_lessons,json=totalLessons,proto3" json:"total_lessons,omitempty"`
+	TotalWeeks          int32   `protobuf:"varint,8,opt,name=total_weeks,json=totalWeeks,proto3" json:"total_weeks,omitempty"`
+	ReleaseType         string  `protobuf:"bytes,9,opt,name=release_type,json=releaseType,proto3" json:"release_type,omitempty"`
+	StartDate           string  `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate             string  `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
 }
 
 func (x *CreateCourseRequest) Reset()         { *x = CreateCourseRequest{} }
@@ -30,6 +35,11 @@ func (x *CreateCourseRequest) GetPrice() float64             { return x.Price }
 func (x *CreateCourseRequest) GetCourseType() string         { return x.CourseType }
 func (x *CreateCourseRequest) GetMaxStudents() int32         { return x.MaxStudents }
 func (x *CreateCourseRequest) GetEnrollmentDeadline() string { return x.EnrollmentDeadline }
+func (x *CreateCourseRequest) GetTotalLessons() int32        { return x.TotalLessons }
+func (x *CreateCourseRequest) GetTotalWeeks() int32          { return x.TotalWeeks }
+func (x *CreateCourseRequest) GetReleaseType() string        { return x.ReleaseType }
+func (x *CreateCourseRequest) GetStartDate() string          { return x.StartDate }
+func (x *CreateCourseRequest) GetEndDate() string            { return x.EndDate }
 
 type GetCourseRequest struct {
 	state         protoimpl.MessageState
@@ -53,6 +63,11 @@ type UpdateCourseRequest struct {
 	CourseType         string `protobuf:"bytes,4,opt,name=course_type,json=courseType,proto3" json:"course_type,omitempty"`
 	MaxStudents        int32  `protobuf:"varint,5,opt,name=max_students,json=maxStudents,proto3" json:"max_students,omitempty"`
 	EnrollmentDeadline string `protobuf:"bytes,6,opt,name=enrollment_deadline,json=enrollmentDeadline,proto3" json:"enrollment_deadline,omitempty"`
+	TotalLessons       int32  `protobuf:"varint,7,opt,name=total_lessons,json=totalLessons,proto3" json:"total_lessons,omitempty"`
+	TotalWeeks         int32  `protobuf:"varint,8,opt,name=total_weeks,json=totalWeeks,proto3" json:"total_weeks,omitempty"`
+	ReleaseType        string `protobuf:"bytes,9,opt,name=release_type,json=releaseType,proto3" json:"release_type,omitempty"`
+	StartDate          string `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate            string `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
 }
 
 func (x *UpdateCourseRequest) Reset()         { *x = UpdateCourseRequest{} }
@@ -64,6 +79,11 @@ func (x *UpdateCourseRequest) GetDescription() string        { return x.Descript
 func (x *UpdateCourseRequest) GetCourseType() string         { return x.CourseType }
 func (x *UpdateCourseRequest) GetMaxStudents() int32         { return x.MaxStudents }
 func (x *UpdateCourseRequest) GetEnrollmentDeadline() string { return x.EnrollmentDeadline }
+func (x *UpdateCourseRequest) GetTotalLessons() int32        { return x.TotalLessons }
+func (x *UpdateCourseRequest) GetTotalWeeks() int32          { return x.TotalWeeks }
+func (x *UpdateCourseRequest) GetReleaseType() string        { return x.ReleaseType }
+func (x *UpdateCourseRequest) GetStartDate() string          { return x.StartDate }
+func (x *UpdateCourseRequest) GetEndDate() string            { return x.EndDate }
 
 type PublishCourseRequest struct {
 	state         protoimpl.MessageState
@@ -102,6 +122,11 @@ type CourseResponse struct {
 	MaxStudents        int32   `protobuf:"varint,7,opt,name=max_students,json=maxStudents,proto3" json:"max_students,omitempty"`
 	EnrollmentDeadline string  `protobuf:"bytes,8,opt,name=enrollment_deadline,json=enrollmentDeadline,proto3" json:"enrollment_deadline,omitempty"`
 	IsPublished        bool    `protobuf:"varint,9,opt,name=is_published,json=isPublished,proto3" json:"is_published,omitempty"`
+	TotalLessons       int32   `protobuf:"varint,10,opt,name=total_lessons,json=totalLessons,proto3" json:"total_lessons,omitempty"`
+	TotalWeeks         int32   `protobuf:"varint,11,opt,name=total_weeks,json=totalWeeks,proto3" json:"total_weeks,omitempty"`
+	ReleaseType        string  `protobuf:"bytes,12,opt,name=release_type,json=releaseType,proto3" json:"release_type,omitempty"`
+	StartDate          string  `protobuf:"bytes,13,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate            string  `protobuf:"bytes,14,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
 }
 
 func (x *CourseResponse) Reset()         { *x = CourseResponse{} }
@@ -116,6 +141,11 @@ func (x *CourseResponse) GetCourseType() string          { return x.CourseType }
 func (x *CourseResponse) GetMaxStudents() int32          { return x.MaxStudents }
 func (x *CourseResponse) GetEnrollmentDeadline() string  { return x.EnrollmentDeadline }
 func (x *CourseResponse) GetIsPublished() bool           { return x.IsPublished }
+func (x *CourseResponse) GetTotalLessons() int32         { return x.TotalLessons }
+func (x *CourseResponse) GetTotalWeeks() int32           { return x.TotalWeeks }
+func (x *CourseResponse) GetReleaseType() string         { return x.ReleaseType }
+func (x *CourseResponse) GetStartDate() string           { return x.StartDate }
+func (x *CourseResponse) GetEndDate() string             { return x.EndDate }
 
 type GetAllCoursesRequest struct {
 	state         protoimpl.MessageState

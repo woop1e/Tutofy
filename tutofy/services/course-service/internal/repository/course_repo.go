@@ -12,13 +12,14 @@ import (
 var ErrNotFound = errors.New("course not found")
 
 const cols = `id, title, description, tutor_id, price, course_type, max_students,
-              COALESCE(enrollment_deadline::TEXT, ''), is_published`
+              COALESCE(enrollment_deadline::TEXT, ''), is_published, total_lessons, total_weeks, release_type,
+              COALESCE(start_date::TEXT, ''), COALESCE(end_date::TEXT, '')`
 
 type CourseRepository interface {
 	CreateCourse(ctx context.Context, course *model.Course) error
 	GetCourseByID(ctx context.Context, id string) (*model.Course, error)
 	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
-	UpdateCourse(ctx context.Context, id, title, description, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error)
+	UpdateCourse(ctx context.Context, id, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
 	PublishCourse(ctx context.Context, id, tutorID, callerRole string) (*model.Course, error)
 	SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error)
 	DeleteCourse(ctx context.Context, id string) error
@@ -36,7 +37,9 @@ func NewPostgresRepo(db *sql.DB) CourseRepository { return &postgresRepo{db: db}
 func scanCourse(row interface{ Scan(...any) error }) (*model.Course, error) {
 	c := &model.Course{}
 	err := row.Scan(&c.ID, &c.Title, &c.Description, &c.TutorID, &c.Price,
-		&c.CourseType, &c.MaxStudents, &c.EnrollmentDeadline, &c.IsPublished)
+		&c.CourseType, &c.MaxStudents, &c.EnrollmentDeadline, &c.IsPublished,
+		&c.TotalLessons, &c.TotalWeeks, &c.ReleaseType,
+		&c.StartDate, &c.EndDate)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -49,11 +52,18 @@ func (r *postgresRepo) CreateCourse(ctx context.Context, course *model.Course) e
 	if courseType == "" {
 		courseType = "group"
 	}
+	releaseType := course.ReleaseType
+	if releaseType == "" {
+		releaseType = "static"
+	}
+	startDate := sql.NullString{String: course.StartDate, Valid: course.StartDate != ""}
+	endDate   := sql.NullString{String: course.EndDate,   Valid: course.EndDate != ""}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO courses (id, title, description, tutor_id, price, course_type, max_students, enrollment_deadline)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		`INSERT INTO courses (id, title, description, tutor_id, price, course_type, max_students, enrollment_deadline, total_lessons, total_weeks, release_type, start_date, end_date)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
 		course.ID, course.Title, course.Description, course.TutorID, course.Price,
-		courseType, course.MaxStudents, deadline,
+		courseType, course.MaxStudents, deadline, course.TotalLessons, course.TotalWeeks, releaseType,
+		startDate, endDate,
 	)
 	return err
 }
@@ -76,13 +86,17 @@ func (r *postgresRepo) GetAllCourses(ctx context.Context, limit, offset int32) (
 	return scanCourses(rows)
 }
 
-func (r *postgresRepo) UpdateCourse(ctx context.Context, id, title, description, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error) {
-	deadline := sql.NullString{String: enrollmentDeadline, Valid: enrollmentDeadline != ""}
+func (r *postgresRepo) UpdateCourse(ctx context.Context, id, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error) {
+	deadline  := sql.NullString{String: enrollmentDeadline, Valid: enrollmentDeadline != ""}
+	startNull := sql.NullString{String: startDate, Valid: startDate != ""}
+	endNull   := sql.NullString{String: endDate,   Valid: endDate != ""}
 	return scanCourse(r.db.QueryRowContext(ctx,
-		`UPDATE courses SET title=$1, description=$2, course_type=$3, max_students=$4, enrollment_deadline=$5
-		 WHERE id=$6 AND deleted_at IS NULL
+		`UPDATE courses SET title=$1, description=$2, course_type=$3, max_students=$4, enrollment_deadline=$5,
+		 total_lessons=$6, total_weeks=$7, release_type=$8, start_date=$9, end_date=$10
+		 WHERE id=$11 AND deleted_at IS NULL
 		 RETURNING `+cols,
-		title, description, courseType, maxStudents, deadline, id,
+		title, description, courseType, maxStudents, deadline, totalLessons, totalWeeks, releaseType,
+		startNull, endNull, id,
 	))
 }
 
@@ -179,7 +193,9 @@ func scanCourses(rows *sql.Rows) ([]*model.Course, error) {
 	for rows.Next() {
 		c := &model.Course{}
 		if err := rows.Scan(&c.ID, &c.Title, &c.Description, &c.TutorID, &c.Price,
-			&c.CourseType, &c.MaxStudents, &c.EnrollmentDeadline, &c.IsPublished); err != nil {
+			&c.CourseType, &c.MaxStudents, &c.EnrollmentDeadline, &c.IsPublished,
+			&c.TotalLessons, &c.TotalWeeks, &c.ReleaseType,
+			&c.StartDate, &c.EndDate); err != nil {
 			return nil, err
 		}
 		result = append(result, c)

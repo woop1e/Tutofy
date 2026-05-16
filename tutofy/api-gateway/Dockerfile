@@ -17,6 +17,7 @@ COPY services/media-service/ ./services/media-service/
 COPY services/submission-service/ ./services/submission-service/
 COPY services/quiz-service/ ./services/quiz-service/
 COPY services/review-service/ ./services/review-service/
+COPY services/certificate-service/ ./services/certificate-service/
 COPY api-gateway/ ./api-gateway/
 WORKDIR /app/api-gateway
 RUN n=0; until GONOSUMDB=* GODEBUG=http2client=0 go mod download; do n=$((n+1)); [ $n -ge 5 ] && exit 1; echo "retry $n..."; sleep 15; done

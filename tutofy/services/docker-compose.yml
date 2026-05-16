@@ -140,6 +140,7 @@ services:
       AUTH_SERVICE_ADDR: "auth-service:50051"
       COURSE_SERVICE_ADDR: "course-service:50053"
       NOTIFICATION_SERVICE_ADDR: "notification-service:50057"
+      PAYMENT_SERVICE_ADDR: "payment-service:50061"
     depends_on:
       postgres:
         condition: service_healthy
@@ -148,6 +149,8 @@ services:
       course-service:
         condition: service_started
       notification-service:
+        condition: service_started
+      payment-service:
         condition: service_started
     restart: unless-stopped
 

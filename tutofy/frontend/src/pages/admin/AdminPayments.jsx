@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
@@ -100,8 +100,8 @@ const AdminPayments = () => {
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[#181b26] text-[22px] font-bold leading-none">Payments</h1>
-            <p className="text-[#8a90a1] text-[13px] mt-1">
+            <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Payments</h1>
+            <p className="text-[#6b6f7d] text-[13px] mt-1">
               {payments.length} total · Revenue: {fmt(revenue)}
             </p>
           </div>
@@ -129,20 +129,20 @@ const AdminPayments = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by user..."
-              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#4c6eff] bg-white"
+              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#0d9488] bg-white"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-3 border border-[#d2d4d9] rounded-[8px] text-[13px] text-[#181b26] bg-white focus:outline-none focus:border-[#4c6eff]"
+            className="h-9 px-3 border border-[#d2d4d9] rounded-[8px] text-[13px] text-[#0c0d12] bg-white focus:outline-none focus:border-[#0d9488]"
           >
             <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
           </select>
-          <p className="text-[12px] text-[#8a90a1] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-[12px] text-[#6b6f7d] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
         </div>
 
         <div className="flex-1 p-8 overflow-y-auto">
@@ -155,17 +155,17 @@ const AdminPayments = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[#f0f0f5]">
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">User</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Amount</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Status</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Payment ID</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">User</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Amount</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Status</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Payment ID</th>
                     <th className="px-6 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-[#8a90a1] text-[13px]">No payments found</td>
+                      <td colSpan={5} className="text-center py-12 text-[#6b6f7d] text-[13px]">No payments found</td>
                     </tr>
                   ) : filtered.map((p) => {
                     const u = usersMap[p.user_id];
@@ -173,12 +173,12 @@ const AdminPayments = () => {
                     return (
                       <tr key={p.id} className="border-b border-[#f8f9fc] last:border-0 hover:bg-[#f8f9fc] transition-colors">
                         <td className="px-6 py-3">
-                          <p className="text-[13px] font-medium text-[#181b26]">{u?.name || p.user_id?.slice(0, 8) || '—'}</p>
-                          <p className="text-[11px] text-[#8a90a1]">{u?.email || ''}</p>
+                          <p className="text-[13px] font-medium text-[#0c0d12]">{u?.name || p.user_id?.slice(0, 8) || '-'}</p>
+                          <p className="text-[11px] text-[#6b6f7d]">{u?.email || ''}</p>
                         </td>
-                        <td className="px-6 py-3 text-[14px] font-bold text-[#181b26]">{fmt(p.amount)}</td>
+                        <td className="px-6 py-3 text-[14px] font-bold text-[#0c0d12]">{fmt(p.amount)}</td>
                         <td className="px-6 py-3">
-                          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${STATUS_STYLE[status] || 'bg-[#f0f0f5] text-[#8a90a1]'}`}>
+                          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${STATUS_STYLE[status] || 'bg-[#f0f0f5] text-[#6b6f7d]'}`}>
                             {status}
                           </span>
                         </td>

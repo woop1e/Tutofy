@@ -5,17 +5,7 @@ import { authAPI } from '../../api/auth';
 import { mediaAPI } from '../../api/media';
 import { usersAPI } from '../../api/users';
 
-function Field({ label, error, hint, children }) {
-  return (
-    <div>
-      <label className="block text-[#4c5162] text-[13px] font-semibold mb-1.5">{label}</label>
-      {children}
-      {hint && !error && <p className="text-[11px] text-[#9b9fb0] mt-1">{hint}</p>}
-      {error && <p className="text-[#f24545] text-[12px] mt-1 font-medium">{error}</p>}
-    </div>
-  );
-}
-
+/* ─── helpers ─────────────────────────────────────────── */
 function pwStrength(pw) {
   if (!pw) return 0;
   let s = 0;
@@ -25,400 +15,475 @@ function pwStrength(pw) {
   if (/[^A-Za-z0-9]/.test(pw)) s++;
   return s;
 }
-
 const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-const STRENGTH_COLOR = ['', '#f24545', '#ffb732', '#4c6eff', '#22be70'];
-const STEP_LABELS = ['Account', 'Teaching Info', 'Certificate'];
+const STRENGTH_COLOR = ['', '#ef4444', '#f59e0b', '#0d9488', '#22c55e'];
 
-const STEP_TITLES = ['Account Details', 'Teaching Info', 'Certificate', 'Welcome!'];
-const STEP_SUBS = [
-  'Create your tutor account',
-  'Tell students about your expertise',
-  'Upload your credentials (optional)',
-  '',
+/* ─── data ─────────────────────────────────────────────── */
+const SUBJECTS = [
+  { id: 'Mathematics', abbr: 'M',  label: 'Mathematics' },
+  { id: 'Python',      abbr: 'Py', label: 'Python'      },
+  { id: 'English',     abbr: 'En', label: 'English'     },
+  { id: 'Physics',     abbr: 'Ph', label: 'Physics'     },
+  { id: 'Chemistry',   abbr: 'Ch', label: 'Chemistry'   },
+  { id: 'Biology',     abbr: 'Bi', label: 'Biology'     },
+  { id: 'Geography',   abbr: 'Ge', label: 'Geography'   },
+  { id: 'AI/ML',       abbr: 'AI', label: 'AI / ML'     },
+  { id: 'Spanish',     abbr: 'Es', label: 'Spanish'     },
+  { id: 'French',      abbr: 'Fr', label: 'French'      },
+  { id: 'History',     abbr: 'Hi', label: 'History'     },
+  { id: 'Music',       abbr: 'Mu', label: 'Music'       },
+  { id: 'Economics',   abbr: 'Ec', label: 'Economics'   },
+  { id: 'Design',      abbr: 'De', label: 'Design'      },
 ];
 
-const STEP_FIELDS = {
-  0: ['name', 'email', 'password', 'confirmPassword'],
-  1: ['bio', 'subjects', 'experience', 'hourlyRate'],
-};
+const TOTAL_STEPS = 4;
 
+/* ─── component ─────────────────────────────────────────── */
 const RegisterTutor = () => {
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState({
+  const [step,     setStep]     = useState(0);
+  const [subjects, setSubjects] = useState([]);
+  const [form,     setForm]     = useState({
+    bio: '', experience: '', hourlyRate: '',
     name: '', email: '', password: '', confirmPassword: '',
-    bio: '', subjects: '', experience: '', hourlyRate: '',
     certificate: null,
   });
-  const [errors, setErrors]   = useState({});
-  const [touched, setTouched] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState('');
-  const fileRef = useRef(null);
+  const [errors,   setErrors]   = useState({});
+  const [touched,  setTouched]  = useState({});
+  const [stepErr,  setStepErr]  = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [apiErr,   setApiErr]   = useState('');
+  const [done,     setDone]     = useState(false);
+
+  const fileRef    = useRef(null);
   const { login, user } = useAuth();
+  const navigate   = useNavigate();
+
+  const toggleSubject = (id) => {
+    setSubjects(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+    setStepErr('');
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(p => ({ ...p, [name]: value }));
-    if (touched[name]) validateStep(step, { ...formData, [name]: value });
+    setForm(p => ({ ...p, [name]: value }));
+    if (touched[name]) validateFields({ ...form, [name]: value });
   };
 
-  const handleBlur = (e) => {
-    const { name } = e.target;
+  const handleBlur = (name) => {
     setTouched(p => ({ ...p, [name]: true }));
-    validateStep(step, formData);
+    validateFields(form);
   };
 
-  const handleFile = (e) => {
-    const file = e.target.files[0];
-    if (file) setFormData(p => ({ ...p, certificate: file }));
-  };
-
-  const inputCls = (field) => {
-    const hasError = touched[field] && errors[field];
-    const isOk = touched[field] && !errors[field] && formData[field];
-    return (
-      'w-full bg-[#f3f4f7] border rounded-[10px] px-4 py-3 text-[14px] text-[#181b26] ' +
-      'outline-none transition-colors placeholder:text-[#9b9fb0] ' +
-      (hasError ? 'border-[#f24545] ' : isOk ? 'border-[#22be70] ' : 'border-[#f3f4f7] ') +
-      'focus:border-[#4c6eff] focus:bg-white'
-    );
-  };
-
-  const validateStep = (s, data = formData) => {
-    const errs = {};
-    if (s === 0) {
-      if (!data.name.trim())               errs.name = 'Full name is required';
-      else if (data.name.trim().length < 2) errs.name = 'Name must be at least 2 characters';
-      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!data.email)                      errs.email = 'Email is required';
-      else if (!emailRe.test(data.email))   errs.email = 'Enter a valid email address';
-      if (!data.password)                   errs.password = 'Password is required';
-      else if (data.password.length < 8)    errs.password = 'Password must be at least 8 characters';
-      if (!data.confirmPassword)            errs.confirmPassword = 'Please confirm your password';
-      else if (data.password !== data.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+  const validateFields = (data = form) => {
+    const e = {};
+    if (step === 1) {
+      if (!data.bio.trim())                 e.bio        = 'Bio is required';
+      else if (data.bio.trim().length < 20) e.bio        = 'At least 20 characters';
+      if (!data.experience)                 e.experience = 'Years of experience is required';
+      else if (isNaN(data.experience) || Number(data.experience) < 0) e.experience = 'Enter a valid number';
+      if (!data.hourlyRate)                 e.hourlyRate = 'Hourly rate is required';
+      else if (isNaN(data.hourlyRate) || Number(data.hourlyRate) <= 0) e.hourlyRate = 'Enter a valid rate';
     }
-    if (s === 1) {
-      if (!data.bio.trim())                errs.bio = 'Bio is required';
-      else if (data.bio.trim().length < 20) errs.bio = 'Bio must be at least 20 characters';
-      if (!data.subjects.trim())           errs.subjects = 'Enter at least one subject';
-      if (!data.experience)                errs.experience = 'Years of experience is required';
-      else if (isNaN(data.experience) || Number(data.experience) < 0) errs.experience = 'Enter a valid number';
-      if (!data.hourlyRate)                errs.hourlyRate = 'Hourly rate is required';
-      else if (isNaN(data.hourlyRate) || Number(data.hourlyRate) <= 0) errs.hourlyRate = 'Enter a valid rate';
+    if (step === 2) {
+      if (!data.name.trim())               e.name            = 'Full name is required';
+      if (!data.email)                     e.email           = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) e.email = 'Enter a valid email';
+      if (!data.password)                  e.password        = 'Password is required';
+      else if (data.password.length < 8)   e.password        = 'At least 8 characters';
+      if (!data.confirmPassword)           e.confirmPassword = 'Please confirm your password';
+      else if (data.password !== data.confirmPassword) e.confirmPassword = 'Passwords do not match';
     }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const touchAllForStep = (s) => {
-    const fields = STEP_FIELDS[s];
-    if (!fields) return;
-    const t = {};
-    fields.forEach(f => (t[f] = true));
-    setTouched(p => ({ ...p, ...t }));
+  const touchAll = () => {
+    if (step === 1) setTouched({ bio: true, experience: true, hourlyRate: true });
+    if (step === 2) setTouched({ name: true, email: true, password: true, confirmPassword: true });
+  };
+
+  const canContinue = () => {
+    setStepErr('');
+    if (step === 0 && !subjects.length) { setStepErr('Pick at least one subject you teach'); return false; }
+    if (step === 1) { touchAll(); return validateFields(form); }
+    if (step === 2) { touchAll(); return validateFields(form); }
+    return true;
   };
 
   const next = async () => {
-    touchAllForStep(step);
-    if (!validateStep(step)) return;
+    if (!canContinue()) return;
 
-    if (step === 0) {
+    /* step 2 → register account + update tutor profile */
+    if (step === 2) {
       setLoading(true);
-      setApiError('');
+      setApiErr('');
       try {
-        const response = await authAPI.register({
-          name: formData.name.trim(),
-          email: formData.email,
-          password: formData.password,
-          role: 'tutor',
+        const res = await authAPI.register({
+          name:     form.name.trim(),
+          email:    form.email,
+          password: form.password,
+          role:     'tutor',
         });
-        login(response.token, formData.name.trim());
-        setStep(1);
+        login(res.token, form.name.trim());
+
+        /* update tutor profile (non-blocking if it fails) */
+        try {
+          const decoded = JSON.parse(atob(res.token.split('.')[1]));
+          const userId  = decoded.user_id || decoded.id || decoded.sub;
+          await usersAPI.updateTutorProfile(userId, {
+            bio:              form.bio.trim(),
+            subjects:         subjects,
+            experience_years: parseInt(form.experience, 10) || 0,
+            hourly_rate:      parseFloat(form.hourlyRate) || 0,
+          });
+        } catch {
+          /* profile can be updated later from dashboard */
+        }
+
+        setStep(3);
       } catch (err) {
-        setApiError(err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please try again.');
+        setApiErr(err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please try again.');
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    if (step === 1) {
-      setLoading(true);
-      setApiError('');
-      try {
-        const userId = user?.user_id || user?.id || user?.sub;
-        await usersAPI.updateTutorProfile(userId, {
-          bio: formData.bio.trim(),
-          subjects: formData.subjects.split(',').map(s => s.trim()).filter(Boolean),
-          experience_years: parseInt(formData.experience, 10) || 0,
-        });
-      } catch {
-        // non-blocking — profile can be updated later from dashboard
-      } finally {
-        setLoading(false);
+    /* step 3 → optional certificate upload then done */
+    if (step === 3) {
+      if (form.certificate) {
+        setLoading(true);
+        try {
+          await mediaAPI.uploadFile(form.certificate, null, 'user_document');
+        } catch {
+          /* certificate can be uploaded later from dashboard */
+        } finally {
+          setLoading(false);
+        }
       }
+      setDone(true);
+      return;
     }
 
     setStep(s => s + 1);
   };
 
-  const handleSubmit = async () => {
-    if (formData.certificate) {
-      setLoading(true);
-      setApiError('');
-      try {
-        await mediaAPI.uploadFile(formData.certificate, null, 'user_document');
-      } catch {
-        // non-blocking — certificate can be uploaded later from dashboard
-      } finally {
-        setLoading(false);
-      }
-    }
-    window.open('/tutor/dashboard', '_blank', 'noopener,noreferrer');
-    setStep(3);
+  const back = () => {
+    setStepErr('');
+    setApiErr('');
+    if (step === 0) navigate('/');
+    else setStep(s => s - 1);
   };
 
-  const strength = pwStrength(formData.password);
+  const strength  = pwStrength(form.password);
+  const progress  = ((step + 1) / TOTAL_STEPS) * 100;
 
-  const renderStep = () => {
-    if (step === 0) return (
-      <div className="space-y-4">
-        {apiError && (
-          <div className="bg-[#f24545]/10 border border-[#f24545]/30 text-[#f24545] rounded-[10px] px-4 py-3 text-[13px]">
-            {apiError}
-          </div>
-        )}
-        <Field label="Full Name" error={touched.name && errors.name}>
-          <input type="text" name="name" value={formData.name}
-            onChange={handleChange} onBlur={handleBlur}
-            placeholder="Jane Smith" className={inputCls('name')} />
-        </Field>
+  const headings = [
+    { title: 'What do you teach?',        sub: 'Pick your areas of expertise — students will find you by subject.'              },
+    { title: 'Your teaching profile',     sub: 'Help students understand your background and what makes you a great tutor.'     },
+    { title: 'Create your account',       sub: 'Almost there — set up your login credentials.'                                  },
+    { title: 'Your credentials',          sub: 'Upload a certificate or qualification to build student trust. This is optional.' },
+  ];
 
-        <Field label="Email address" error={touched.email && errors.email}>
-          <input type="email" name="email" value={formData.email}
-            onChange={handleChange} onBlur={handleBlur}
-            placeholder="you@example.com" className={inputCls('email')} />
-        </Field>
-
-        <Field label="Password" error={touched.password && errors.password}>
-          <input type="password" name="password" value={formData.password}
-            onChange={handleChange} onBlur={handleBlur}
-            placeholder="Min. 8 characters" className={inputCls('password')} />
-          {formData.password && (
-            <div className="mt-2">
-              <div className="flex gap-1">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="flex-1 h-1 rounded-full transition-colors duration-300"
-                    style={{ background: i <= strength ? STRENGTH_COLOR[strength] : '#e3e3ed' }} />
-                ))}
-              </div>
-              <p className="text-[11px] mt-1 font-semibold" style={{ color: STRENGTH_COLOR[strength] }}>
-                {STRENGTH_LABEL[strength]}{strength < 3 && ' — add uppercase, numbers or symbols'}
-              </p>
-            </div>
-          )}
-        </Field>
-
-        <Field label="Confirm Password" error={touched.confirmPassword && errors.confirmPassword}>
-          <input type="password" name="confirmPassword" value={formData.confirmPassword}
-            onChange={handleChange} onBlur={handleBlur}
-            placeholder="Repeat your password" className={inputCls('confirmPassword')} />
-        </Field>
-      </div>
-    );
-
-    if (step === 1) return (
-      <div className="space-y-4">
-        <Field label="About you" error={touched.bio && errors.bio}>
-          <textarea name="bio" value={formData.bio}
-            onChange={handleChange} onBlur={handleBlur}
-            placeholder="Tell students about your background and teaching style… (min. 20 characters)"
-            rows={4} className={inputCls('bio') + ' resize-none'} />
-        </Field>
-
-        <Field label="Subjects you teach" error={touched.subjects && errors.subjects}
-          hint="Separate multiple subjects with commas">
-          <input type="text" name="subjects" value={formData.subjects}
-            onChange={handleChange} onBlur={handleBlur}
-            placeholder="e.g. Math, Physics, English" className={inputCls('subjects')} />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Years of experience" error={touched.experience && errors.experience}>
-            <input type="number" name="experience" value={formData.experience}
-              onChange={handleChange} onBlur={handleBlur}
-              placeholder="e.g. 5" min="0" className={inputCls('experience')} />
-          </Field>
-          <Field label="Hourly rate ($)" error={touched.hourlyRate && errors.hourlyRate}>
-            <input type="number" name="hourlyRate" value={formData.hourlyRate}
-              onChange={handleChange} onBlur={handleBlur}
-              placeholder="e.g. 30" min="1" className={inputCls('hourlyRate')} />
-          </Field>
-        </div>
-      </div>
-    );
-
-    if (step === 2) return (
-      <div className="space-y-5">
-        <div>
-          <p className="text-[#4c5162] text-[13px] font-semibold mb-1">Teaching Certificate</p>
-          <p className="text-[#9b9fb0] text-[12px] mb-3">Upload your teaching certificate or relevant qualification</p>
-          <div
-            onClick={() => fileRef.current?.click()}
-            className="border-2 border-dashed border-[#d5d8e3] rounded-[14px] p-8 text-center cursor-pointer hover:border-[#4c6eff] hover:bg-[#f5f6ff] transition-colors"
-          >
-            {formData.certificate ? (
-              <div>
-                <p className="text-[#4c6eff] font-semibold text-[14px]">✓ {formData.certificate.name}</p>
-                <p className="text-[#9b9fb0] text-[12px] mt-1">Click to change</p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-3xl mb-2">📄</p>
-                <p className="text-[#4c5162] text-[14px] font-medium">Click to upload</p>
-                <p className="text-[#9b9fb0] text-[12px] mt-1">PDF, JPG or PNG · up to 10 MB</p>
-              </div>
-            )}
-          </div>
-          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} className="hidden" />
-        </div>
-
-        {apiError && (
-          <div className="bg-[#f24545]/10 border border-[#f24545]/30 text-[#f24545] rounded-[10px] px-4 py-3 text-[13px]">
-            {apiError}
-          </div>
-        )}
-
-        <p className="text-[#9b9fb0] text-[12px]">Certificate is optional — you can add it later from your dashboard.</p>
-      </div>
-    );
-
-    if (step === 3) return (
-      <div className="text-center py-4">
-        <div className="w-16 h-16 rounded-full bg-[#22be70]/15 flex items-center justify-center text-3xl mx-auto mb-5">
+  /* ── success screen ── */
+  if (done) return (
+    <div className="page-fade" style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <div style={{ textAlign: 'center', maxWidth: 440 }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: 32 }}>
           ✓
         </div>
-        <h3 className="text-[20px] font-bold text-[#181b26] mb-2">You're all set!</h3>
-        <p className="text-[#8a90a1] text-[14px] mb-8 leading-relaxed">
-          Your tutor account has been created. Open your LMS to start building courses and connecting with students.
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', margin: '0 0 12px' }}>
+          You're all set!
+        </h1>
+        <p style={{ fontSize: 15, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 32px' }}>
+          Your tutor account has been created. Head to your dashboard to start building courses and connecting with students.
         </p>
         <button
-          onClick={() => window.open('/tutor/dashboard', '_blank', 'noopener,noreferrer')}
-          className="w-full bg-[#4c6eff] text-white text-[15px] font-bold py-3.5 rounded-[12px] shadow-[0px_4px_16px_0px_rgba(76,110,255,0.35)] hover:opacity-90 transition-opacity"
+          onClick={() => navigate('/tutor/dashboard', { replace: true })}
+          style={{ width: '100%', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 'var(--r-md)', padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
         >
-          Open Tutor LMS →
+          Go to Dashboard →
         </button>
+      </div>
+    </div>
+  );
+
+  /* ── step content ── */
+  const renderContent = () => {
+
+    /* STEP 0 — Subjects grid */
+    if (step === 0) return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        {SUBJECTS.map(s => {
+          const sel = subjects.includes(s.id);
+          return (
+            <button key={s.id} onClick={() => toggleSubject(s.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                border: sel ? '2px solid var(--accent)' : '2px solid var(--border)',
+                background: sel ? 'var(--accent-soft)' : 'var(--surface)',
+                transition: 'all var(--t-fast)',
+              }}>
+              <span style={{
+                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700, letterSpacing: '-0.02em',
+                background: sel ? 'var(--accent)' : 'var(--surface-hover)',
+                color: sel ? '#fff' : 'var(--muted)',
+                transition: 'background var(--t-fast), color var(--t-fast)',
+              }}>{s.abbr}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: sel ? 'var(--accent)' : 'var(--text)' }}>{s.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+
+    /* STEP 1 — Teaching profile */
+    if (step === 1) return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 560, margin: '0 auto', width: '100%' }}>
+        {apiErr && (
+          <div style={{ background: 'var(--danger-soft)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', borderRadius: 10, padding: '11px 14px', fontSize: 13 }}>
+            {apiErr}
+          </div>
+        )}
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>About you</label>
+          <textarea
+            className="form-input"
+            name="bio"
+            value={form.bio}
+            placeholder="Tell students about your background and teaching style… (min. 20 characters)"
+            rows={4}
+            style={{ resize: 'none' }}
+            onChange={handleChange}
+            onBlur={() => handleBlur('bio')}
+          />
+          {touched.bio && errors.bio && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.bio}</p>}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Years of experience</label>
+            <input
+              className="form-input"
+              type="number"
+              name="experience"
+              value={form.experience}
+              placeholder="e.g. 5"
+              min="0"
+              onChange={handleChange}
+              onBlur={() => handleBlur('experience')}
+            />
+            {touched.experience && errors.experience && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.experience}</p>}
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Hourly rate (KZT)</label>
+            <input
+              className="form-input"
+              type="number"
+              name="hourlyRate"
+              value={form.hourlyRate}
+              placeholder="e.g. 5000"
+              min="1"
+              onChange={handleChange}
+              onBlur={() => handleBlur('hourlyRate')}
+            />
+            {touched.hourlyRate && errors.hourlyRate && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.hourlyRate}</p>}
+          </div>
+        </div>
+      </div>
+    );
+
+    /* STEP 2 — Account */
+    if (step === 2) return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 440, margin: '0 auto', width: '100%' }}>
+        {apiErr && (
+          <div style={{ background: 'var(--danger-soft)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', borderRadius: 10, padding: '11px 14px', fontSize: 13 }}>
+            {apiErr}
+          </div>
+        )}
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Full name</label>
+          <input
+            className="form-input"
+            name="name"
+            value={form.name}
+            placeholder="Jane Smith"
+            onChange={handleChange}
+            onBlur={() => handleBlur('name')}
+          />
+          {touched.name && errors.name && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.name}</p>}
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Email</label>
+          <input
+            className="form-input"
+            type="email"
+            name="email"
+            value={form.email}
+            placeholder="you@example.com"
+            onChange={handleChange}
+            onBlur={() => handleBlur('email')}
+          />
+          {touched.email && errors.email && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.email}</p>}
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Password</label>
+          <input
+            className="form-input"
+            type="password"
+            name="password"
+            value={form.password}
+            placeholder="At least 8 characters"
+            onChange={handleChange}
+            onBlur={() => handleBlur('password')}
+          />
+          {form.password && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                {[1,2,3,4].map(i => (
+                  <div key={i} style={{ flex: 1, height: 3, borderRadius: 99, background: i <= strength ? STRENGTH_COLOR[strength] : 'var(--border)', transition: 'background var(--t-base)' }} />
+                ))}
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: STRENGTH_COLOR[strength] || 'var(--muted)', fontWeight: 600 }}>{STRENGTH_LABEL[strength]}</p>
+            </div>
+          )}
+          {touched.password && errors.password && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.password}</p>}
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Confirm password</label>
+          <input
+            className="form-input"
+            type="password"
+            name="confirmPassword"
+            value={form.confirmPassword}
+            placeholder="Repeat your password"
+            onChange={handleChange}
+            onBlur={() => handleBlur('confirmPassword')}
+          />
+          {touched.confirmPassword && errors.confirmPassword && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.confirmPassword}</p>}
+        </div>
+      </div>
+    );
+
+    /* STEP 3 — Certificate */
+    if (step === 3) return (
+      <div style={{ maxWidth: 480, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div
+          onClick={() => fileRef.current?.click()}
+          style={{
+            border: '2px dashed var(--border)',
+            borderRadius: 16,
+            padding: '48px 32px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'border-color var(--t-base), background var(--t-base)',
+            background: form.certificate ? 'var(--accent-soft)' : 'var(--surface)',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = form.certificate ? 'var(--accent-soft)' : 'var(--surface-2)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = form.certificate ? 'var(--accent)' : 'var(--border)'; e.currentTarget.style.background = form.certificate ? 'var(--accent-soft)' : 'var(--surface)'; }}
+          {...(form.certificate ? { style: { border: '2px dashed var(--accent)', borderRadius: 16, padding: '48px 32px', textAlign: 'center', cursor: 'pointer', background: 'var(--accent-soft)' } } : {})}
+        >
+          {form.certificate ? (
+            <div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 20 }}>✓</div>
+              <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>{form.certificate.name}</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>Click to change</p>
+            </div>
+          ) : (
+            <div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width={22} height={22} style={{ color: 'var(--muted)' }}>
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>Click to upload</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>PDF, JPG or PNG · up to 10 MB</p>
+            </div>
+          )}
+        </div>
+        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => { const f = e.target.files[0]; if (f) setForm(p => ({ ...p, certificate: f })); }} style={{ display: 'none' }} />
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+          Certificate is optional — you can add it later from your dashboard.
+        </p>
       </div>
     );
   };
 
+  const { title, sub } = headings[step] || {};
+
   return (
-    <div className="min-h-screen bg-[#f3f4f7] font-sans flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-[960px] grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
+    <div className="page-fade" style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-        {/* Left panel */}
-        <div className="bg-dark rounded-[28px] text-white p-12 relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 w-52 h-52 rounded-full bg-primary/20 blur-3xl" />
-          <div className="absolute -left-10 -bottom-10 w-52 h-52 rounded-full bg-purple/20 blur-3xl" />
-          <div className="relative z-10">
-            <Link to="/" className="text-primary text-[22px] font-bold">Tutofy</Link>
-            <p className="text-white/50 text-[12px] mt-0.5 mb-10">Tutor Portal</p>
-            <h1 className="text-[32px] font-bold leading-tight mb-4">
-              Share your knowledge.<br />
-              Grow your income.
-            </h1>
-            <p className="text-white/70 text-[15px] mb-10">
-              Join thousands of tutors on Tutofy. Create courses, manage students, and build your teaching career.
-            </p>
-            <div className="space-y-4">
-              {[
-                { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 3v14M4 7h4M4 11h4" strokeLinecap="round"/></svg>, text: 'Create and publish courses' },
-                { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 4V4z"/></svg>, text: 'Message students directly' },
-                { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M3 17V9M7 17V5M11 17v-6M15 17V7" strokeLinecap="round"/></svg>, text: 'Track student progress' },
-                { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M14 3l3 3L7 16H4v-3L14 3z" strokeLinejoin="round"/></svg>, text: 'Grade assignments' },
-              ].map((item) => (
-                <div key={item.text} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white flex-shrink-0">
-                    {item.icon}
-                  </div>
-                  <p className="text-white/80 text-[14px]">{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right panel */}
-        <div className="bg-white rounded-[28px] shadow-[0px_4px_24px_0px_rgba(0,0,0,0.08)] p-8">
-
-          {/* Step indicator */}
-          {step < 3 && (
-            <div className="flex items-center gap-1 mb-6">
-              {STEP_LABELS.map((label, i) => (
-                <React.Fragment key={label}>
-                  <div className={`flex items-center gap-1.5 ${i <= step ? 'text-[#4c6eff]' : 'text-[#c5c8d6]'}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-colors ${
-                      i < step
-                        ? 'bg-[#4c6eff] border-[#4c6eff] text-white'
-                        : i === step
-                        ? 'border-[#4c6eff] text-[#4c6eff] bg-white'
-                        : 'border-[#d5d8e3] text-[#c5c8d6] bg-white'
-                    }`}>
-                      {i < step ? '✓' : i + 1}
-                    </div>
-                    <span className="text-[11px] font-medium hidden sm:block">{label}</span>
-                  </div>
-                  {i < STEP_LABELS.length - 1 && (
-                    <div className={`flex-1 h-px mx-1 transition-colors ${i < step ? 'bg-[#4c6eff]' : 'bg-[#e3e3ed]'}`} />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-
-          <h2 className="text-[#181b26] text-[22px] font-bold mb-1">{STEP_TITLES[step]}</h2>
-          {STEP_SUBS[step] && (
-            <p className="text-[#8a90a1] text-[13px] mb-6">{STEP_SUBS[step]}</p>
-          )}
-
-          {renderStep()}
-
-          {step < 3 && (
-            <div className={`mt-6 flex gap-3 ${step > 0 ? '' : ''}`}>
-              {step > 0 && (
-                <button
-                  onClick={() => setStep(s => s - 1)}
-                  className="flex-1 py-3 rounded-[12px] border border-[#e3e3ed] text-[#4c5162] text-[14px] font-semibold hover:bg-[#f3f4f7] transition-colors"
-                >
-                  ← Back
-                </button>
-              )}
-              <button
-                onClick={step === 2 ? handleSubmit : next}
-                disabled={loading}
-                className="flex-1 bg-[#4c6eff] text-white text-[15px] font-bold py-3.5 rounded-[12px] shadow-[0px_4px_16px_0px_rgba(76,110,255,0.35)] hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {loading ? 'Creating account…' : step === 2 ? 'Create Account →' : 'Next →'}
-              </button>
-            </div>
-          )}
-
-          {step === 0 && (
-            <div className="mt-6 pt-6 border-t border-[#f3f4f7] text-center space-y-2">
-              <p className="text-[#8a90a1] text-[13px]">
-                Already have an account?{' '}
-                <a href="/login" target="_blank" rel="noopener noreferrer"
-                  className="text-[#4c6eff] font-bold hover:underline">Sign in</a>
-              </p>
-              <p className="text-[#8a90a1] text-[13px]">
-                Looking to learn?{' '}
-                <Link to="/register" className="text-[#4c6eff] font-bold hover:underline">Student registration</Link>
-              </p>
-            </div>
-          )}
-        </div>
+      {/* thin progress bar */}
+      <div style={{ height: 3, background: 'var(--border)', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}>
+        <div style={{ height: '100%', background: 'var(--accent)', width: `${progress}%`, transition: 'width var(--t-slow)' }} />
       </div>
+
+      {/* topbar */}
+      <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+          <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
+        </Link>
+        <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 500 }}>Step {step + 1} of {TOTAL_STEPS}</span>
+      </div>
+
+      {/* main */}
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '56px 32px 120px' }}>
+        {/* heading */}
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <h1 style={{ margin: '0 0 10px', fontSize: 32, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em' }}>{title}</h1>
+          <p style={{ margin: 0, fontSize: 15, color: 'var(--muted)' }}>{sub}</p>
+        </div>
+
+        {/* step error */}
+        {stepErr && (
+          <div style={{ background: 'var(--danger-soft)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 20, textAlign: 'center' }}>
+            {stepErr}
+          </div>
+        )}
+
+        {renderContent()}
+      </div>
+
+      {/* bottom nav */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'var(--surface)', borderTop: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '16px 40px',
+      }}>
+        <button onClick={back}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 22px', borderRadius: 'var(--r-md)', border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--text-2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-xs)' }}>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width={12} height={12}><path d="M8 2L4 6l4 4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Back
+        </button>
+
+        <button onClick={next} disabled={loading}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 28px', borderRadius: 'var(--r-md)', border: 'none', background: loading ? 'var(--muted)' : 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', transition: 'background var(--t-fast)' }}>
+          {loading ? 'Please wait…' : step === 3 ? (form.certificate ? 'Upload & Finish' : 'Skip & Finish') : step === 2 ? 'Create account' : 'Continue'}
+          {!loading && <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width={12} height={12}><path d="M4 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </button>
+      </div>
+
+      {/* sign-in hint on step 0 */}
+      {step === 0 && (
+        <div style={{ textAlign: 'center', position: 'fixed', bottom: 72, left: 0, right: 0, fontSize: 13, color: 'var(--muted)' }}>
+          Already have an account?{' '}
+          <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Sign in</Link>
+          {' · '}
+          <Link to="/register" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Student registration</Link>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
@@ -6,7 +6,7 @@ import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
 import { enrollmentsAPI } from '../../api/enrollments';
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function parseTS(ts) {
   if (!ts) return null;
@@ -26,13 +26,13 @@ function fmtTime(val) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-const ACCENT = ['#4c6eff', '#935bf5', '#ff8032', '#22be70', '#f24545', '#00beb7'];
+const ACCENT = ['#0d9488', '#935bf5', '#ff8032', '#22c55e', '#ef4444', '#00beb7'];
 function avatarColor(id) { return ACCENT[(id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % ACCENT.length]; }
 function initials(name) { return (name || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(); }
 
 const STATUS_OPTIONS = [
-  { value: 'present', label: 'Present', bg: '#22be70', light: 'rgba(34,190,112,0.1)', text: '#22be70' },
-  { value: 'absent',  label: 'Absent',  bg: '#f24545', light: 'rgba(242,69,69,0.1)',  text: '#f24545' },
+  { value: 'present', label: 'Present', bg: '#22c55e', light: 'rgba(34,190,112,0.1)', text: '#22c55e' },
+  { value: 'absent',  label: 'Absent',  bg: '#ef4444', light: 'rgba(242,69,69,0.1)',  text: '#ef4444' },
   { value: 'excused', label: 'Excused', bg: '#ffa61a', light: 'rgba(255,166,26,0.1)', text: '#c07800' },
 ];
 
@@ -57,7 +57,7 @@ function StatusPill({ value, onChange }) {
   );
 }
 
-// ── component ─────────────────────────────────────────────────────────────────
+// â"€â"€ component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const CourseAttendance = () => {
   const { id: courseId } = useParams();
@@ -159,7 +159,7 @@ const CourseAttendance = () => {
     <div className="flex min-h-screen bg-[#f3f4f7]">
       <TutorSidebar />
       <div className="flex-1 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
       </div>
     </div>
   );
@@ -174,14 +174,14 @@ const CourseAttendance = () => {
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-6 justify-between flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <Link to={`/tutor/courses/${courseId}`}
-              className="text-[#8a90a1] text-[13px] hover:text-[#181b26] transition-colors flex-shrink-0 flex items-center gap-1">
+              className="text-[#6b6f7d] text-[13px] hover:text-[#0c0d12] transition-colors flex-shrink-0 flex items-center gap-1">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                 <path d="M10 13L5 8l5-5"/>
               </svg>
               {course?.title || 'Course'}
             </Link>
             <div className="w-px h-4 bg-[#e8eaef]" />
-            <p className="text-[#181b26] text-[14px] font-semibold">Attendance</p>
+            <p className="text-[#0c0d12] text-[14px] font-semibold">Attendance</p>
           </div>
         </div>
 
@@ -191,8 +191,8 @@ const CourseAttendance = () => {
           <div className="bg-white rounded-[16px] border border-[#f0f0f5] p-5">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex-1 min-w-0">
-                <h1 className="text-[#181b26] text-[20px] font-bold">{course?.title || 'Course'}</h1>
-                <p className="text-[#8a90a1] text-[13px] mt-0.5">Select a lesson to view and mark attendance</p>
+                <h1 className="text-[#0c0d12] text-[20px] font-bold">{course?.title || 'Course'}</h1>
+                <p className="text-[#6b6f7d] text-[13px] mt-0.5">Select a lesson to view and mark attendance</p>
               </div>
 
               {/* Lesson selector */}
@@ -200,17 +200,17 @@ const CourseAttendance = () => {
                 <select
                   value={selectedId}
                   onChange={e => setSelectedId(e.target.value)}
-                  className="border border-[#e8eaef] rounded-[10px] px-3 py-2 text-[13px] text-[#181b26] focus:outline-none focus:border-[#4c6eff] bg-white min-w-[260px]"
+                  className="border border-[#e8eaef] rounded-[10px] px-3 py-2 text-[13px] text-[#0c0d12] focus:outline-none focus:border-[#0d9488] bg-white min-w-[260px]"
                 >
                   {lessons.map(l => (
                     <option key={l.id} value={l.id}>
                       {l.title}
-                      {l.scheduled_at ? ` — ${fmtDate(l.scheduled_at)} ${fmtTime(l.scheduled_at)}` : ''}
+                      {l.scheduled_at ? ` - ${fmtDate(l.scheduled_at)} ${fmtTime(l.scheduled_at)}` : ''}
                     </option>
                   ))}
                 </select>
               ) : (
-                <p className="text-[#8a90a1] text-[13px]">No lessons yet</p>
+                <p className="text-[#6b6f7d] text-[13px]">No lessons yet</p>
               )}
             </div>
 
@@ -219,18 +219,18 @@ const CourseAttendance = () => {
               <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[#f0f0f5]">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#22be70]" />
-                  <span className="text-[12px] text-[#181b26] font-semibold">{presentCount}</span>
-                  <span className="text-[12px] text-[#8a90a1]">Present</span>
+                  <span className="text-[12px] text-[#0c0d12] font-semibold">{presentCount}</span>
+                  <span className="text-[12px] text-[#6b6f7d]">Present</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#f24545]" />
-                  <span className="text-[12px] text-[#181b26] font-semibold">{absentCount}</span>
-                  <span className="text-[12px] text-[#8a90a1]">Absent</span>
+                  <span className="text-[12px] text-[#0c0d12] font-semibold">{absentCount}</span>
+                  <span className="text-[12px] text-[#6b6f7d]">Absent</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#ffa61a]" />
-                  <span className="text-[12px] text-[#181b26] font-semibold">{excusedCount}</span>
-                  <span className="text-[12px] text-[#8a90a1]">Excused</span>
+                  <span className="text-[12px] text-[#0c0d12] font-semibold">{excusedCount}</span>
+                  <span className="text-[12px] text-[#6b6f7d]">Excused</span>
                 </div>
               </div>
             )}
@@ -242,8 +242,8 @@ const CourseAttendance = () => {
               <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-3">
                 <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-8 h-8"><rect x="4" y="2" width="12" height="16" rx="1.5"/><path d="M7 2h6v3H7z"/><path d="M7 9h6M7 12h6M7 15h4" strokeLinecap="round"/></svg>
               </div>
-              <p className="text-[#181b26] text-[16px] font-semibold mb-1">No lessons to track</p>
-              <p className="text-[#8a90a1] text-[13px]">Add lessons to the course first.</p>
+              <p className="text-[#0c0d12] text-[16px] font-semibold mb-1">No lessons to track</p>
+              <p className="text-[#6b6f7d] text-[13px]">Add lessons to the course first.</p>
             </div>
           )}
 
@@ -252,8 +252,8 @@ const CourseAttendance = () => {
               <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-3">
                 <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-8 h-8"><circle cx="7" cy="7" r="3"/><path d="M1 18a6 6 0 0112 0"/><circle cx="14" cy="8" r="2.5"/><path d="M14 13a4 4 0 013.5 4"/></svg>
               </div>
-              <p className="text-[#181b26] text-[16px] font-semibold mb-1">No students enrolled</p>
-              <p className="text-[#8a90a1] text-[13px]">Students will appear here once they enroll in this course.</p>
+              <p className="text-[#0c0d12] text-[16px] font-semibold mb-1">No students enrolled</p>
+              <p className="text-[#6b6f7d] text-[13px]">Students will appear here once they enroll in this course.</p>
             </div>
           )}
 
@@ -272,7 +272,7 @@ const CourseAttendance = () => {
                   Mark all Absent
                 </button>
                 <button onClick={reset} disabled={!isDirty}
-                  className="text-[12px] font-medium px-3 py-1.5 rounded-[7px] border border-[#e8eaef] text-[#8a90a1] hover:border-[#4c6eff] hover:text-[#4c6eff] disabled:opacity-40 transition-colors">
+                  className="text-[12px] font-medium px-3 py-1.5 rounded-[7px] border border-[#e8eaef] text-[#6b6f7d] hover:border-[#0d9488] hover:text-[#0d9488] disabled:opacity-40 transition-colors">
                   Reset
                 </button>
                 <div className="ml-auto flex items-center gap-2">
@@ -282,7 +282,7 @@ const CourseAttendance = () => {
                     </span>
                   )}
                   <button onClick={save} disabled={saving || !isDirty}
-                    className="bg-[#4c6eff] text-white text-[12px] font-bold px-4 py-2 rounded-[8px] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5">
+                    className="bg-[#0d9488] text-white text-[12px] font-bold px-4 py-2 rounded-[8px] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5">
                     {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                     Save attendance
                   </button>
@@ -292,11 +292,11 @@ const CourseAttendance = () => {
               {/* Student list */}
               {loadingAttendance ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-6 h-6 border-3 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-3 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-[1fr_220px] px-5 py-2.5 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide border-b border-[#f0f0f5]">
+                  <div className="grid grid-cols-[1fr_220px] px-5 py-2.5 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide border-b border-[#f0f0f5]">
                     <span>Student</span>
                     <span>Status</span>
                   </div>
@@ -315,7 +315,7 @@ const CourseAttendance = () => {
                             </div>
                             <button
                               onClick={() => sid && navigate(`/tutor/students/${sid}`)}
-                              className="text-[13px] font-semibold text-[#181b26] truncate hover:text-[#4c6eff] transition-colors text-left"
+                              className="text-[13px] font-semibold text-[#0c0d12] truncate hover:text-[#0d9488] transition-colors text-left"
                             >
                               {name}
                             </button>

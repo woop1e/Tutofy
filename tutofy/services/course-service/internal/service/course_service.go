@@ -19,10 +19,10 @@ var (
 )
 
 type CourseService interface {
-	CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error)
+	CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
 	GetCourse(ctx context.Context, id string) (*model.Course, error)
 	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
-	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error)
+	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
 	PublishCourse(ctx context.Context, callerID, callerRole, courseID string) (*model.Course, error)
 	SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error)
 	DeleteCourse(ctx context.Context, callerID, callerRole, courseID string) error
@@ -40,12 +40,15 @@ func NewCourseService(repo repository.CourseRepository, rdb *redis.Client) Cours
 	return &courseService{repo: repo, rdb: rdb}
 }
 
-func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error) {
+func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error) {
 	if callerRole != "tutor" && callerRole != "admin" {
 		return nil, ErrNotTutor
 	}
 	if courseType == "" {
 		courseType = "group"
+	}
+	if releaseType == "" {
+		releaseType = "static"
 	}
 	course := &model.Course{
 		ID:                 uuid.NewString(),
@@ -56,6 +59,11 @@ func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, 
 		CourseType:         courseType,
 		MaxStudents:        maxStudents,
 		EnrollmentDeadline: enrollmentDeadline,
+		TotalLessons:       totalLessons,
+		TotalWeeks:         totalWeeks,
+		ReleaseType:        releaseType,
+		StartDate:          startDate,
+		EndDate:            endDate,
 	}
 	if err := s.repo.CreateCourse(ctx, course); err != nil {
 		return nil, err
@@ -88,7 +96,7 @@ func (s *courseService) GetAllCourses(ctx context.Context, limit, offset int32) 
 	return s.repo.GetAllCourses(ctx, limit, offset)
 }
 
-func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string) (*model.Course, error) {
+func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error) {
 	course, err := s.repo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return nil, err
@@ -99,7 +107,10 @@ func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, 
 	if courseType == "" {
 		courseType = course.CourseType
 	}
-	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description, courseType, maxStudents, enrollmentDeadline)
+	if releaseType == "" {
+		releaseType = course.ReleaseType
+	}
+	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description, courseType, maxStudents, enrollmentDeadline, totalLessons, totalWeeks, releaseType, startDate, endDate)
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "course:"+courseID).Err()
 	}

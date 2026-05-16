@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
@@ -8,7 +8,7 @@ import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { quizzesAPI } from '../../api/quizzes';
 
-// ── date helpers ──────────────────────────────────────────────────────────────
+// â"€â"€ date helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function parseDate(val) {
   if (!val) return null;
@@ -38,11 +38,14 @@ function getMonday(d) {
 }
 
 function groupIntoWeeks(items) {
-  const withDate = items.filter(i => i._date);
-  const noDate   = items.filter(i => !i._date);
+  // Items with no date or with a sentinel date (year < 2020) go to General
+  const withDate = items.filter(i => i._date && i._date.getFullYear() >= 2020);
+  const noDate   = items.filter(i => !i._date || i._date.getFullYear() < 2020);
   const result   = [];
 
-  if (noDate.length) result.push({ label: 'General', dateRange: '', weekMonday: null, items: noDate });
+  // General always appears first
+  result.push({ label: 'General', dateRange: '', weekMonday: null, items: noDate });
+
   if (!withDate.length) return result;
 
   const weekStart = getMonday(withDate[0]._date);
@@ -60,17 +63,17 @@ function groupIntoWeeks(items) {
     const ws  = new Date(weekStart.getTime() + key * MS_WEEK);
     const we  = new Date(ws.getTime() + 6 * 24 * 3600 * 1000);
     const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    result.push({ label: `Week ${n++}`, dateRange: `${fmt(ws)} – ${fmt(we)}`, weekMonday: ws, items: weekMap.get(key) });
+    result.push({ label: `Week ${n++}`, dateRange: `${fmt(ws)} - ${fmt(we)}`, weekMonday: ws, items: weekMap.get(key) });
   });
   return result;
 }
 
-// ── icons ─────────────────────────────────────────────────────────────────────
+// â"€â"€ icons â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const VideoIcon = () => (
-  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="#4c6eff" strokeWidth="1.5">
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="#0d9488" strokeWidth="1.5">
     <path d="M3 6a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/>
-    <path d="M15 9l4-2v6l-4-2" stroke="#4c6eff" strokeWidth="1.5"/>
+    <path d="M15 9l4-2v6l-4-2" stroke="#0d9488" strokeWidth="1.5"/>
   </svg>
 );
 
@@ -120,24 +123,24 @@ const QuizIcon = () => (
   </svg>
 );
 
-// ── Add content modal ─────────────────────────────────────────────────────────
+// â"€â"€ Add content modal â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const CONTENT_TYPES = [
   {
     id: 'lesson',    label: 'Live lesson',      sub: 'Zoom / Meet / Teams link',
-    color: '#4c6eff', icon: 'M3 7a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7zM15 10l4-2v6l-4-2',
+    color: '#0d9488', icon: 'M3 7a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7zM15 10l4-2v6l-4-2',
   },
   {
     id: 'video',     label: 'Recorded video',   sub: 'YouTube / Vimeo link',
-    color: '#f24545', icon: 'M5 5l10 7-10 7V5z',
+    color: '#ef4444', icon: 'M5 5l10 7-10 7V5z',
   },
   {
     id: 'homework',  label: 'Homework',         sub: 'File or text submission',
-    color: '#22be70', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    color: '#22c55e', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   },
   {
     id: 'quiz',      label: 'Quiz',             sub: 'Create a quiz',
-    color: '#4c6eff', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    color: '#0d9488', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   },
   {
     id: 'text',      label: 'Text / note',      sub: 'Reading material',
@@ -157,10 +160,10 @@ const AddContentModal = ({ onClose, onSelect }) => (
     >
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="text-[#181b26] text-[18px] font-bold">Add content</h3>
-          <p className="text-[#8a90a1] text-[13px] mt-0.5">Choose what to add</p>
+          <h3 className="text-[#0c0d12] text-[18px] font-bold">Add content</h3>
+          <p className="text-[#6b6f7d] text-[13px] mt-0.5">Choose what to add</p>
         </div>
-        <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center text-[#8a90a1] hover:text-[#181b26] transition-colors">
+        <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center text-[#6b6f7d] hover:text-[#0c0d12] transition-colors">
           <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
             <path d="M2 2l10 10M12 2L2 12" strokeLinecap="round" />
           </svg>
@@ -171,7 +174,7 @@ const AddContentModal = ({ onClose, onSelect }) => (
           <button
             key={ct.id}
             onClick={() => onSelect(ct.id)}
-            className="flex flex-col items-center gap-2.5 p-4 rounded-[14px] border-2 border-[#ebebf0] hover:border-[#4c6eff]/50 hover:bg-[#f8f9ff] transition-colors group"
+            className="flex flex-col items-center gap-2.5 p-4 rounded-[14px] border-2 border-[#ebebf0] hover:border-[#0d9488]/50 hover:bg-[#f8f9ff] transition-colors group"
           >
             <div
               className="w-12 h-12 rounded-[12px] flex items-center justify-center"
@@ -182,8 +185,8 @@ const AddContentModal = ({ onClose, onSelect }) => (
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-[#181b26] text-[13px] font-semibold leading-tight">{ct.label}</p>
-              <p className="text-[#8a90a1] text-[11px] mt-0.5 leading-tight">{ct.sub}</p>
+              <p className="text-[#0c0d12] text-[13px] font-semibold leading-tight">{ct.label}</p>
+              <p className="text-[#6b6f7d] text-[11px] mt-0.5 leading-tight">{ct.sub}</p>
             </div>
           </button>
         ))}
@@ -192,7 +195,7 @@ const AddContentModal = ({ onClose, onSelect }) => (
   </div>
 );
 
-// ── simple markdown renderer (no deps) ───────────────────────────────────────
+// â"€â"€ simple markdown renderer (no deps) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function renderMarkdown(text) {
   if (!text) return '';
   // 1. HTML-escape to prevent XSS
@@ -201,7 +204,7 @@ function renderMarkdown(text) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // 2. Block-level: headings, lists → collect list items into <ul>/<ol>
+  // 2. Block-level: headings, lists ←' collect list items into <ul>/<ol>
   const lines = s.split('\n');
   const out = [];
   let inUl = false, inOl = false;
@@ -253,51 +256,51 @@ function renderMarkdown(text) {
 
 function toRFC3339(val) {
   if (!val) return undefined;
-  // datetime-local gives YYYY-MM-DDTHH:MM — treat as local time, convert to UTC ISO
+  // datetime-local gives YYYY-MM-DDTHH:MM - treat as local time, convert to UTC ISO
   const d = new Date(val);
   if (!isNaN(d.getTime())) return d.toISOString();
   return val + 'T00:00:00Z';
 }
 
-// ── blank drafts ──────────────────────────────────────────────────────────────
+// â"€â"€ blank drafts â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const blankLesson = { title: '', description: '', video_link: '', scheduled_at: '', duration_minutes: '' };
 const blankAssignment = { title: '', description: '', due_date: '', max_score: '' };
 const blankNote = { title: '', description: '' };
 
-// ── shared input style ────────────────────────────────────────────────────────
+// â"€â"€ shared input style â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
-const inputCls = 'w-full border border-[#e8eaef] rounded-[9px] px-3 py-2 text-[13px] text-[#181b26] placeholder-[#b0b5c4] focus:outline-none focus:border-[#4c6eff] focus:ring-2 focus:ring-[rgba(76,110,255,0.08)] transition-all bg-white';
+const inputCls = 'w-full border border-[#e8eaef] rounded-[9px] px-3 py-2 text-[13px] text-[#0c0d12] placeholder-[#b0b5c4] focus:outline-none focus:border-[#0d9488] focus:ring-2 focus:ring-[rgba(13,148,136,0.08)] transition-all bg-white';
 
-// ── forms (defined outside parent so they don't remount on every keystroke) ───
+// â"€â"€ forms (defined outside parent so they don't remount on every keystroke) â"€â"€â"€
 
 const LessonForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) => (
   <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
-    <p className="text-[#181b26] text-[13px] font-semibold mb-3">New Lesson</p>
+    <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">New Lesson</p>
     <div className="grid grid-cols-2 gap-3 mb-3">
       <div>
-        <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
         <input className={inputCls} placeholder="Lesson title" value={draft.title}
           onChange={e => setDraft(p => ({ ...p, title: e.target.value }))} />
       </div>
       <div>
-        <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Meeting / Video link</label>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Meeting / Video link</label>
         <input className={inputCls} placeholder="https://meet.google.com/..." value={draft.video_link}
           onChange={e => setDraft(p => ({ ...p, video_link: e.target.value }))} />
       </div>
       <div>
-        <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Date &amp; Time</label>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Date &amp; Time</label>
         <input type="datetime-local" className={inputCls} value={draft.scheduled_at}
           onChange={e => setDraft(p => ({ ...p, scheduled_at: e.target.value }))} />
       </div>
       <div>
-        <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Duration (min)</label>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Duration (min)</label>
         <input type="number" className={inputCls} placeholder="60" min="1" value={draft.duration_minutes}
           onChange={e => setDraft(p => ({ ...p, duration_minutes: e.target.value }))} />
       </div>
     </div>
     <div className="mb-3">
-      <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Description</label>
+      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Description</label>
       <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Optional description"
         value={draft.description}
         onChange={e => setDraft(p => ({ ...p, description: e.target.value }))} />
@@ -305,11 +308,11 @@ const LessonForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) =>
     {saveError && <p className="text-[#f24545] text-[12px] mb-2">{saveError}</p>}
     <div className="flex items-center gap-2">
       <button onClick={onSave} disabled={saving}
-        className="bg-[#4c6eff] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#3a56e0] disabled:opacity-50 transition-colors flex items-center gap-1.5">
+        className="bg-[#0d9488] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#0f766e] disabled:opacity-50 transition-colors flex items-center gap-1.5">
         {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
         Save lesson
       </button>
-      <button onClick={onCancel} className="text-[#8a90a1] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
+      <button onClick={onCancel} className="text-[#6b6f7d] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
         Cancel
       </button>
     </div>
@@ -318,28 +321,28 @@ const LessonForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) =>
 
 const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave, onCancel }) => (
   <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
-    <p className="text-[#181b26] text-[13px] font-semibold mb-3">
+    <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">
       {editingId ? 'Edit Assignment' : 'New Assignment'}
     </p>
     <div className="grid grid-cols-2 gap-3 mb-3">
       <div>
-        <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
         <input className={inputCls} placeholder="Assignment title" value={draft.title}
           onChange={e => setDraft(p => ({ ...p, title: e.target.value }))} />
       </div>
       <div>
-        <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Max score</label>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Max score</label>
         <input type="number" className={inputCls} placeholder="100" min="0" value={draft.max_score}
           onChange={e => setDraft(p => ({ ...p, max_score: e.target.value }))} />
       </div>
       <div>
-        <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Due date</label>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Due date</label>
         <input type="date" className={inputCls} value={draft.due_date}
           onChange={e => setDraft(p => ({ ...p, due_date: e.target.value }))} />
       </div>
     </div>
     <div className="mb-3">
-      <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Description</label>
+      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Description</label>
       <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Instructions for students"
         value={draft.description}
         onChange={e => setDraft(p => ({ ...p, description: e.target.value }))} />
@@ -347,11 +350,11 @@ const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave,
     {saveError && <p className="text-[#f24545] text-[12px] mb-2">{saveError}</p>}
     <div className="flex items-center gap-2">
       <button onClick={onSave} disabled={saving}
-        className="bg-[#4c6eff] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#3a56e0] disabled:opacity-50 transition-colors flex items-center gap-1.5">
+        className="bg-[#0d9488] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#0f766e] disabled:opacity-50 transition-colors flex items-center gap-1.5">
         {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
         Save
       </button>
-      <button onClick={onCancel} className="text-[#8a90a1] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
+      <button onClick={onCancel} className="text-[#6b6f7d] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
         Cancel
       </button>
     </div>
@@ -360,23 +363,23 @@ const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave,
 
 const NoteForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) => (
   <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
-    <p className="text-[#181b26] text-[13px] font-semibold mb-3">New Text / Note</p>
+    <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">New Text / Note</p>
     <div className="mb-3">
-      <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
-      <input className={inputCls} placeholder="e.g. Required documents, Important requirements…" value={draft.title}
+      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
+      <input className={inputCls} placeholder="e.g. Required documents, Important requirements..." value={draft.title}
         onChange={e => setDraft(p => ({ ...p, title: e.target.value }))} />
     </div>
     <div className="mb-2">
-      <label className="block text-[11px] text-[#8a90a1] font-medium mb-1">Content</label>
+      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Content</label>
       <textarea className={inputCls + ' resize-y'} rows={10}
         placeholder={'Write your text here. Markdown supported:\n\n# Big heading\n## Section heading\n**bold text**\n*italic text*\n- bullet item\n1. numbered item\n`code`'}
         value={draft.description}
         onChange={e => setDraft(p => ({ ...p, description: e.target.value }))} />
     </div>
-    <div className="flex flex-wrap gap-2 mb-3 text-[11px] text-[#8a90a1]">
+    <div className="flex flex-wrap gap-2 mb-3 text-[11px] text-[#6b6f7d]">
       {[['#', 'H1'], ['##', 'H2'], ['**b**', 'Bold'], ['*i*', 'Italic'], ['- ', 'Bullet'], ['1. ', 'Numbered']].map(([syn, lbl]) => (
         <span key={lbl} className="bg-white border border-[#e8eaef] rounded px-1.5 py-0.5 font-mono">
-          {syn} <span className="font-sans text-[#b0b5c4]">→ {lbl}</span>
+          {syn} <span className="font-sans text-[#b0b5c4]">-&gt; {lbl}</span>
         </span>
       ))}
     </div>
@@ -387,14 +390,14 @@ const NoteForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) => (
         {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
         Save note
       </button>
-      <button onClick={onCancel} className="text-[#8a90a1] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
+      <button onClick={onCancel} className="text-[#6b6f7d] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
         Cancel
       </button>
     </div>
   </div>
 );
 
-// ── component ─────────────────────────────────────────────────────────────────
+// â"€â"€ component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const TutorCourseView = () => {
   const { isAuthenticated, role } = useAuth();
@@ -408,8 +411,8 @@ const TutorCourseView = () => {
   const [enrollCount, setEnrollCount] = useState(0);
   const [loading,     setLoading]     = useState(true);
 
-  // which week section is open
-  const [expandedWeeks, setExpandedWeeks] = useState(new Set([0]));
+  // General (0) is open by default
+  const [expandedWeeks, setExpandedWeeks] = useState(new Set([0, 1]));
 
   // inline add form: { weekIdx, type: 'lesson'|'assignment' } | null
   const [addingIn, setAddingIn] = useState(null);
@@ -430,16 +433,20 @@ const TutorCourseView = () => {
   const [showContentModal, setShowContentModal] = useState(false);
   const [pendingWeekIdx, setPendingWeekIdx]     = useState(null);
 
+  // Empty week placeholders created by "+ Add Week" button
+  const [pendingWeeks, setPendingWeeks] = useState([]);
+
   const handleContentSelect = useCallback((type) => {
     setShowContentModal(false);
+    const targetIdx = pendingWeekIdx ?? 0;
     if (type === 'quiz') {
       navigate(`/tutor/courses/${courseId}/quizzes/new`);
     } else if (type === 'lesson' || type === 'video') {
-      openAdd(pendingWeekIdx ?? 'new', 'lesson');
+      openAdd(targetIdx, 'lesson');
     } else if (type === 'homework') {
-      openAdd(pendingWeekIdx ?? 'new', 'assignment');
+      openAdd(targetIdx, 'assignment');
     } else if (type === 'text') {
-      openAdd(pendingWeekIdx ?? 'new', 'note');
+      openAdd(targetIdx, 'note');
     }
   }, [pendingWeekIdx, courseId, navigate]);
 
@@ -485,32 +492,44 @@ const TutorCourseView = () => {
 
   const weeks = useMemo(() => groupIntoWeeks(allItems), [allItems]);
 
+  const courseStatus = course?.status || (course?.is_published ? 'published' : 'draft');
+
   const toggleWeek = idx =>
     setExpandedWeeks(prev => { const s = new Set(prev); s.has(idx) ? s.delete(idx) : s.add(idx); return s; });
 
-  // ── add handlers ────────────────────────────────────────────────────────────
+  // â"€â"€ add handlers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   const openAdd = (weekIdx, type) => {
-    const week = weeks[weekIdx];
+    // Resolve the Monday for this weekIdx
+    let monday = null;
+    if (typeof weekIdx === 'number') {
+      monday = weeks[weekIdx]?.weekMonday || null;
+    } else if (typeof weekIdx === 'string' && weekIdx.startsWith('pw_')) {
+      const pw = pendingWeeks.find(w => w.id === weekIdx);
+      monday = pw?.weekMonday || null;
+    }
+
     if (type === 'lesson') {
-      setLessonDraft({
-        ...blankLesson,
-        scheduled_at: week?.weekMonday ? toInputDate(week.weekMonday) + 'T09:00' : '',
-      });
+      setLessonDraft({ ...blankLesson, scheduled_at: monday ? toInputDate(monday) + 'T09:00' : '' });
     } else if (type === 'assignment') {
-      setAssignmentDraft({
-        ...blankAssignment,
-        due_date: week?.weekMonday ? toInputDate(week.weekMonday) : '',
-      });
+      setAssignmentDraft({ ...blankAssignment, due_date: monday ? toInputDate(monday) : '' });
     } else if (type === 'note') {
       setNoteDraft({ ...blankNote });
     }
     setAddingIn({ weekIdx, type });
     setSaveError('');
-    setExpandedWeeks(prev => { const s = new Set(prev); s.add(weekIdx); return s; });
+    if (typeof weekIdx === 'number') {
+      setExpandedWeeks(prev => { const s = new Set(prev); s.add(weekIdx); return s; });
+    }
   };
 
   const cancelAdd = () => { setAddingIn(null); setSaveError(''); };
+
+  const clearPendingWeek = (weekIdx) => {
+    if (typeof weekIdx === 'string' && weekIdx.startsWith('pw_')) {
+      setPendingWeeks(prev => prev.filter(w => w.id !== weekIdx));
+    }
+  };
 
   const saveLesson = async () => {
     if (!lessonDraft.title.trim()) { setSaveError('Title is required'); return; }
@@ -526,7 +545,14 @@ const TutorCourseView = () => {
         status:           'published',
       });
       const newLesson = created?.lesson || created;
-      if (newLesson?.id) setLessons(prev => [...prev, newLesson]);
+      if (newLesson?.id) {
+        setLessons(prev => [...prev, {
+          ...newLesson,
+          video_link:  newLesson.video_link  ?? lessonDraft.video_link,
+          description: newLesson.description ?? lessonDraft.description.trim(),
+        }]);
+      }
+      clearPendingWeek(addingIn?.weekIdx);
       setAddingIn(null);
     } catch (e) {
       setSaveError(e.response?.data?.error || 'Failed to save lesson');
@@ -548,6 +574,7 @@ const TutorCourseView = () => {
       });
       const newA = created?.assignment || created;
       if (newA?.id) setAssignments(prev => [...prev, newA]);
+      clearPendingWeek(addingIn?.weekIdx);
       setAddingIn(null);
     } catch (e) {
       setSaveError(e.response?.data?.error || 'Failed to save assignment');
@@ -560,19 +587,36 @@ const TutorCourseView = () => {
     if (!noteDraft.title.trim()) { setSaveError('Title is required'); return; }
     setSaving(true); setSaveError('');
     try {
-      // Notes are stored as lessons: no video_link, no scheduled_at shown to user.
-      // Backend requires scheduled_at > 0 and duration_minutes > 0, so we send current time.
+      // General (weekIdx === 0) uses a sentinel date so groupIntoWeeks keeps it there.
+      // Specific weeks use their Monday so the note appears in the correct week.
+      let scheduledAt = '2000-01-01T00:00:00Z';
+      const wi = addingIn?.weekIdx;
+      if (typeof wi === 'number' && wi > 0) {
+        const monday = weeks[wi]?.weekMonday;
+        scheduledAt = monday ? monday.toISOString() : new Date().toISOString();
+      } else if (typeof wi === 'string' && wi.startsWith('pw_')) {
+        const pw = pendingWeeks.find(w => w.id === wi);
+        scheduledAt = pw?.weekMonday ? pw.weekMonday.toISOString() : new Date().toISOString();
+      }
       const created = await lessonsAPI.createLesson({
         course_id:        courseId,
         title:            noteDraft.title.trim(),
         description:      noteDraft.description.trim(),
         video_link:       '',
-        scheduled_at:     new Date().toISOString(),
+        scheduled_at:     scheduledAt,
         duration_minutes: 1,
         status:           'published',
       });
       const newLesson = created?.lesson || created;
-      if (newLesson?.id) setLessons(prev => [...prev, newLesson]);
+      if (newLesson?.id) {
+        // API response may omit description/video_link — preserve from draft so body shows immediately
+        setLessons(prev => [...prev, {
+          ...newLesson,
+          video_link:  newLesson.video_link  ?? '',
+          description: newLesson.description ?? noteDraft.description.trim(),
+        }]);
+      }
+      clearPendingWeek(addingIn?.weekIdx);
       setAddingIn(null);
     } catch (e) {
       setSaveError(e.response?.data?.error || 'Failed to save note');
@@ -581,7 +625,7 @@ const TutorCourseView = () => {
     }
   };
 
-  // ── edit assignment ──────────────────────────────────────────────────────────
+  // â"€â"€ edit assignment â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   const openEdit = (assignment) => {
     setAssignmentDraft({
@@ -624,7 +668,7 @@ const TutorCourseView = () => {
     }
   };
 
-  // ── delete ───────────────────────────────────────────────────────────────────
+  // â"€â"€ delete â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   const deleteLesson = async (id) => {
     if (!window.confirm('Delete this lesson?')) return;
@@ -656,18 +700,18 @@ const TutorCourseView = () => {
     finally { setDeleting(null); }
   };
 
-  // ── loading ──────────────────────────────────────────────────────────────────
+  // â"€â"€ loading â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   if (loading) return (
     <div className="flex min-h-screen bg-[#f3f4f7]">
       <TutorSidebar />
       <div className="flex-1 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
       </div>
     </div>
   );
 
-  // ── render ───────────────────────────────────────────────────────────────────
+  // â"€â"€ render â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   return (
     <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
@@ -678,32 +722,32 @@ const TutorCourseView = () => {
         {/* Top bar */}
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-6 justify-between flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <Link to="/tutor/courses" className="text-[#8a90a1] text-[13px] hover:text-[#181b26] transition-colors flex-shrink-0 flex items-center gap-1">
+            <Link to="/tutor/courses" className="text-[#6b6f7d] text-[13px] hover:text-[#0c0d12] transition-colors flex-shrink-0 flex items-center gap-1">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                 <path d="M10 13L5 8l5-5"/>
               </svg>
               My Courses
             </Link>
             <div className="w-px h-4 bg-[#e8eaef]" />
-            <p className="text-[#181b26] text-[14px] font-semibold truncate">{course?.title || 'Course'}</p>
+            <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{course?.title || 'Course'}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link to={`/tutor/courses/${courseId}/students`}
-              className="text-[#8a90a1] text-[12px] font-medium px-3.5 py-2 rounded-[8px] border border-[#e8eaef] hover:border-[#4c6eff] hover:text-[#4c6eff] transition-colors flex items-center gap-1.5">
+              className="text-[#6b6f7d] text-[12px] font-medium px-3.5 py-2 rounded-[8px] border border-[#e8eaef] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors flex items-center gap-1.5">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
                 <circle cx="6" cy="5" r="3"/><path d="M11 7a2 2 0 110 4"/><path d="M1 14a5 5 0 0110 0"/><path d="M14 14a3 3 0 00-3-3"/>
               </svg>
               Students
             </Link>
             <Link to={`/tutor/courses/${courseId}/attendance`}
-              className="text-[#8a90a1] text-[12px] font-medium px-3.5 py-2 rounded-[8px] border border-[#e8eaef] hover:border-[#22be70] hover:text-[#22be70] transition-colors flex items-center gap-1.5">
+              className="text-[#6b6f7d] text-[12px] font-medium px-3.5 py-2 rounded-[8px] border border-[#e8eaef] hover:border-[#22be70] hover:text-[#22be70] transition-colors flex items-center gap-1.5">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
                 <path d="M2 3h12M2 7h12M2 11h7"/><path d="M12 10l1.5 1.5L16 9" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Attendance
             </Link>
             <Link to={`/tutor/courses/${courseId}/edit`}
-              className="bg-[#4c6eff] text-white text-[12px] font-semibold px-3.5 py-2 rounded-[8px] hover:bg-[#3a56e0] transition-colors flex items-center gap-1.5">
+              className="bg-[#0d9488] text-white text-[12px] font-semibold px-3.5 py-2 rounded-[8px] hover:bg-[#0f766e] transition-colors flex items-center gap-1.5">
               <PencilIcon />
               Edit Course
             </Link>
@@ -718,19 +762,19 @@ const TutorCourseView = () => {
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h1 className="text-[#181b26] text-[20px] font-bold">{course?.title || 'Course'}</h1>
+                  <h1 className="text-[#0c0d12] text-[20px] font-bold">{course?.title || 'Course'}</h1>
                   <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
-                    course?.status === 'published'
+                    courseStatus === 'published'
                       ? 'bg-[rgba(34,190,112,0.12)] text-[#22be70]'
-                      : 'bg-[#f0f0f5] text-[#8a90a1]'
+                      : 'bg-[#f0f0f5] text-[#6b6f7d]'
                   }`}>
-                    {course?.status || 'draft'}
+                    {courseStatus}
                   </span>
                 </div>
                 {course?.description && (
-                  <p className="text-[#8a90a1] text-[13px] leading-relaxed max-w-xl mb-4">{course.description}</p>
+                  <p className="text-[#6b6f7d] text-[13px] leading-relaxed max-w-xl mb-4">{course.description}</p>
                 )}
-                <div className="flex flex-wrap items-center gap-5 text-[12px] text-[#8a90a1]">
+                <div className="flex flex-wrap items-center gap-5 text-[12px] text-[#6b6f7d]">
                   <span className="flex items-center gap-1.5">
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
                       <path d="M15 10l-4.553 2.276A1 1 0 019 11.277V4.723a1 1 0 011.447-.894L15 6M2 4a2 2 0 012-2h5a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4z"/>
@@ -771,36 +815,6 @@ const TutorCourseView = () => {
             </div>
           </div>
 
-          {/* Empty state */}
-          {weeks.length === 0 && (
-            <div className="bg-white rounded-[16px] border border-[#f0f0f5] p-14 text-center">
-              <div className="w-12 h-12 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-3">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-6 h-6">
-                  <path d="M12 5v14M5 12h14"/>
-                </svg>
-              </div>
-              <p className="text-[#181b26] text-[15px] font-semibold mb-1">No content yet</p>
-              <p className="text-[#8a90a1] text-[13px] mb-4">Add lessons and assignments to build your course week by week.</p>
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={() => { setPendingWeekIdx(-1); setShowContentModal(true); }}
-                  className="bg-[#4c6eff] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#3a56e0] transition-colors flex items-center gap-1.5"
-                >
-                  <PlusIcon /> Add content
-                </button>
-              </div>
-              {/* Inline form when empty state */}
-              {addingIn?.weekIdx === -1 && addingIn.type === 'lesson' && (
-                <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} />
-              )}
-              {addingIn?.weekIdx === -1 && addingIn.type === 'assignment' && (
-                <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} />
-              )}
-              {addingIn?.weekIdx === -1 && addingIn.type === 'note' && (
-                <NoteForm draft={noteDraft} setDraft={setNoteDraft} saveError={saveError} saving={saving} onSave={saveNote} onCancel={cancelAdd} />
-              )}
-            </div>
-          )}
 
           {/* Week sections */}
           {weeks.map((week, wi) => {
@@ -814,14 +828,14 @@ const TutorCourseView = () => {
                 <button onClick={() => toggleWeek(wi)}
                   className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8f9fc] transition-colors text-left">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-[8px] bg-[rgba(76,110,255,0.08)] flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-[8px] bg-[rgba(13,148,136,0.08)] flex items-center justify-center flex-shrink-0">
                       <CalendarIcon />
                     </div>
                     <div>
-                      <p className="text-[#181b26] text-[14px] font-bold leading-tight">{week.label}</p>
-                      {week.dateRange && <p className="text-[#8a90a1] text-[11px] mt-0.5">{week.dateRange}</p>}
+                      <p className="text-[#0c0d12] text-[14px] font-bold leading-tight">{week.label}</p>
+                      {week.dateRange && <p className="text-[#6b6f7d] text-[11px] mt-0.5">{week.dateRange}</p>}
                     </div>
-                    <span className="text-[11px] text-[#8a90a1] bg-[#f0f0f5] px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] text-[#6b6f7d] bg-[#f0f0f5] px-2 py-0.5 rounded-full">
                       {week.items.length} item{week.items.length !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -831,7 +845,7 @@ const TutorCourseView = () => {
                 {open && (
                   <div className="border-t border-[#f0f0f5]">
 
-                    {/* Attendance shortcut — only in General section */}
+                    {/* Attendance shortcut - only in General section */}
                     {week.label === 'General' && (
                       <Link
                         to={`/tutor/courses/${courseId}/attendance`}
@@ -844,8 +858,8 @@ const TutorCourseView = () => {
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[#181b26] text-[13px] font-semibold">Attendance</p>
-                          <p className="text-[#8a90a1] text-[11px] mt-0.5">Mark student attendance per lesson</p>
+                          <p className="text-[#0c0d12] text-[13px] font-semibold">Attendance</p>
+                          <p className="text-[#6b6f7d] text-[11px] mt-0.5">Mark student attendance per lesson</p>
                         </div>
                         <span className="text-[11px] font-semibold text-[#22be70] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                           Open
@@ -864,9 +878,9 @@ const TutorCourseView = () => {
                       const isLast       = ii === week.items.length - 1 && !isAddHere;
                       const isEditingThis = editingId === item.id;
 
-                      const lessonUrl = item.video_link || item.video_url || '';
+                      const lessonUrl = (item.video_link ?? '') || (item.video_url ?? '');
                       const isLiveLesson = isLesson && /zoom|teams|meet/i.test(lessonUrl);
-                      const isVideoLesson = isLesson && !isLiveLesson && (lessonUrl !== '');
+                      const isVideoLesson = isLesson && !isLiveLesson && lessonUrl !== '';
                       const isNoteLesson = isLesson && lessonUrl === '';
 
                       const iconBg = isLiveLesson  ? 'bg-[rgba(24,95,165,0.08)]'
@@ -882,10 +896,10 @@ const TutorCourseView = () => {
                             <div className="px-5 py-4 group">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[#181b26] text-[15px] font-bold leading-snug mb-2">{item.title}</p>
+                                  <p className="text-[#0c0d12] text-[15px] font-bold leading-snug mb-2">{item.title}</p>
                                   {item.description && (
                                     <div
-                                      className="prose-note text-[#4c5162] text-[13px] leading-relaxed"
+                                      className="prose-note text-[#383a44] text-[13px] leading-relaxed"
                                       dangerouslySetInnerHTML={{ __html: renderMarkdown(item.description) }}
                                     />
                                   )}
@@ -894,7 +908,7 @@ const TutorCourseView = () => {
                                   <button
                                     onClick={() => deleteLesson(item.id)}
                                     disabled={deleting === item.id}
-                                    className="p-1.5 rounded-[6px] hover:bg-[#fff0f0] text-[#8a90a1] hover:text-[#e53e3e] transition-colors disabled:opacity-40"
+                                    className="p-1.5 rounded-[6px] hover:bg-[#fff0f0] text-[#6b6f7d] hover:text-[#e53e3e] transition-colors disabled:opacity-40"
                                   >
                                     <TrashIcon />
                                   </button>
@@ -909,7 +923,7 @@ const TutorCourseView = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="text-[#181b26] text-[13px] font-semibold truncate">{item.title}</p>
+                                <p className="text-[#0c0d12] text-[13px] font-semibold truncate">{item.title}</p>
                                 {isQuiz && (
                                   <span className="text-[10px] bg-[rgba(147,91,245,0.1)] text-[#935bf5] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">Quiz</span>
                                 )}
@@ -917,7 +931,7 @@ const TutorCourseView = () => {
                                   <span className="text-[10px] bg-[rgba(24,95,165,0.1)] text-[#185FA5] font-semibold px-2 py-0.5 rounded-full flex-shrink-0">Live</span>
                                 )}
                               </div>
-                              <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[11px] text-[#8a90a1]">
+                              <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[11px] text-[#6b6f7d]">
                                 {isLesson && item._date && (
                                   <span className="flex items-center gap-1">
                                     <CalendarIcon />
@@ -942,7 +956,7 @@ const TutorCourseView = () => {
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                               {isAssignment && (
                                 <button onClick={() => isEditingThis ? cancelEdit() : openEdit(item)}
-                                  className="flex items-center gap-1 text-[#8a90a1] hover:text-[#4c6eff] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(76,110,255,0.06)] transition-colors">
+                                  className="flex items-center gap-1 text-[#6b6f7d] hover:text-[#0d9488] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(13,148,136,0.06)] transition-colors">
                                   <PencilIcon />
                                   {isEditingThis ? 'Cancel' : 'Edit'}
                                 </button>
@@ -950,7 +964,7 @@ const TutorCourseView = () => {
                               <button
                                 onClick={() => isLesson ? deleteLesson(item.id) : isQuiz ? deleteQuiz(item.id) : deleteAssignment(item.id)}
                                 disabled={deleting === item.id}
-                                className="flex items-center gap-1 text-[#8a90a1] hover:text-[#f24545] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(242,69,69,0.06)] transition-colors disabled:opacity-40">
+                                className="flex items-center gap-1 text-[#6b6f7d] hover:text-[#f24545] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(242,69,69,0.06)] transition-colors disabled:opacity-40">
                                 <TrashIcon />
                                 Delete
                               </button>
@@ -971,7 +985,7 @@ const TutorCourseView = () => {
                       <div className="flex items-center gap-2 px-5 py-3 border-t border-[#f0f0f5]">
                         <button
                           onClick={() => { setPendingWeekIdx(wi); setShowContentModal(true); }}
-                          className="flex items-center gap-1.5 text-[#4c6eff] text-[12px] font-semibold px-3 py-1.5 rounded-[7px] hover:bg-[rgba(76,110,255,0.07)] transition-colors"
+                          className="flex items-center gap-1.5 text-[#0d9488] text-[12px] font-semibold px-3 py-1.5 rounded-[7px] hover:bg-[rgba(13,148,136,0.07)] transition-colors"
                         >
                           <PlusIcon /> Add content
                         </button>
@@ -994,27 +1008,79 @@ const TutorCourseView = () => {
             );
           })}
 
-          {/* Add to a new week (when content exists) */}
-          {weeks.length > 0 && (
-            <div className="bg-white rounded-[16px] border border-[#f0f0f5] px-5 py-4">
-              <p className="text-[#8a90a1] text-[12px] mb-3">Add new content (set a date to place it in the correct week)</p>
-              <button
-                onClick={() => { setPendingWeekIdx('new'); setShowContentModal(true); }}
-                className="flex items-center gap-1.5 text-[#4c6eff] text-[12px] font-semibold px-3 py-1.5 rounded-[7px] border border-[#e8eaef] hover:border-[#4c6eff] hover:bg-[rgba(76,110,255,0.04)] transition-colors"
-              >
-                <PlusIcon /> Add content
-              </button>
-              {addingIn?.weekIdx === 'new' && addingIn.type === 'lesson' && (
-                <div className="mt-3"><LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} /></div>
-              )}
-              {addingIn?.weekIdx === 'new' && addingIn.type === 'assignment' && (
-                <div className="mt-3"><AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} /></div>
-              )}
-              {addingIn?.weekIdx === 'new' && addingIn.type === 'note' && (
-                <div className="mt-3"><NoteForm draft={noteDraft} setDraft={setNoteDraft} saveError={saveError} saving={saving} onSave={saveNote} onCancel={cancelAdd} /></div>
-              )}
-            </div>
-          )}
+          {/* Pending (empty) weeks created by "+ Add Week" */}
+          {pendingWeeks.map((pw) => {
+            const we = new Date(pw.weekMonday.getTime() + 6 * 24 * 3600 * 1000);
+            const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const open = expandedWeeks.has(pw.id);
+            const isAddHere = addingIn?.weekIdx === pw.id;
+            return (
+              <div key={pw.id} className="bg-white rounded-[16px] border border-[#f0f0f5] overflow-hidden">
+                <button onClick={() => toggleWeek(pw.id)}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8f9fc] transition-colors text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-[8px] bg-[rgba(13,148,136,0.08)] flex items-center justify-center flex-shrink-0">
+                      <CalendarIcon />
+                    </div>
+                    <div>
+                      <p className="text-[#0c0d12] text-[14px] font-bold leading-tight">{pw.label}</p>
+                      <p className="text-[#6b6f7d] text-[11px] mt-0.5">{fmt(pw.weekMonday)} - {fmt(we)}</p>
+                    </div>
+                    <span className="text-[11px] text-[#6b6f7d] bg-[#f0f0f5] px-2 py-0.5 rounded-full">0 items</span>
+                  </div>
+                  <ChevronDown open={open} />
+                </button>
+
+                {open && (
+                  <div className="border-t border-[#f0f0f5]">
+                    {!isAddHere && (
+                      <div className="flex items-center gap-2 px-5 py-3">
+                        <button
+                          onClick={() => { setPendingWeekIdx(pw.id); setShowContentModal(true); }}
+                          className="flex items-center gap-1.5 text-[#0d9488] text-[12px] font-semibold px-3 py-1.5 rounded-[7px] hover:bg-[rgba(13,148,136,0.07)] transition-colors"
+                        >
+                          <PlusIcon /> Add content
+                        </button>
+                      </div>
+                    )}
+                    {isAddHere && addingIn.type === 'lesson' && (
+                      <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} />
+                    )}
+                    {isAddHere && addingIn.type === 'assignment' && (
+                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} />
+                    )}
+                    {isAddHere && addingIn.type === 'note' && (
+                      <NoteForm draft={noteDraft} setDraft={setNoteDraft} saveError={saveError} saving={saving} onSave={saveNote} onCancel={cancelAdd} />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add Week button */}
+          <div className="pb-2">
+            <button
+              onClick={() => {
+                const allWeekMondaysWithPending = [
+                  ...weeks.filter(w => w.weekMonday).map(w => w.weekMonday),
+                  ...pendingWeeks.map(w => w.weekMonday),
+                ];
+                const base = allWeekMondaysWithPending.length > 0
+                  ? allWeekMondaysWithPending[allWeekMondaysWithPending.length - 1]
+                  : getMonday(new Date());
+                const nextMonday = new Date(base);
+                nextMonday.setDate(base.getDate() + 7);
+                const totalWeekCount = weeks.filter(w => w.weekMonday).length + pendingWeeks.length + 1;
+                const id = `pw_${Date.now()}`;
+                setPendingWeeks(prev => [...prev, { id, weekMonday: nextMonday, label: `Week ${totalWeekCount}` }]);
+                setExpandedWeeks(prev => { const s = new Set(prev); s.add(id); return s; });
+              }}
+              className="flex items-center gap-2 text-[#0d9488] text-[13px] font-semibold px-4 py-2.5 rounded-[10px] border border-dashed border-[#0d9488]/40 hover:border-[#0d9488] hover:bg-[rgba(13,148,136,0.04)] transition-all w-full justify-center"
+            >
+              <PlusIcon /> Add Week
+            </button>
+          </div>
 
         </div>
       </div>

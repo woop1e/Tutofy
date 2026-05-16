@@ -22,6 +22,8 @@ export default defineConfig({
       '/my-tutors': 'http://localhost:8080',
       '/my-coursemates': 'http://localhost:8080',
       '/media': 'http://localhost:8080',
+      '/reviews': 'http://localhost:8080',
+      '/certificates': 'http://localhost:8080',
     },
   },
 })

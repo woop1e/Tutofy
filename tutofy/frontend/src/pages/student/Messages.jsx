@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+﻿﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
@@ -208,7 +208,7 @@ const Messages = () => {
 
         {/* Main content */}
         <div className="flex flex-1 overflow-hidden">
-          {/* ── Left Panel ── */}
+          {/* â"€â"€ Left Panel â"€â"€ */}
           <div className="w-[360px] bg-white shadow-[0px_4px_12px_0px_rgba(0,0,0,0.06)] flex flex-col flex-shrink-0">
             <div className="p-5 pb-3 flex flex-col gap-2">
 
@@ -438,7 +438,7 @@ const Messages = () => {
             </div>
           </div>
 
-          {/* ── Chat Window ── */}
+          {/* â"€â"€ Chat Window â"€â"€ */}
           {selectedConv ? (
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Chat Header */}
@@ -462,7 +462,7 @@ const Messages = () => {
                         <span className="text-[10px] font-bold text-teal bg-teal/10 px-2 py-0.5 rounded-full">Student</span>
                       )}
                     </div>
-                    <p className="text-[#22be70] text-[13px]">● Online</p>
+                    <p className="text-[#22be70] text-[13px]">â— Online</p>
                   </div>
                 </div>
               </div>
@@ -507,7 +507,7 @@ const Messages = () => {
                     placeholder="Type a message..."
                     className="flex-1 bg-transparent text-[14px] text-body placeholder-muted outline-none"
                   />
-                  <span className="text-muted text-[14px] ml-2 cursor-pointer">😊</span>
+                  <span className="text-muted text-[14px] ml-2 cursor-pointer">ðŸ˜Š</span>
                 </div>
                 <button
                   onClick={handleSend}
@@ -517,7 +517,7 @@ const Messages = () => {
                   {sending ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <span className="text-white text-[18px] font-bold">→</span>
+                    <span className="text-white text-[18px] font-bold">←'</span>
                   )}
                 </button>
               </div>

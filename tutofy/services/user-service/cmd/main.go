@@ -52,8 +52,8 @@ func main() {
 		defer rdb.Close()
 	}
 
-	if _, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
+	migrations := []string{
+		`CREATE TABLE IF NOT EXISTS users (
 			id               TEXT PRIMARY KEY,
 			email            TEXT NOT NULL UNIQUE,
 			name             TEXT NOT NULL DEFAULT '',
@@ -62,14 +62,33 @@ func main() {
 			age              INT,
 			location         TEXT NOT NULL DEFAULT '',
 			photo_url        TEXT NOT NULL DEFAULT '',
-			subjects         TEXT NOT NULL DEFAULT '',
+			subjects         TEXT NOT NULL DEFAULT '[]',
 			experience_years INT NOT NULL DEFAULT 0,
-			certificates     TEXT NOT NULL DEFAULT '',
+			certificates     TEXT NOT NULL DEFAULT '[]',
 			updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 			deleted_at       TIMESTAMPTZ
-		);
-	`); err != nil {
-		log.Fatalf("schema migration: %v", err)
+		)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending'`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS teaching_language TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS student_level TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS lesson_type TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS hourly_price INT NOT NULL DEFAULT 0`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS education TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS available_days TEXT NOT NULL DEFAULT '[]'`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS available_time_start TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS available_time_end TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+		// Fix existing rows where subjects/certificates default was '' instead of '[]'
+		`UPDATE users SET subjects = '[]' WHERE subjects = '' OR subjects IS NULL`,
+		`UPDATE users SET certificates = '[]' WHERE certificates = '' OR certificates IS NULL`,
+		`UPDATE users SET available_days = '[]' WHERE available_days = '' OR available_days IS NULL`,
+	}
+	for _, m := range migrations {
+		if _, err := db.Exec(m); err != nil {
+			log.Fatalf("schema migration failed (%s): %v", m[:min(40, len(m))], err)
+		}
 	}
 
 	repo := repository.NewPostgresRepo(db)

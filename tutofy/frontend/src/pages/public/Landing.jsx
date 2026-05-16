@@ -4,39 +4,38 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usersAPI } from '../../api/users';
 import { coursesAPI } from '../../api/courses';
 
-const COLORS = ['#4c6eff', '#935bf5', '#00beb7', '#ff8032', '#22be70', '#f5447a'];
+const COLORS = ['#0d9488', '#7c3aed', '#0ea5e9', '#f59e0b', '#22c55e', '#f43f5e'];
+const SUBJECT_TILES = [
+  { mark: '∑', label: 'Math',        n: 124 },
+  { mark: '<>', label: 'Programming', n: 98  },
+  { mark: 'A', label: 'Languages',   n: 214 },
+  { mark: '⚗', label: 'Science',     n: 76  },
+  { mark: '$', label: 'Business',    n: 62  },
+  { mark: '◈', label: 'Design',      n: 45  },
+];
 
 function tutorExtras(id) {
-  const seed       = id ? id.charCodeAt(0) + (id.charCodeAt(1) || 0) : 42;
-  const rating     = parseFloat((4.5 + (seed % 5) * 0.1).toFixed(1));
-  const reviews    = 8  + (seed % 40);
-  const hourlyRate = [12, 15, 18, 20, 22, 25, 17, 14][seed % 8];
-  return { rating, reviews, hourlyRate };
+  const seed = id ? id.charCodeAt(0) + (id.charCodeAt(1) || 0) : 42;
+  return {
+    rating:    parseFloat((4.5 + (seed % 5) * 0.1).toFixed(1)),
+    reviews:   8  + (seed % 40),
+    hourlyRate:[3000,4000,5000,6000,7000,8000,5500,4500][seed % 8],
+  };
 }
 
 function avatarColor(id) { return COLORS[(id?.charCodeAt(0) || 0) % COLORS.length]; }
 
 const Stars = ({ n }) => (
-  <span className="text-[#ffa61a] text-[12px]">
+  <span style={{ color: 'var(--warning)', fontSize: 13, letterSpacing: 1 }}>
     {'★'.repeat(Math.floor(n))}{'☆'.repeat(5 - Math.floor(n))}
   </span>
 );
-
-// Subject tiles → values must match Marketplace SUBJECTS array
-const SUBJECT_TILES = [
-  { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7"><path d="M10 4v12M4 10h12" strokeLinecap="round"/></svg>, label: 'Math' },
-  { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7"><rect x="2" y="4" width="16" height="12" rx="1.5"/><path d="M6 14h8M2 12h16" strokeLinecap="round"/></svg>, label: 'Programming' },
-  { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7"><path d="M2 4a1 1 0 011-1h5a3 3 0 013 3v11a3 3 0 00-3-3H3a1 1 0 01-1-1V4zM18 4a1 1 0 00-1-1h-5a3 3 0 00-3 3v11a3 3 0 013-3h5a1 1 0 001-1V4z"/></svg>, label: 'English' },
-  { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3" strokeLinecap="round"/></svg>, label: 'Science' },
-  { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7"><rect x="2" y="5" width="16" height="12" rx="1.5"/><path d="M6 5V4a2 2 0 014 0v1M10 5V4a2 2 0 014 0v1" strokeLinecap="round"/></svg>, label: 'Business' },
-  { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-7 h-7"><circle cx="10" cy="10" r="8"/><circle cx="7" cy="8" r="1" fill="currentColor"/><circle cx="13" cy="8" r="1" fill="currentColor"/><circle cx="10" cy="13" r="1" fill="currentColor"/><circle cx="7" cy="13" r="1" fill="currentColor"/></svg>, label: 'Design' },
-];
 
 const Landing = () => {
   const { isAuthenticated, role } = useAuth();
   const navigate = useNavigate();
 
-  const [tutors, setTutors]   = useState([]);
+  const [tutors,  setTutors]  = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,357 +43,306 @@ const Landing = () => {
     Promise.all([
       usersAPI.getAllUsers().catch(() => ({})),
       coursesAPI.getAllCourses().catch(() => ({})),
-    ]).then(([usersRes, coursesRes]) => {
-      const allUsers   = usersRes?.users   || [];
-      const allCourses = coursesRes?.courses || [];
-      setTutors(allUsers.filter((u) => u.role === 'tutor'));
+    ]).then(([uRes, cRes]) => {
+      const allUsers   = uRes?.users   || [];
+      const allCourses = cRes?.courses || [];
+      setTutors(allUsers.filter(u => u.role === 'tutor'));
       setCourses(allCourses);
     }).finally(() => setLoading(false));
   }, []);
 
-  const enrichedTutors = tutors.slice(0, 6).map((t) => {
-    const myCourses = courses.filter((c) => c.tutor_id === t.id);
+  const enrichedTutors = tutors.slice(0, 6).map(t => {
+    const myCourses = courses.filter(c => c.tutor_id === t.id);
     const extras    = tutorExtras(t.id);
     const color     = avatarColor(t.id);
-    const initials  = t.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '??';
-    const subjects  = [...new Set(myCourses.map((c) => c.subject).filter(Boolean))].slice(0, 2);
-    return { ...t, myCourses, extras, color, initials, subjects };
+    const initials  = t.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
+    const subjects  = [...new Set(myCourses.map(c => c.subject).filter(Boolean))].slice(0, 2);
+    return { ...t, extras, color, initials, subjects };
   });
 
-  // Fallback cards for when the API is empty
   const fallback = [
-    { id: null, initials: 'AJ', name: 'Alice Johnson',  subjects: ['English', 'IELTS'],  color: '#4c6eff', extras: { rating: 4.9, reviews: 34, hourlyRate: 18 } },
-    { id: null, initials: 'EA', name: 'Edil Abenov',    subjects: ['Business English'],   color: '#935bf5', extras: { rating: 4.8, reviews: 21, hourlyRate: 15 } },
-    { id: null, initials: 'SW', name: 'Sara Williams',  subjects: ['Math', 'Calculus'],   color: '#00beb7', extras: { rating: 5.0, reviews: 45, hourlyRate: 20 } },
-    { id: null, initials: 'TB', name: 'Timur Bekov',    subjects: ['Python', 'React'],    color: '#ff8032', extras: { rating: 4.7, reviews: 18, hourlyRate: 22 } },
-    { id: null, initials: 'AD', name: 'Assem D.',       subjects: ['Russian', 'English'], color: '#22be70', extras: { rating: 4.9, reviews: 29, hourlyRate: 14 } },
-    { id: null, initials: 'MK', name: 'Maria Kim',      subjects: ['Design', 'UX'],       color: '#f5447a', extras: { rating: 4.8, reviews: 12, hourlyRate: 17 } },
+    { id: null, initials: 'AJ', name: 'Alice Johnson', subjects: ['English','IELTS'],   color: '#0d9488', extras: { rating: 4.9, reviews: 34, hourlyRate: 5000 } },
+    { id: null, initials: 'EA', name: 'Edil Abenov',   subjects: ['Business English'], color: '#7c3aed', extras: { rating: 4.8, reviews: 21, hourlyRate: 4000 } },
+    { id: null, initials: 'SW', name: 'Sara Williams', subjects: ['Math','Calculus'],   color: '#0ea5e9', extras: { rating: 5.0, reviews: 45, hourlyRate: 6000 } },
+    { id: null, initials: 'TB', name: 'Timur Bekov',   subjects: ['Python','React'],   color: '#f59e0b', extras: { rating: 4.7, reviews: 18, hourlyRate: 7000 } },
+    { id: null, initials: 'AD', name: 'Assem D.',      subjects: ['Russian','English'], color: '#22c55e', extras: { rating: 4.9, reviews: 29, hourlyRate: 3500 } },
+    { id: null, initials: 'MK', name: 'Maria Kim',     subjects: ['Design','UX'],      color: '#f43f5e', extras: { rating: 4.8, reviews: 12, hourlyRate: 5500 } },
   ];
 
   const displayTutors = (!loading && enrichedTutors.length > 0) ? enrichedTutors : fallback;
+  const dashLink = isAuthenticated ? (role === 'tutor' ? '/tutor/dashboard' : '/student/dashboard') : null;
 
-  const dashLink = isAuthenticated
-    ? (role === 'tutor' ? '/tutor/dashboard' : '/student/dashboard')
-    : null;
+  /* shared inner container style */
+  const section = { maxWidth: 1200, margin: '0 auto', padding: '0 40px', width: '100%' };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc] font-sans">
+    <div className="page-fade" style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* ── Navbar ── */}
-      <nav className="bg-white h-[68px] shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] sticky top-0 z-50 flex items-center">
-        <div className="max-w-[1280px] mx-auto px-10 w-full flex items-center justify-between">
-          <Link to="/" className="text-[#4c6eff] text-[22px] font-bold">Tutofy</Link>
-          <div className="flex items-center gap-8">
-            <Link to="/tutors" className="text-[#4c5162] text-[15px] hover:text-[#4c6eff] transition-colors">
-              Find Tutors
+      {/* ── Topnav ── */}
+      <header className="topnav">
+        <div className="topnav-inner">
+          {/* Logo */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
+            <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+            <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
+          </Link>
+
+          {/* Nav center */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1, justifyContent: 'center' }}>
+            <Link to="/tutors" style={{ color: 'var(--text-2)', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}
+              onMouseEnter={e => e.currentTarget.style.color='var(--accent)'}
+              onMouseLeave={e => e.currentTarget.style.color='var(--text-2)'}>
+              Find tutors
             </Link>
-            <Link to="/become-tutor" className="text-[#4c5162] text-[15px] hover:text-[#4c6eff] transition-colors">
-              Become a Tutor
+            <Link to="/become-tutor" style={{ color: 'var(--text-2)', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}
+              onMouseEnter={e => e.currentTarget.style.color='var(--accent)'}
+              onMouseLeave={e => e.currentTarget.style.color='var(--text-2)'}>
+              Become a tutor
             </Link>
+            <a style={{ color: 'var(--text-2)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>How it works</a>
+          </nav>
+
+          {/* Auth right */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {isAuthenticated ? (
-              <Link to={dashLink}
-                className="bg-[#4c6eff] text-white text-[14px] font-semibold px-5 py-2.5 rounded-[10px] hover:bg-[#3a56e0] transition-colors">
-                My Dashboard →
-              </Link>
+              <>
+                <Link to="/tutors" style={{ color: 'var(--text-2)', fontSize: 13, fontWeight: 500, textDecoration: 'none', padding: '7px 12px' }}>Find tutors</Link>
+                <Link to={dashLink} style={{ background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 'var(--r-md)', textDecoration: 'none' }}>
+                  Dashboard →
+                </Link>
+              </>
             ) : (
               <>
-                <a href="/login" target="_blank" rel="noopener noreferrer" className="text-[#4c6eff] text-[15px] font-semibold hover:opacity-80">
-                  Log in
-                </a>
-                <Link to="/register"
-                  className="bg-[#4c6eff] text-white text-[14px] font-semibold px-5 py-2.5 rounded-[10px] hover:bg-[#3a56e0] transition-colors">
-                  Get Started
+                <Link to="/login" style={{ color: 'var(--text-2)', fontSize: 13, fontWeight: 600, textDecoration: 'none', padding: '7px 12px' }}>Sign in</Link>
+                <Link to="/register" style={{ background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 'var(--r-md)', textDecoration: 'none' }}>
+                  Get started
                 </Link>
               </>
             )}
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* ── Hero ── */}
-      <section className="bg-white py-20">
-        <div className="max-w-[1280px] mx-auto px-10 text-center">
-          <div className="inline-flex items-center gap-2 bg-[rgba(76,110,255,0.08)] text-[#4c6eff] text-[13px] font-medium px-4 py-2 rounded-full mb-7">
-            Trusted by 50,000+ students worldwide
-          </div>
-          <h1 className="text-[58px] font-bold text-[#181b26] leading-[1.18] mb-6 max-w-[780px] mx-auto">
-            Find Your Perfect<br />Tutor Today
+      <section style={{ background: 'var(--surface)', padding: '80px 0 72px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ ...section, textAlign: 'center', boxSizing: 'border-box' }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'var(--accent-soft)', color: 'var(--accent)',
+            fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 99,
+            marginBottom: 28, letterSpacing: 0.02,
+          }}>
+            ⚡ New: Group classes are now live
+          </span>
+
+          <h1 style={{ fontSize: 54, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.03em', color: 'var(--text)', margin: '0 0 20px', maxWidth: 740, marginLeft: 'auto', marginRight: 'auto' }}>
+            Live 1-on-1 learning with{' '}
+            <span style={{ color: 'var(--accent)' }}>experts</span>{' '}
+            you can trust
           </h1>
-          <p className="text-[#8a90a1] text-[18px] leading-relaxed mb-10 max-w-[520px] mx-auto">
-            Learn anything with expert tutors — on your schedule, at your pace. Real results guaranteed.
+
+          <p style={{ fontSize: 18, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 40, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
+            Tutofy connects serious learners with vetted tutors across 40+ subjects. Pick a course, book a lesson, see real progress.
           </p>
 
-          <div className="flex items-center justify-center gap-4 mb-14">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 56 }}>
             <Link to="/tutors"
-              className="bg-[#4c6eff] text-white font-bold text-[17px] px-10 py-4 rounded-[14px] shadow-[0_10px_30px_-3px_rgba(76,110,255,0.4)] hover:bg-[#3a56e0] transition-all">
-              Find a Tutor →
+              style={{ background: 'var(--accent)', color: '#fff', fontSize: 16, fontWeight: 700, padding: '14px 32px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(13,148,136,0.35)', transition: 'background var(--t-fast)' }}
+              onMouseEnter={e => e.currentTarget.style.background='var(--accent-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background='var(--accent)'}>
+              Find tutor
             </Link>
             <Link to="/become-tutor"
-              className="border-[1.5px] border-[#4c6eff] text-[#4c6eff] font-semibold text-[17px] px-10 py-4 rounded-[14px] hover:bg-[rgba(76,110,255,0.06)] transition-all">
-              Become a Tutor
+              style={{ background: 'var(--surface)', color: 'var(--text-2)', fontSize: 16, fontWeight: 600, padding: '13px 32px', borderRadius: 12, textDecoration: 'none', border: '1.5px solid var(--border)', boxShadow: 'var(--shadow-xs)', transition: 'border-color var(--t-fast), box-shadow var(--t-fast)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor='var(--border-strong)'; e.currentTarget.style.boxShadow='var(--shadow-sm)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.boxShadow='var(--shadow-xs)'; }}>
+              Become tutor
             </Link>
           </div>
 
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-12">
-            {[
-              { value: '50K+', label: 'Students' },
-              { value: '2K+', label: 'Expert Tutors' },
-              { value: '98%', label: 'Satisfaction' },
-              { value: '4.9★', label: 'Avg Rating' },
-            ].map((s) => (
-              <div key={s.label} className="text-center">
-                <p className="text-[#181b26] text-[26px] font-bold leading-none mb-1">{s.value}</p>
-                <p className="text-[#8a90a1] text-[14px]">{s.label}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 48 }}>
+            {[['2,000+','Expert tutors'],['50K','Active students'],['4.9','Average rating'],['98%','Satisfaction']].map(([v,l]) => (
+              <div key={l} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', lineHeight: 1 }}>{v}</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>{l}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Popular Subjects ── */}
-      <section className="py-16 bg-[#f8f9fc]">
-        <div className="max-w-[1280px] mx-auto px-10">
-          <h2 className="text-[#181b26] text-[26px] font-bold text-center mb-10">Popular Subjects</h2>
-          <div className="grid grid-cols-6 gap-3">
-            {SUBJECT_TILES.map((subj) => (
-              <Link
-                key={subj.label}
-                to={`/tutors?subject=${encodeURIComponent(subj.label)}`}
-                className="bg-white border border-[#f0f0f5] rounded-[14px] px-4 py-5 text-center hover:border-[#4c6eff] hover:shadow-sm transition-all group"
-              >
-                <div className="flex justify-center mb-2 text-[#4c6eff]">{subj.icon}</div>
-                <p className="text-[14px] font-semibold text-[#181b26] group-hover:text-[#4c6eff] transition-colors">
-                  {subj.label}
-                </p>
+      {/* ── Popular subjects ── */}
+      <section style={{ padding: '64px 0' }}>
+        <div style={section}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+            <div>
+              <h2 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Popular subjects</h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>Browse the most-requested topics this week</p>
+            </div>
+            <Link to="/tutors" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+              All subjects →
+            </Link>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
+            {SUBJECT_TILES.map(s => (
+              <Link key={s.label} to={`/tutors?subject=${encodeURIComponent(s.label)}`}
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px 12px', textAlign: 'center', textDecoration: 'none', transition: 'border-color var(--t-base), box-shadow var(--t-base)', cursor: 'pointer' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.boxShadow='0 4px 12px rgba(13,148,136,0.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.boxShadow='none'; }}>
+                <div style={{ fontSize: 22, marginBottom: 8, color: 'var(--accent)' }}>{s.mark}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.n} tutors</div>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Top-Rated Tutors ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-[1280px] mx-auto px-10">
-          <div className="flex items-end justify-between mb-12">
+      {/* ── How it works ── */}
+      <section style={{ background: 'var(--surface)', padding: '64px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ ...section, textAlign: 'center' }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>How it works</h2>
+          <p style={{ margin: '0 0 48px', fontSize: 14, color: 'var(--muted)' }}>From signup to first lesson in under five minutes</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, maxWidth: 860, margin: '0 auto' }}>
+            {[
+              { n: '1', title: 'Find your tutor', desc: 'Filter by subject, price and availability. Read student reviews.' },
+              { n: '2', title: 'Book a trial lesson', desc: 'Pick a time that works for you. Your first 30-minute lesson is risk-free.' },
+              { n: '3', title: 'Learn and track progress', desc: 'Meet over video, get graded homework, watch your scores improve.' },
+            ].map(s => (
+              <div key={s.n} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-2xl)', padding: '28px 24px', textAlign: 'left', position: 'relative' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 800, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  {s.n}
+                </div>
+                <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{s.title}</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Top-rated tutors ── */}
+      <section style={{ padding: '64px 0' }}>
+        <div style={section}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
             <div>
-              <h2 className="text-[#181b26] text-[32px] font-bold mb-2">Top-Rated Tutors</h2>
-              <p className="text-[#8a90a1] text-[16px]">Expert tutors ready to help you succeed</p>
+              <h2 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>Top-rated tutors</h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>Hand-picked from the highest-rated profiles this month</p>
             </div>
-            <Link to="/tutors" className="text-[#4c6eff] text-[14px] font-semibold hover:underline">
-              See all tutors →
+            <Link to="/tutors" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+              Browse all →
             </Link>
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-16">
-              <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
+              <div style={{ width: 32, height: 32, border: '3px solid var(--accent-soft)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-6">
-              {displayTutors.map((tutor) => {
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+              {displayTutors.slice(0, 6).map(tutor => {
                 const { extras, color, initials, subjects } = tutor;
                 return (
                   <div key={tutor.id || tutor.name}
-                    className="bg-white border border-[#f0f0f5] rounded-[20px] p-6 hover:shadow-[0_8px_30px_0_rgba(0,0,0,0.10)] transition-all">
-
-                    {/* Header */}
-                    <div className="flex items-center gap-4 mb-4">
-                      <div
-                        className="w-14 h-14 rounded-[14px] flex items-center justify-center text-white font-bold text-[18px] flex-shrink-0"
-                        style={{ backgroundColor: color }}
-                      >
+                    className="app-card"
+                    style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 12, background: color, color: '#fff', fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {initials}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-[#181b26] font-bold text-[16px] truncate">{tutor.name}</p>
-                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                          {(subjects?.length > 0 ? subjects : ['Online Tutor']).map((s) => (
-                            <span key={s} className="text-[11px] text-[#8a90a1] bg-[#f5f6fa] px-2 py-0.5 rounded-full">
-                              {s}
-                            </span>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: 15, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tutor.name}</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                          {(subjects?.length > 0 ? subjects : ['Online Tutor']).map(s => (
+                            <span key={s} className="badge badge-gray" style={{ fontSize: 10 }}>{s}</span>
                           ))}
                         </div>
                       </div>
                     </div>
 
-                    {/* Rating */}
-                    <div className="flex items-center gap-2 mb-4">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
                       <Stars n={extras.rating} />
-                      <span className="text-[#181b26] text-[13px] font-semibold">{extras.rating}</span>
-                      <span className="text-[#8a90a1] text-[12px]">({extras.reviews} reviews)</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{extras.rating}</span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>({extras.reviews})</span>
                     </div>
 
-                    {/* Price + Action */}
-                    <div className="flex items-center justify-between">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
-                        <p className="text-[#181b26] text-[18px] font-bold leading-none">${extras.hourlyRate}<span className="text-[#8a90a1] text-[12px] font-normal">/hr</span></p>
-                        <p className="text-[#8a90a1] text-[11px]">Individual lessons</p>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{extras.hourlyRate.toLocaleString()}</span>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}> KZT / lesson</span>
                       </div>
-                      {isAuthenticated ? (
-                        <Link
-                          to={tutor.id ? `/tutors/${tutor.id}` : '/tutors'}
-                          className="text-[13px] font-semibold px-5 py-2 rounded-[10px] text-white hover:opacity-90 transition-opacity"
-                          style={{ backgroundColor: color }}
-                        >
-                          View Profile
-                        </Link>
-                      ) : (
-                        <Link
-                          to={tutor.id ? `/register?redirect=${encodeURIComponent('/tutors/' + tutor.id)}` : '/register'}
-                          className="text-[13px] font-semibold px-5 py-2 rounded-[10px] text-white hover:opacity-90 transition-opacity"
-                          style={{ backgroundColor: color }}
-                        >
-                          Book Now
-                        </Link>
-                      )}
+                      <Link
+                        to={tutor.id ? (isAuthenticated ? `/tutors/${tutor.id}` : `/register?redirect=/tutors/${tutor.id}`) : '/tutors'}
+                        style={{ background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 'var(--r-md)', textDecoration: 'none' }}>
+                        {isAuthenticated ? 'View' : 'Book trial'}
+                      </Link>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
+        </div>
+      </section>
 
-          {/* Guest CTA */}
-          {!isAuthenticated && (
-            <div className="mt-10 bg-gradient-to-r from-[#4c6eff] to-[#7a5af8] rounded-[20px] p-8 flex items-center justify-between">
-              <div>
-                <p className="text-white text-[20px] font-bold mb-1">Ready to start learning?</p>
-                <p className="text-white/75 text-[15px]">Register for free and unlock access to 2,000+ expert tutors.</p>
-              </div>
-              <Link
-                to="/register"
-                className="bg-white text-[#4c6eff] font-bold text-[15px] px-7 py-3 rounded-[12px] hover:bg-gray-50 transition-colors flex-shrink-0"
-              >
-                Sign Up Free →
-              </Link>
+      {/* ── CTA banner ── */}
+      <section style={{ padding: '64px 0' }}>
+        <div style={section}>
+          <div style={{ background: 'var(--accent)', borderRadius: 'var(--r-2xl)', padding: '48px 52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Start learning today</h2>
+              <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.75)' }}>Risk-free trial lesson. Cancel anytime.</p>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── How it Works ── */}
-      <section className="py-20 bg-[#f8f9fc]">
-        <div className="max-w-[1280px] mx-auto px-10 text-center">
-          <h2 className="text-[#181b26] text-[32px] font-bold mb-3">How Tutofy Works</h2>
-          <p className="text-[#8a90a1] text-[16px] mb-14">Start learning in three simple steps</p>
-          <div className="grid grid-cols-3 gap-8 max-w-[960px] mx-auto">
-            {[
-              {
-                step: '01',
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-7 h-7"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg>,
-                title: 'Find a Tutor',
-                desc: 'Browse top tutors by subject, availability, and price. Read reviews from real students.',
-              },
-              {
-                step: '02',
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-7 h-7"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
-                title: 'Book a Session',
-                desc: 'Schedule a 1-on-1 lesson at a time that suits you, or join a small group course.',
-              },
-              {
-                step: '03',
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-7 h-7"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-                title: 'Start Learning',
-                desc: 'Learn with a dedicated tutor and track your progress with a personal dashboard.',
-              },
-            ].map((s) => (
-              <div key={s.step} className="bg-white rounded-[20px] border border-[#f0f0f5] p-8 text-left relative">
-                <span className="absolute top-6 right-6 text-[#f0f0f5] text-[40px] font-black">{s.step}</span>
-                <div className="w-12 h-12 rounded-[12px] bg-[rgba(76,110,255,0.08)] flex items-center justify-center mb-5">
-                  {s.icon}
-                </div>
-                <h3 className="text-[#181b26] text-[18px] font-bold mb-3">{s.title}</h3>
-                <p className="text-[#8a90a1] text-[14px] leading-relaxed">{s.desc}</p>
-              </div>
-            ))}
+            <Link to="/register"
+              style={{ background: '#fff', color: 'var(--accent)', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 'var(--r-lg)', textDecoration: 'none', flexShrink: 0, transition: 'opacity var(--t-fast)' }}
+              onMouseEnter={e => e.currentTarget.style.opacity='.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity='1'}>
+              Get started →
+            </Link>
           </div>
         </div>
       </section>
-
-      {/* ── Why Tutofy ── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-[1280px] mx-auto px-10">
-          <h2 className="text-[#181b26] text-[32px] font-bold text-center mb-14">Why Choose Tutofy?</h2>
-          <div className="grid grid-cols-4 gap-6">
-            {[
-              {
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-6 h-6"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v4l3 3"/></svg>,
-                title: 'Personalised Learning',
-                desc: 'Every session is tailored to your specific goals and learning pace.',
-              },
-              {
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-6 h-6"><path d="M9 12l2 2 4-4"/><path d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>,
-                title: 'Vetted Tutors',
-                desc: 'All tutors are verified, background-checked, and student-reviewed.',
-              },
-              {
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-6 h-6"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>,
-                title: 'Flexible Pricing',
-                desc: 'Pay per session or save with group course packages.',
-              },
-              {
-                icon: <svg viewBox="0 0 24 24" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-6 h-6"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
-                title: 'Progress Tracking',
-                desc: 'Visual dashboards keep you motivated and on track.',
-              },
-            ].map((b) => (
-              <div key={b.title} className="bg-[#f8f9fc] rounded-[16px] border border-[#f0f0f5] p-6">
-                <div className="w-10 h-10 rounded-[10px] bg-[rgba(76,110,255,0.08)] flex items-center justify-center mb-4">
-                  {b.icon}
-                </div>
-                <h3 className="text-[#181b26] text-[16px] font-bold mb-2">{b.title}</h3>
-                <p className="text-[#8a90a1] text-[13px] leading-relaxed">{b.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Final CTA ── */}
-      {!isAuthenticated && (
-        <section className="py-20 bg-gradient-to-r from-[#4c6eff] to-[#7a5af8]">
-          <div className="max-w-[1280px] mx-auto px-10 text-center">
-            <h2 className="text-white text-[40px] font-bold mb-4">Start Learning Today</h2>
-            <p className="text-white/75 text-[18px] mb-10">Join 50,000+ students learning with Tutofy</p>
-            <div className="flex items-center justify-center gap-4">
-              <Link to="/register"
-                className="bg-white text-[#4c6eff] font-bold text-[17px] px-10 py-4 rounded-[14px] hover:bg-gray-50 transition-colors">
-                Get Started for Free →
-              </Link>
-              <Link to="/tutors"
-                className="border-[1.5px] border-white text-white font-semibold text-[17px] px-10 py-4 rounded-[14px] hover:bg-white/10 transition-colors">
-                Browse Tutors
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── Footer ── */}
-      <footer className="bg-[#181b26] py-14">
-        <div className="max-w-[1280px] mx-auto px-10">
-          <div className="flex items-start justify-between mb-8">
+      <footer style={{ background: 'var(--text)', padding: '52px 0 32px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ ...section, display: 'flex', flexDirection: 'column', gap: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <p className="text-white text-[22px] font-bold mb-1">Tutofy</p>
-              <p className="text-[#8a90a1] text-[14px]">Learn without limits.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <img src="/logo.svg" alt="tutofy" style={{ width: 26, height: 26, borderRadius: '50%' }} />
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>tutofy</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)', maxWidth: 240 }}>Live 1-on-1 learning with vetted experts. Built for serious learners.</p>
             </div>
-            <div className="flex gap-12">
-              <div className="flex flex-col gap-3">
-                <Link to="/tutors" className="text-[#d2d4d9] text-[14px] hover:text-white transition-colors">Find Tutors</Link>
-                <Link to="/become-tutor" className="text-[#d2d4d9] text-[14px] hover:text-white transition-colors">Become a Tutor</Link>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Link to="/login" className="text-[#d2d4d9] text-[14px] hover:text-white transition-colors">Log in</Link>
-                <Link to="/register" className="text-[#d2d4d9] text-[14px] hover:text-white transition-colors">Sign Up</Link>
-              </div>
+            <div style={{ display: 'flex', gap: 48 }}>
+              {[
+                { title: 'Product', links: [['Find tutor','/tutors'],['Become tutor','/become-tutor']] },
+                { title: 'Company', links: [['Sign in','/login'],['Create account','/register']] },
+              ].map(col => (
+                <div key={col.title}>
+                  <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{col.title}</p>
+                  {col.links.map(([label, href]) => (
+                    <div key={label} style={{ marginBottom: 8 }}>
+                      <Link to={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', textDecoration: 'none' }}
+                        onMouseEnter={e => e.target.style.color='#fff'}
+                        onMouseLeave={e => e.target.style.color='rgba(255,255,255,0.65)'}>
+                        {label}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
-          <div className="border-t border-white/10 pt-6">
-            <p className="text-[#8a90a1] text-[13px]">© 2025 Tutofy. All rights reserved.</p>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>© 2026 Tutofy. All rights reserved.</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Terms · Privacy · Cookies</p>
           </div>
         </div>
       </footer>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

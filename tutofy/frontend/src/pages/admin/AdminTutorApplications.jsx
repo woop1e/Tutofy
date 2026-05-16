@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
@@ -63,8 +63,8 @@ const AdminTutorApplications = () => {
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[#181b26] text-[22px] font-bold leading-none">Tutor Applications</h1>
-            <p className="text-[#8a90a1] text-[13px] mt-1">
+            <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Tutor Applications</h1>
+            <p className="text-[#6b6f7d] text-[13px] mt-1">
               {tutors.length} pending application{tutors.length !== 1 ? 's' : ''} awaiting review
             </p>
           </div>
@@ -80,10 +80,10 @@ const AdminTutorApplications = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or email..."
-              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#4c6eff] bg-white"
+              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#0d9488] bg-white"
             />
           </div>
-          <p className="text-[12px] text-[#8a90a1] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-[12px] text-[#6b6f7d] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
         </div>
 
         <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -91,10 +91,10 @@ const AdminTutorApplications = () => {
           <div className="flex-1 p-6 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center h-64">
-                <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-[#8a90a1]">
+              <div className="flex flex-col items-center justify-center h-64 text-[#6b6f7d]">
                 <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-12 h-12 mb-3 opacity-30">
                   <circle cx="24" cy="18" r="8"/><path d="M8 44a16 16 0 0132 0"/>
                 </svg>
@@ -109,17 +109,17 @@ const AdminTutorApplications = () => {
                     onClick={() => setSelected(selected?.id === tutor.id ? null : tutor)}
                     className={`bg-white rounded-2xl border p-5 cursor-pointer transition-all ${
                       selected?.id === tutor.id
-                        ? 'border-[#4c6eff] shadow-md'
+                        ? 'border-[#0d9488] shadow-md'
                         : 'border-[#ebebf0] hover:border-[#c8ccdd]'
                     }`}
                   >
                     <div className="flex items-start gap-4">
                       {/* Avatar */}
-                      <div className="w-12 h-12 rounded-full bg-[#4c6eff]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-12 h-12 rounded-full bg-[#0d9488]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {tutor.photo_url ? (
                           <img src={tutor.photo_url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                         ) : (
-                          <span className="text-[#4c6eff] text-[15px] font-bold">
+                          <span className="text-[#0d9488] text-[15px] font-bold">
                             {(tutor.name || '?').charAt(0).toUpperCase()}
                           </span>
                         )}
@@ -128,23 +128,23 @@ const AdminTutorApplications = () => {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-[14px] font-bold text-[#181b26]">{tutor.name || '—'}</p>
+                          <p className="text-[14px] font-bold text-[#0c0d12]">{tutor.name || '-'}</p>
                           {tutor.location && (
-                            <span className="text-[11px] text-[#8a90a1]">· {tutor.location}</span>
+                            <span className="text-[11px] text-[#6b6f7d]">· {tutor.location}</span>
                           )}
                         </div>
-                        <p className="text-[12px] text-[#8a90a1] mt-0.5">{tutor.email}</p>
+                        <p className="text-[12px] text-[#6b6f7d] mt-0.5">{tutor.email}</p>
                         {(tutor.subjects || []).length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {tutor.subjects.slice(0, 4).map((s) => (
-                              <span key={s} className="text-[10px] bg-[#4c6eff]/8 text-[#4c6eff] font-medium px-2 py-0.5 rounded-full">{s}</span>
+                              <span key={s} className="text-[10px] bg-[#0d9488]/8 text-[#0d9488] font-medium px-2 py-0.5 rounded-full">{s}</span>
                             ))}
                             {tutor.subjects.length > 4 && (
-                              <span className="text-[10px] text-[#8a90a1]">+{tutor.subjects.length - 4} more</span>
+                              <span className="text-[10px] text-[#6b6f7d]">+{tutor.subjects.length - 4} more</span>
                             )}
                           </div>
                         )}
-                        <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-[#8a90a1]">
+                        <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-[#6b6f7d]">
                           {tutor.experience_years > 0 && <span>{tutor.experience_years} yr exp</span>}
                           {tutor.lesson_type && <span>· {tutor.lesson_type}</span>}
                           {tutor.hourly_price > 0 && <span>· {tutor.hourly_price.toLocaleString()} KZT/hr</span>}
@@ -179,8 +179,8 @@ const AdminTutorApplications = () => {
           {selected && (
             <div className="w-[360px] flex-shrink-0 border-l border-[#ebebf0] bg-white overflow-y-auto p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[15px] font-bold text-[#181b26]">Application Details</h3>
-                <button onClick={() => setSelected(null)} className="text-[#8a90a1] hover:text-[#181b26]">
+                <h3 className="text-[15px] font-bold text-[#0c0d12]">Application Details</h3>
+                <button onClick={() => setSelected(null)} className="text-[#6b6f7d] hover:text-[#0c0d12]">
                   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
                     <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round"/>
                   </svg>
@@ -189,39 +189,39 @@ const AdminTutorApplications = () => {
 
               {/* Avatar + name */}
               <div className="flex flex-col items-center mb-5">
-                <div className="w-20 h-20 rounded-full bg-[#4c6eff]/10 flex items-center justify-center overflow-hidden mb-3">
+                <div className="w-20 h-20 rounded-full bg-[#0d9488]/10 flex items-center justify-center overflow-hidden mb-3">
                   {selected.photo_url ? (
                     <img src={selected.photo_url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                   ) : (
-                    <span className="text-[#4c6eff] text-[24px] font-bold">
+                    <span className="text-[#0d9488] text-[24px] font-bold">
                       {(selected.name || '?').charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
-                <p className="text-[16px] font-bold text-[#181b26]">{selected.name}</p>
-                <p className="text-[12px] text-[#8a90a1]">{selected.email}</p>
-                {selected.phone && <p className="text-[12px] text-[#8a90a1]">{selected.phone}</p>}
-                {selected.location && <p className="text-[12px] text-[#8a90a1] mt-0.5">{selected.location}</p>}
+                <p className="text-[16px] font-bold text-[#0c0d12]">{selected.name}</p>
+                <p className="text-[12px] text-[#6b6f7d]">{selected.email}</p>
+                {selected.phone && <p className="text-[12px] text-[#6b6f7d]">{selected.phone}</p>}
+                {selected.location && <p className="text-[12px] text-[#6b6f7d] mt-0.5">{selected.location}</p>}
               </div>
 
               <DetailSection title="Bio">
-                <p className="text-[12px] text-[#4c5162] leading-relaxed">{selected.bio || '—'}</p>
+                <p className="text-[12px] text-[#383a44] leading-relaxed">{selected.bio || '-'}</p>
               </DetailSection>
 
               <DetailSection title="Teaching">
-                <Row label="Subjects">{(selected.subjects || []).join(', ') || '—'}</Row>
-                <Row label="Language">{selected.teaching_language || '—'}</Row>
-                <Row label="Level">{selected.student_level || '—'}</Row>
-                <Row label="Format">{selected.lesson_type || '—'}</Row>
-                <Row label="Experience">{selected.experience_years ? `${selected.experience_years} years` : '—'}</Row>
+                <Row label="Subjects">{(selected.subjects || []).join(', ') || '-'}</Row>
+                <Row label="Language">{selected.teaching_language || '-'}</Row>
+                <Row label="Level">{selected.student_level || '-'}</Row>
+                <Row label="Format">{selected.lesson_type || '-'}</Row>
+                <Row label="Experience">{selected.experience_years ? `${selected.experience_years} years` : '-'}</Row>
               </DetailSection>
 
               <DetailSection title="Pricing">
-                <Row label="Hourly rate">{selected.hourly_price ? `${selected.hourly_price.toLocaleString()} KZT` : '—'}</Row>
+                <Row label="Hourly rate">{selected.hourly_price ? `${selected.hourly_price.toLocaleString()} KZT` : '-'}</Row>
               </DetailSection>
 
               <DetailSection title="Education">
-                <p className="text-[12px] text-[#4c5162] leading-relaxed">{selected.education || '—'}</p>
+                <p className="text-[12px] text-[#383a44] leading-relaxed">{selected.education || '-'}</p>
               </DetailSection>
 
               {(selected.certificates || []).length > 0 && (
@@ -235,13 +235,13 @@ const AdminTutorApplications = () => {
               )}
 
               <DetailSection title="Availability">
-                <Row label="Days">{(selected.available_days || []).join(', ') || '—'}</Row>
+                <Row label="Days">{(selected.available_days || []).join(', ') || '-'}</Row>
                 <Row label="Hours">
                   {selected.available_time_start && selected.available_time_end
-                    ? `${selected.available_time_start} – ${selected.available_time_end}`
-                    : '—'}
+                    ? `${selected.available_time_start} - ${selected.available_time_end}`
+                    : '-'}
                 </Row>
-                <Row label="Timezone">{selected.timezone || '—'}</Row>
+                <Row label="Timezone">{selected.timezone || '-'}</Row>
               </DetailSection>
 
               {/* Bottom actions */}
@@ -271,15 +271,15 @@ const AdminTutorApplications = () => {
 
 const DetailSection = ({ title, children }) => (
   <div className="mb-4">
-    <p className="text-[10px] font-bold text-[#8a90a1] uppercase tracking-wider mb-2">{title}</p>
+    <p className="text-[10px] font-bold text-[#6b6f7d] uppercase tracking-wider mb-2">{title}</p>
     {children}
   </div>
 );
 
 const Row = ({ label, children }) => (
   <div className="flex gap-2 mb-1">
-    <span className="text-[11px] text-[#8a90a1] w-20 flex-shrink-0">{label}</span>
-    <span className="text-[11px] text-[#4c5162] font-medium">{children}</span>
+    <span className="text-[11px] text-[#6b6f7d] w-20 flex-shrink-0">{label}</span>
+    <span className="text-[11px] text-[#383a44] font-medium">{children}</span>
   </div>
 );
 

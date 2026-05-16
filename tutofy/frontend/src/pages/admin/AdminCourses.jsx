@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
@@ -71,8 +71,8 @@ const AdminCourses = () => {
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[#181b26] text-[22px] font-bold leading-none">Courses</h1>
-            <p className="text-[#8a90a1] text-[13px] mt-1">
+            <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Courses</h1>
+            <p className="text-[#6b6f7d] text-[13px] mt-1">
               {courses.length} total · {published} published · {courses.length - published} drafts
             </p>
           </div>
@@ -87,19 +87,19 @@ const AdminCourses = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search courses..."
-              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#4c6eff] bg-white"
+              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#0d9488] bg-white"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-3 border border-[#d2d4d9] rounded-[8px] text-[13px] text-[#181b26] bg-white focus:outline-none focus:border-[#4c6eff]"
+            className="h-9 px-3 border border-[#d2d4d9] rounded-[8px] text-[13px] text-[#0c0d12] bg-white focus:outline-none focus:border-[#0d9488]"
           >
             <option value="">All Status</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
           </select>
-          <p className="text-[12px] text-[#8a90a1] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-[12px] text-[#6b6f7d] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
         </div>
 
         <div className="flex-1 p-8 overflow-y-auto">
@@ -112,18 +112,18 @@ const AdminCourses = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[#f0f0f5]">
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Course</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Tutor</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Price</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Status</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Students</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Course</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Tutor</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Price</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Status</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Students</th>
                     <th className="px-6 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-12 text-[#8a90a1] text-[13px]">No courses found</td>
+                      <td colSpan={6} className="text-center py-12 text-[#6b6f7d] text-[13px]">No courses found</td>
                     </tr>
                   ) : filtered.map((c) => {
                     const tutor = usersMap[c.tutor_id];
@@ -131,26 +131,26 @@ const AdminCourses = () => {
                       <tr key={c.id} className="border-b border-[#f8f9fc] last:border-0 hover:bg-[#f8f9fc] transition-colors">
                         <td className="px-6 py-3">
                           <div>
-                            <p className="text-[13px] font-semibold text-[#181b26] truncate max-w-[220px]">{c.title}</p>
-                            <p className="text-[11px] text-[#8a90a1] truncate max-w-[220px]">{c.description}</p>
+                            <p className="text-[13px] font-semibold text-[#0c0d12] truncate max-w-[220px]">{c.title}</p>
+                            <p className="text-[11px] text-[#6b6f7d] truncate max-w-[220px]">{c.description}</p>
                           </div>
                         </td>
                         <td className="px-6 py-3">
-                          <p className="text-[13px] text-[#4c5162]">{tutor?.name || '—'}</p>
+                          <p className="text-[13px] text-[#383a44]">{tutor?.name || '-'}</p>
                           <p className="text-[11px] text-[#b0b5c4]">{tutor?.email || ''}</p>
                         </td>
-                        <td className="px-6 py-3 text-[13px] text-[#4c5162]">
+                        <td className="px-6 py-3 text-[13px] text-[#383a44]">
                           {c.price > 0 ? `$${c.price}` : <span className="text-[#22be70] font-medium">Free</span>}
                         </td>
                         <td className="px-6 py-3">
                           <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                            c.is_published ? 'bg-[#22be70]/10 text-[#22be70]' : 'bg-[#f0f0f5] text-[#8a90a1]'
+                            c.is_published ? 'bg-[#22be70]/10 text-[#22be70]' : 'bg-[#f0f0f5] text-[#6b6f7d]'
                           }`}>
                             {c.is_published ? 'Published' : 'Draft'}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-[13px] text-[#4c5162]">
-                          {c.max_students > 0 ? `— / ${c.max_students}` : '—'}
+                        <td className="px-6 py-3 text-[13px] text-[#383a44]">
+                          {c.max_students > 0 ? `- / ${c.max_students}` : '-'}
                         </td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-3 justify-end">
@@ -158,7 +158,7 @@ const AdminCourses = () => {
                               <button
                                 onClick={() => handlePublish(c)}
                                 disabled={acting === c.id}
-                                className="text-[12px] text-[#4c6eff] hover:underline font-medium disabled:opacity-40"
+                                className="text-[12px] text-[#0d9488] hover:underline font-medium disabled:opacity-40"
                               >
                                 Publish
                               </button>
@@ -185,14 +185,14 @@ const AdminCourses = () => {
       {confirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-7 w-[420px] shadow-2xl">
-            <h3 className="text-[17px] font-bold text-[#181b26] mb-2">Delete course?</h3>
-            <p className="text-[13px] text-[#4c5162] mb-6">
+            <h3 className="text-[17px] font-bold text-[#0c0d12] mb-2">Delete course?</h3>
+            <p className="text-[13px] text-[#383a44] mb-6">
               Are you sure you want to delete <strong>"{confirm.title}"</strong>? All enrollments and lessons will be lost.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirm(null)}
-                className="flex-1 border border-[#d2d4d9] text-[#4c5162] text-[13px] font-semibold py-2.5 rounded-[10px] hover:bg-[#f8f9fc] transition-colors"
+                className="flex-1 border border-[#d2d4d9] text-[#383a44] text-[13px] font-semibold py-2.5 rounded-[10px] hover:bg-[#f8f9fc] transition-colors"
               >
                 Cancel
               </button>

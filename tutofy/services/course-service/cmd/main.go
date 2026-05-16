@@ -77,6 +77,11 @@ func main() {
 			tag_id    TEXT NOT NULL REFERENCES tags(id)    ON DELETE CASCADE,
 			PRIMARY KEY (course_id, tag_id)
 		);
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS total_lessons INT NOT NULL DEFAULT 0;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS total_weeks   INT NOT NULL DEFAULT 0;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS release_type  TEXT NOT NULL DEFAULT 'static';
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS start_date    TIMESTAMPTZ;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS end_date      TIMESTAMPTZ;
 	`); err != nil {
 		log.Fatalf("schema migration: %v", err)
 	}

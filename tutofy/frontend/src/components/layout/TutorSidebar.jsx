@@ -3,158 +3,127 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../ui/NotificationBell';
 
-const menuItems = [
+const Icon = ({ name, size = 16, active }) => {
+  const s = active ? 'var(--accent)' : 'var(--muted)';
+  const icons = {
+    home:     <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M2 8L9 2l7 6v8a1 1 0 01-1 1H3a1 1 0 01-1-1V8z" strokeLinecap="round" strokeLinejoin="round"/><rect x="6.5" y="11" width="5" height="5" rx=".5"/></svg>,
+    book:     <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M3 3a1 1 0 011-1h10a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3z"/><path d="M6 7h6M6 10h4" strokeLinecap="round"/></svg>,
+    users:    <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><circle cx="7" cy="6" r="3"/><path d="M1 16a6 6 0 0112 0"/><circle cx="14" cy="7" r="2"/><path d="M14 11a4 4 0 013 4"/></svg>,
+    grade:    <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><rect x="3" y="2" width="12" height="14" rx="1.5"/><path d="M6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    schedule: <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><rect x="2" y="3" width="14" height="13" rx="1.5"/><path d="M6 2v3M12 2v3M2 8h14" strokeLinecap="round"/></svg>,
+    message:  <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M3 3a1 1 0 011-1h10a1 1 0 011 1v8a1 1 0 01-1 1H6l-3 3V3z" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    user:     <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><circle cx="9" cy="6" r="3"/><path d="M3 16a6 6 0 0112 0"/></svg>,
+    chart:    <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M3 14V8M7 14V5M11 14v-4M15 14V7" strokeLinecap="round"/></svg>,
+    logout:   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width={14} height={14}><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    link:     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width={13} height={13}><circle cx="8" cy="5" r="3"/><path d="M2 14a6 6 0 0112 0"/></svg>,
+    plus:     <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" width={12} height={12}><path d="M7 2v10M2 7h10" strokeLinecap="round"/></svg>,
+  };
+  return icons[name] || null;
+};
+
+const SECTIONS = [
   {
-    path: '/tutor/dashboard',
-    label: 'Dashboard',
-    icon: (a) => (
-      <svg viewBox="0 0 18 18" fill="none" stroke={a ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6" className="w-[18px] h-[18px]">
-        <rect x="2" y="2" width="6" height="6" rx="1.5"/>
-        <rect x="10" y="2" width="6" height="6" rx="1.5"/>
-        <rect x="2" y="10" width="6" height="6" rx="1.5"/>
-        <rect x="10" y="10" width="6" height="6" rx="1.5"/>
-      </svg>
-    ),
+    label: 'Teach',
+    items: [
+      { path: '/tutor/dashboard', label: 'Overview',   icon: 'home' },
+      { path: '/tutor/courses',   label: 'Courses',    icon: 'book' },
+      { path: '/tutor/students',  label: 'Students',   icon: 'users' },
+      { path: '/tutor/grading',   label: 'Grading',    icon: 'grade' },
+    ],
   },
   {
-    path: '/tutor/courses',
-    label: 'My Courses',
-    icon: (a) => (
-      <svg viewBox="0 0 18 18" fill="none" stroke={a ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6" className="w-[18px] h-[18px]">
-        <path d="M3 4a1 1 0 011-1h10a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V4z"/>
-        <path d="M6 8h6M6 11h4" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
-  {
-    path: '/tutor/students',
-    label: 'Students',
-    icon: (a) => (
-      <svg viewBox="0 0 18 18" fill="none" stroke={a ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6" className="w-[18px] h-[18px]">
-        <circle cx="7" cy="6" r="3"/>
-        <path d="M1 16a6 6 0 0112 0"/>
-        <circle cx="14" cy="7" r="2"/>
-        <path d="M14 11a4 4 0 013 4"/>
-      </svg>
-    ),
-  },
-  {
-    path: '/tutor/grading',
-    label: 'Grading',
-    icon: (a) => (
-      <svg viewBox="0 0 18 18" fill="none" stroke={a ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6" className="w-[18px] h-[18px]">
-        <path d="M4 3h10a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/>
-        <path d="M6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    path: '/tutor/schedule',
     label: 'Schedule',
-    icon: (a) => (
-      <svg viewBox="0 0 18 18" fill="none" stroke={a ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6" className="w-[18px] h-[18px]">
-        <rect x="2" y="3" width="14" height="13" rx="1.5"/>
-        <path d="M6 2v3M12 2v3M2 8h14" strokeLinecap="round"/>
-      </svg>
-    ),
+    items: [
+      { path: '/tutor/schedule',  label: 'Schedule',   icon: 'schedule' },
+    ],
   },
   {
-    path: '/tutor/messages',
-    label: 'Messages',
-    icon: (a) => (
-      <svg viewBox="0 0 18 18" fill="none" stroke={a ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6" className="w-[18px] h-[18px]">
-        <path d="M3 4a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H7l-4 3V4z"/>
-      </svg>
-    ),
-  },
-  {
-    path: '/tutor/profile',
-    label: 'My Profile',
-    icon: (a) => (
-      <svg viewBox="0 0 18 18" fill="none" stroke={a ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6" className="w-[18px] h-[18px]">
-        <circle cx="9" cy="6" r="3"/>
-        <path d="M3 16a6 6 0 0112 0"/>
-      </svg>
-    ),
+    label: 'Account',
+    items: [
+      { path: '/tutor/messages',  label: 'Messages',   icon: 'message' },
+      { path: '/tutor/profile',   label: 'My Profile', icon: 'user' },
+    ],
   },
 ];
 
 const TutorSidebar = () => {
   const location = useLocation();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+    ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'T';
 
-  return (
-    <div className="w-[220px] min-h-screen bg-white border-r border-[#f0f0f5] flex flex-col flex-shrink-0">
+  const isActive = (path) =>
+    location.pathname === path ||
+    (path !== '/tutor/dashboard' && location.pathname.startsWith(path));
 
-      {/* Logo + bell */}
-      <div className="px-6 pt-6 pb-5 flex items-center justify-between">
-        <div>
-          <Link to="/" className="text-[#4c6eff] text-[20px] font-bold block leading-none">Tutofy</Link>
-          <p className="text-[#8a90a1] text-[11px] mt-1">Tutor portal</p>
-        </div>
+  return (
+    <div className="app-sidebar">
+      {/* Logo */}
+      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+          <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+          <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
+        </Link>
         <NotificationBell dark={false} />
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-        {menuItems.map((item) => {
-          const isActive =
-            location.pathname === item.path ||
-            (item.path !== '/tutor/dashboard' && location.pathname.startsWith(item.path));
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-colors text-[13px] font-medium ${
-                isActive
-                  ? 'bg-[rgba(76,110,255,0.08)] text-[#4c6eff]'
-                  : 'text-[#4c5162] hover:bg-[#f8f9fc] hover:text-[#181b26]'
-              }`}
-            >
-              <span className="flex-shrink-0">{item.icon(isActive)}</span>
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="sidebar-nav">
+        {SECTIONS.map((section) => (
+          <div key={section.label}>
+            <div className="sidebar-group-label">{section.label}</div>
+            {section.items.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`sidebar-link${active ? ' active' : ''}`}
+                >
+                  <Icon name={item.icon} active={active} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      {/* Bottom: user info + links */}
-      <div className="px-4 py-5 border-t border-[#f0f0f5]">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-[rgba(76,110,255,0.12)] flex items-center justify-center flex-shrink-0">
-            <span className="text-[#4c6eff] text-[12px] font-bold">{initials}</span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[#181b26] text-[13px] font-semibold truncate">{user?.name || 'Tutor'}</p>
-            <p className="text-[#8a90a1] text-[11px]">Tutor</p>
+      {/* User */}
+      <div className="sidebar-user">
+        <div className="sidebar-user-row">
+          <div className="sidebar-avatar">{initials}</div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Tutor'}</p>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Tutor</p>
           </div>
         </div>
 
-        {user?.user_id && (
-          <Link
-            to={`/tutors/${user.user_id}`}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-[#8a90a1] text-[12px] hover:bg-[#f8f9fc] hover:text-[#4c5162] transition-colors mb-1"
-          >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0">
-              <circle cx="8" cy="5" r="3"/>
-              <path d="M2 14a6 6 0 0112 0"/>
-            </svg>
-            My Public Profile
-          </Link>
-        )}
-
-        <button
-          onClick={() => { logout(); navigate('/login'); }}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-[#8a90a1] text-[12px] hover:bg-[#f8f9fc] hover:text-[#f24545] transition-colors"
+        <Link
+          to="/tutor/public-profile"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--muted)', textDecoration: 'none', transition: 'background var(--t-fast)', marginBottom: 2 }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0">
-            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6"/>
-          </svg>
+          <Icon name="link" />
+          Public profile
+        </Link>
+
+        <Link
+          to="/tutor/courses/new"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', background: 'var(--accent-soft)', marginBottom: 6, transition: 'background var(--t-fast)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.15)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--accent-soft)'}
+        >
+          <Icon name="plus" />
+          New course
+        </Link>
+
+        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }}>
+          <Icon name="logout" />
           Log out
         </button>
       </div>

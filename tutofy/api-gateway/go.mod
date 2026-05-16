@@ -21,6 +21,7 @@ require (
 	review-service v0.0.0
 	submission-service v0.0.0
 	user-service v0.0.0
+	certificate-service v0.0.0
 )
 
 require (
@@ -59,3 +60,5 @@ replace quiz-service => ../services/quiz-service
 replace review-service => ../services/review-service
 
 replace submission-service => ../services/submission-service
+
+replace certificate-service => ../services/certificate-service

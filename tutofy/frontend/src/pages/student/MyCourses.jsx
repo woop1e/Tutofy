@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
@@ -6,7 +6,7 @@ import { enrollmentsAPI } from '../../api/enrollments';
 import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
 
-const COLORS = ['#4c6eff', '#935bf5', '#00beb7', '#ff8032', '#22be70'];
+const COLORS = ['#0d9488', '#935bf5', '#00beb7', '#ff8032', '#22c55e'];
 
 function parseDate(val) {
   if (!val) return null;
@@ -26,23 +26,28 @@ const ProgressBar = ({ value, color }) => (
   </div>
 );
 
-const courseBadge = (progress) => {
-  if (progress >= 100) return { label: 'Completed', bg: '#edfbf4', color: '#22be70' };
-  if (progress > 0)   return { label: 'In Progress', bg: 'rgba(76,110,255,0.08)', color: '#4c6eff' };
-  return { label: 'Not Started', bg: '#f8f9fc', color: '#8a90a1' };
+const courseBadge = (progress, lessonCount, startDate) => {
+  if (progress >= 100) return { label: 'Completed',  bg: '#edfbf4',                  color: '#22c55e' };
+  if (progress > 0)    return { label: 'In Progress', bg: 'rgba(13,148,136,0.08)',    color: '#0d9488' };
+  if (startDate) {
+    const d = parseDate(startDate);
+    if (d && d > new Date()) return { label: 'Upcoming',   bg: 'rgba(147,91,245,0.08)', color: '#935bf5' };
+  }
+  if (lessonCount > 0) return { label: 'Available',  bg: 'rgba(255,128,50,0.08)',    color: '#ff8032' };
+  return                      { label: 'Not Started', bg: '#f8f9fc',                  color: '#6b6f7d' };
 };
 
 const TabBtn = ({ active, onClick, children, count }) => (
   <button
     onClick={onClick}
     className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors flex items-center gap-1.5 ${
-      active ? 'bg-[#4c6eff] text-white' : 'bg-white text-[#8a90a1] border border-[#f0f0f5] hover:text-[#181b26]'
+      active ? 'bg-[#0d9488] text-white' : 'bg-white text-[#6b6f7d] border border-[#f0f0f5] hover:text-[#0c0d12]'
     }`}
   >
     {children}
     {count > 0 && (
       <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
-        active ? 'bg-white/20 text-white' : 'bg-[#f0f0f5] text-[#8a90a1]'
+        active ? 'bg-white/20 text-white' : 'bg-[#f0f0f5] text-[#6b6f7d]'
       }`}>{count}</span>
     )}
   </button>
@@ -139,9 +144,9 @@ const MyCourses = () => {
       ? Math.round(enrolledCourses.reduce((s, e) => s + e.progress, 0) / enrolledCourses.length)
       : 0;
     return [
-      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 3v14M4 7h4M4 11h4" strokeLinecap="round"/></svg>, label: 'Courses',         value: enrolledCourses.length, color: '#4c6eff' },
+      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 3v14M4 7h4M4 11h4" strokeLinecap="round"/></svg>, label: 'Courses',         value: enrolledCourses.length, color: '#0d9488' },
       { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M10 3L2 7l8 4 8-4-8-4z"/><path d="M2 7v6M6 9.5v4a4 4 0 008 0v-4" strokeLinecap="round"/></svg>, label: 'Private Tutors',  value: privateTutors.length,   color: '#935bf5' },
-      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><circle cx="10" cy="10" r="8"/><path d="M6 10l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: 'Completed',       value: completed,               color: '#22be70' },
+      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><circle cx="10" cy="10" r="8"/><path d="M6 10l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: 'Completed',       value: completed,               color: '#22c55e' },
       { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M3 17V9M7 17V5M11 17v-6M15 17V7" strokeLinecap="round"/></svg>, label: 'Avg Progress',    value: `${avg}%`,              color: '#ff8032' },
     ];
   }, [enrolledCourses, privateTutors]);
@@ -163,11 +168,11 @@ const MyCourses = () => {
         {/* Top bar */}
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-7 justify-between flex-shrink-0">
           <div>
-            <p className="text-[#181b26] text-[17px] font-bold leading-tight">Learning</p>
-            <p className="text-[#8a90a1] text-[12px]">Manage your courses and private lessons</p>
+            <p className="text-[#0c0d12] text-[17px] font-bold leading-tight">Learning</p>
+            <p className="text-[#6b6f7d] text-[12px]">Manage your courses and private lessons</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-[rgba(76,110,255,0.12)] flex items-center justify-center">
-            <span className="text-[#4c6eff] text-[12px] font-bold">
+          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+            <span className="text-[#0d9488] text-[12px] font-bold">
               {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
             </span>
           </div>
@@ -184,8 +189,8 @@ const MyCourses = () => {
                   {s.icon}
                 </div>
                 <div>
-                  <p className="text-[#181b26] text-[22px] font-bold leading-none">{s.value}</p>
-                  <p className="text-[#8a90a1] text-[11px] mt-1">{s.label}</p>
+                  <p className="text-[#0c0d12] text-[22px] font-bold leading-none">{s.value}</p>
+                  <p className="text-[#6b6f7d] text-[11px] mt-1">{s.label}</p>
                 </div>
               </div>
             ))}
@@ -201,20 +206,20 @@ const MyCourses = () => {
 
           {loading ? (
             <div className="flex items-center justify-center py-24">
-              <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : !hasAny ? (
             <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-14 text-center">
               <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-4">
                 <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-8 h-8"><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 3v14M4 7h4M4 11h4" strokeLinecap="round"/></svg>
               </div>
-              <p className="text-[#181b26] text-[17px] font-bold mb-2">Start learning today</p>
-              <p className="text-[#8a90a1] text-[14px] mb-6">
+              <p className="text-[#0c0d12] text-[17px] font-bold mb-2">Start learning today</p>
+              <p className="text-[#6b6f7d] text-[14px] mb-6">
                 Enroll in a course or book a private lesson to begin your learning journey.
               </p>
               <Link to="/tutors"
-                className="inline-block bg-[#4c6eff] text-white font-semibold text-[14px] px-6 py-3 rounded-[10px] hover:bg-[#3a56e0] transition-colors">
-                Find a Tutor →
+                className="inline-block bg-[#0d9488] text-white font-semibold text-[14px] px-6 py-3 rounded-[10px] hover:bg-[#0f766e] transition-colors">
+                Find a Tutor ←'
               </Link>
             </div>
           ) : (
@@ -225,9 +230,9 @@ const MyCourses = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {displayItems.courses.map(enr => {
                     const { color, course, progress } = enr;
-                    const badge      = courseBadge(progress);
-                    const title      = course?.title || 'Course';
                     const count      = lessonCounts[enr.course_id] || 0;
+                    const badge      = courseBadge(progress, count, course?.start_date);
+                    const title      = course?.title || 'Course';
                     const firstId    = firstLessons[enr.course_id];
                     const href       = firstId
                       ? `/student/courses/${enr.course_id}/lessons/${firstId}`
@@ -235,7 +240,7 @@ const MyCourses = () => {
 
                     return (
                       <div key={enr.id || enr.course_id}
-                        className="bg-white rounded-[16px] border border-[#f0f0f5] p-5 hover:border-[#4c6eff]/30 hover:shadow-[0_4px_20px_0_rgba(76,110,255,0.08)] transition-all">
+                        className="bg-white rounded-[16px] border border-[#f0f0f5] p-5 hover:border-[#0d9488]/30 hover:shadow-[0_4px_20px_0_rgba(13,148,136,0.08)] transition-all">
                         <div className="flex items-start gap-4 mb-4">
                           <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0 text-white font-bold text-[16px]"
                             style={{ backgroundColor: color }}>
@@ -243,9 +248,9 @@ const MyCourses = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-1">
-                              <h3 className="text-[#181b26] text-[14px] font-bold truncate">{title}</h3>
+                              <h3 className="text-[#0c0d12] text-[14px] font-bold truncate">{title}</h3>
                               <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(76,110,255,0.08)] text-[#4c6eff]">
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(13,148,136,0.08)] text-[#0d9488]">
                                   Group
                                 </span>
                                 <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
@@ -254,7 +259,7 @@ const MyCourses = () => {
                                 </span>
                               </div>
                             </div>
-                            <p className="text-[#8a90a1] text-[12px]">
+                            <p className="text-[#6b6f7d] text-[12px]">
                               {count > 0 ? `${count} lesson${count !== 1 ? 's' : ''}` : 'No lessons yet'}
                               {course?.tutor_name ? ` · ${course.tutor_name}` : ''}
                             </p>
@@ -263,14 +268,14 @@ const MyCourses = () => {
 
                         <div className="mb-4">
                           <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[#8a90a1] text-[12px]">Progress</span>
+                            <span className="text-[#6b6f7d] text-[12px]">Progress</span>
                             <span className="text-[12px] font-semibold" style={{ color }}>{progress}%</span>
                           </div>
                           <ProgressBar value={progress} color={color} />
                         </div>
 
                         <div className="flex items-center justify-between">
-                          <p className="text-[#8a90a1] text-[12px] truncate pr-3">
+                          <p className="text-[#6b6f7d] text-[12px] truncate pr-3">
                             {course?.description
                               ? course.description.slice(0, 50) + (course.description.length > 50 ? '…' : '')
                               : 'Continue your learning journey'}
@@ -291,7 +296,7 @@ const MyCourses = () => {
               {tab === 'all' && displayItems.courses.length > 0 && displayItems.tutors.length > 0 && (
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#f0f0f5]" />
-                  <span className="text-[12px] text-[#8a90a1] font-medium px-2">Private Lessons</span>
+                  <span className="text-[12px] text-[#6b6f7d] font-medium px-2">Private Lessons</span>
                   <div className="h-px flex-1 bg-[#f0f0f5]" />
                 </div>
               )}
@@ -323,12 +328,12 @@ const MyCourses = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-1">
-                              <h3 className="text-[#181b26] text-[14px] font-bold truncate">Private Tutoring</h3>
+                              <h3 className="text-[#0c0d12] text-[14px] font-bold truncate">Private Tutoring</h3>
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(147,91,245,0.1)] text-[#935bf5] flex-shrink-0">
                                 Private
                               </span>
                             </div>
-                            <p className="text-[#8a90a1] text-[12px]">
+                            <p className="text-[#6b6f7d] text-[12px]">
                               {count} session{count !== 1 ? 's' : ''} booked
                             </p>
                           </div>
@@ -344,9 +349,9 @@ const MyCourses = () => {
                             const isDone   = lesson.status === 2 || lesson.status === 'completed';
                             const isCxl    = lesson.status === 3 || lesson.status === 'cancelled';
 
-                            const statusCfg = isDone ? { label: 'Completed', bg: 'rgba(34,190,112,0.1)',   fg: '#22be70' }
-                              : isCxl        ? { label: 'Cancelled',  bg: 'rgba(242,69,69,0.1)',   fg: '#f24545' }
-                              : hasLink      ? { label: 'Link ready', bg: 'rgba(34,190,112,0.1)',   fg: '#22be70' }
+                            const statusCfg = isDone ? { label: 'Completed', bg: 'rgba(34,190,112,0.1)',   fg: '#22c55e' }
+                              : isCxl        ? { label: 'Cancelled',  bg: 'rgba(242,69,69,0.1)',   fg: '#ef4444' }
+                              : hasLink      ? { label: 'Link ready', bg: 'rgba(34,190,112,0.1)',   fg: '#22c55e' }
                               : isPast       ? { label: 'Pending link',bg: 'rgba(255,128,50,0.1)', fg: '#ff8032' }
                               :                { label: 'Pending link',bg: 'rgba(255,128,50,0.1)', fg: '#ff8032' };
 
@@ -355,8 +360,8 @@ const MyCourses = () => {
                                 className="flex items-center gap-3 px-3 py-2.5 rounded-[10px]"
                                 style={{ backgroundColor: 'rgba(147,91,245,0.04)', border: '1px solid rgba(147,91,245,0.1)' }}>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[13px] font-semibold text-[#181b26] truncate">{lesson.title || 'Private lesson'}</p>
-                                  <p className="text-[11px] text-[#8a90a1] mt-0.5">
+                                  <p className="text-[13px] font-semibold text-[#0c0d12] truncate">{lesson.title || 'Private lesson'}</p>
+                                  <p className="text-[11px] text-[#6b6f7d] mt-0.5">
                                     {d
                                       ? `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
                                       : 'Time not set'}
@@ -371,7 +376,7 @@ const MyCourses = () => {
                                   {hasLink && (isNow || !isPast) && !isDone && !isCxl && (
                                     <a href={lesson.video_link} target="_blank" rel="noopener noreferrer"
                                       className="text-[11px] font-semibold px-2.5 py-1 rounded-[7px] border transition-colors"
-                                      style={{ borderColor: '#22be70', color: '#22be70' }}>
+                                      style={{ borderColor: '#22c55e', color: '#22c55e' }}>
                                       Join
                                     </a>
                                   )}
@@ -380,7 +385,7 @@ const MyCourses = () => {
                             );
                           })}
                           {sortedLessons.length > 3 && (
-                            <p className="text-[11px] text-[#8a90a1] text-center pt-1">
+                            <p className="text-[11px] text-[#6b6f7d] text-center pt-1">
                               +{sortedLessons.length - 3} more session{sortedLessons.length - 3 !== 1 ? 's' : ''}
                             </p>
                           )}
@@ -388,13 +393,13 @@ const MyCourses = () => {
 
                         <div className="flex gap-2">
                           <Link to="/student/messages"
-                            className="flex-1 text-center text-[12px] font-semibold px-3 py-1.5 rounded-[8px] border border-[#f0f0f5] text-[#4c5162] hover:border-[#4c6eff] hover:text-[#4c6eff] transition-colors">
+                            className="flex-1 text-center text-[12px] font-semibold px-3 py-1.5 rounded-[8px] border border-[#f0f0f5] text-[#383a44] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors">
                             Message
                           </Link>
                           <Link to="/tutors"
                             className="flex-1 text-center text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors"
                             style={{ backgroundColor: 'rgba(147,91,245,0.08)', color }}>
-                            Book lesson →
+                            Book lesson ←'
                           </Link>
                         </div>
                       </div>
@@ -406,14 +411,14 @@ const MyCourses = () => {
               {/* Empty state for specific tab */}
               {displayItems.courses.length === 0 && displayItems.tutors.length === 0 && (
                 <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-12 text-center">
-                  <p className="text-[#8a90a1] text-[14px] mb-4">
-                    {tab === 'completed' ? 'No completed courses yet — keep going!'
+                  <p className="text-[#6b6f7d] text-[14px] mb-4">
+                    {tab === 'completed' ? 'No completed courses yet - keep going!'
                       : tab === 'private' ? 'No private lessons booked yet.'
                       : 'Nothing here yet.'}
                   </p>
                   {tab !== 'completed' && (
-                    <Link to="/tutors" className="text-[#4c6eff] text-[13px] font-semibold hover:underline">
-                      Find a tutor →
+                    <Link to="/tutors" className="text-[#0d9488] text-[13px] font-semibold hover:underline">
+                      Find a tutor ←'
                     </Link>
                   )}
                 </div>
@@ -423,14 +428,14 @@ const MyCourses = () => {
 
           {/* CTA banner */}
           {!loading && hasAny && (
-            <div className="bg-gradient-to-r from-[#4c6eff] to-[#7a5af8] rounded-[20px] p-6 flex items-center justify-between flex-wrap gap-4">
+            <div className="bg-gradient-to-r from-[#0d9488] to-[#7a5af8] rounded-[20px] p-6 flex items-center justify-between flex-wrap gap-4">
               <div>
                 <p className="text-white text-[16px] font-bold mb-1">Want to learn more?</p>
                 <p className="text-white/75 text-[13px]">Browse our marketplace and find your next tutor or course.</p>
               </div>
               <Link to="/tutors"
-                className="bg-white text-[#4c6eff] font-bold text-[13px] px-5 py-2.5 rounded-[10px] hover:bg-gray-50 transition-colors flex-shrink-0">
-                Find a Tutor →
+                className="bg-white text-[#0d9488] font-bold text-[13px] px-5 py-2.5 rounded-[10px] hover:bg-gray-50 transition-colors flex-shrink-0">
+                Find a Tutor ←'
               </Link>
             </div>
           )}

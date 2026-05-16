@@ -36,8 +36,10 @@ import TutorSchedule from '../pages/tutor/TutorSchedule';
 import CourseAttendance from '../pages/tutor/CourseAttendance';
 import StudentProfile from '../pages/tutor/StudentProfile';
 import CreateQuiz from '../pages/tutor/CreateQuiz';
+import TutorPublicProfile from '../pages/tutor/TutorPublicProfile';
 import PaymentPage from '../pages/student/PaymentPage';
 import QuizAttempt from '../pages/student/QuizAttempt';
+import Certificates from '../pages/student/Certificates';
 
 const s = (el) => <ProtectedRoute role="student">{el}</ProtectedRoute>;
 const t = (el) => <ProtectedRoute role="tutor">{el}</ProtectedRoute>;
@@ -63,6 +65,7 @@ const router = createBrowserRouter([
   { path: '/student/schedule',                       element: s(<StudentDashboard />) },
   { path: '/student/messages',                       element: s(<Messages />) },
   { path: '/student/progress',                       element: s(<Progress />) },
+  { path: '/student/certificates',                   element: s(<Certificates />) },
 
   { path: '/tutor/dashboard',                        element: t(<TutorDashboard />) },
   { path: '/tutor/profile',                          element: t(<TutorProfileSetup />) },
@@ -80,6 +83,7 @@ const router = createBrowserRouter([
   { path: '/tutor/grading',                          element: t(<TutorGrading />) },
   { path: '/tutor/schedule',                          element: t(<TutorSchedule />) },
   { path: '/tutor/history',                          element: t(<TutorDashboard />) },
+  { path: '/tutor/public-profile',                   element: t(<TutorPublicProfile />) },
 
   { path: '/admin/dashboard',  element: a(<AdminDashboard />) },
   { path: '/admin/users',      element: a(<AdminUsers />) },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
@@ -12,8 +12,8 @@ const StatCard = ({ label, value, sub, color, icon }) => (
       {icon}
     </div>
     <div>
-      <p className="text-[28px] font-bold text-[#181b26] leading-none">{value ?? '—'}</p>
-      <p className="text-[13px] text-[#8a90a1] mt-1">{label}</p>
+      <p className="text-[28px] font-bold text-[#0c0d12] leading-none">{value ?? '-'}</p>
+      <p className="text-[13px] text-[#6b6f7d] mt-1">{label}</p>
       {sub && <p className="text-[11px] text-[#b0b5c4] mt-0.5">{sub}</p>}
     </div>
   </div>
@@ -56,8 +56,8 @@ const AdminDashboard = () => {
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[#181b26] text-[22px] font-bold leading-none">Dashboard</h1>
-            <p className="text-[#8a90a1] text-[13px] mt-1">Platform overview</p>
+            <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Dashboard</h1>
+            <p className="text-[#6b6f7d] text-[13px] mt-1">Platform overview</p>
           </div>
         </div>
 
@@ -73,8 +73,8 @@ const AdminDashboard = () => {
                 <StatCard
                   label="Total Users"
                   value={users.length}
-                  color="bg-[#4c6eff]/10"
-                  icon={<svg viewBox="0 0 20 20" fill="none" stroke="#4c6eff" strokeWidth="1.5" className="w-6 h-6"><circle cx="8" cy="7" r="3"/><path d="M2 18a6 6 0 0112 0"/><circle cx="15" cy="8" r="2"/><path d="M15 12a4 4 0 013 5"/></svg>}
+                  color="bg-[#0d9488]/10"
+                  icon={<svg viewBox="0 0 20 20" fill="none" stroke="#0d9488" strokeWidth="1.5" className="w-6 h-6"><circle cx="8" cy="7" r="3"/><path d="M2 18a6 6 0 0112 0"/><circle cx="15" cy="8" r="2"/><path d="M15 12a4 4 0 013 5"/></svg>}
                 />
                 <StatCard
                   label="Tutors"
@@ -102,22 +102,22 @@ const AdminDashboard = () => {
                 {/* Recent users */}
                 <div className="bg-white rounded-2xl border border-[#ebebf0] overflow-hidden">
                   <div className="px-6 py-4 border-b border-[#f0f0f5] flex items-center justify-between">
-                    <h2 className="text-[15px] font-bold text-[#181b26]">Recent Users</h2>
-                    <button onClick={() => navigate('/admin/users')} className="text-[12px] text-[#4c6eff] hover:underline">View all</button>
+                    <h2 className="text-[15px] font-bold text-[#0c0d12]">Recent Users</h2>
+                    <button onClick={() => navigate('/admin/users')} className="text-[12px] text-[#0d9488] hover:underline">View all</button>
                   </div>
                   <div>
                     {recentUsers.length === 0 ? (
-                      <p className="text-[#8a90a1] text-[13px] text-center py-8">No users yet</p>
+                      <p className="text-[#6b6f7d] text-[13px] text-center py-8">No users yet</p>
                     ) : recentUsers.map((u) => (
                       <div key={u.id} className="flex items-center gap-3 px-6 py-3 border-b border-[#f8f9fc] last:border-0 hover:bg-[#f8f9fc] transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-[#4c6eff]/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#4c6eff] text-[11px] font-bold">
+                        <div className="w-8 h-8 rounded-full bg-[#0d9488]/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[#0d9488] text-[11px] font-bold">
                             {(u.name || '?').charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-medium text-[#181b26] truncate">{u.name || 'Unknown'}</p>
-                          <p className="text-[11px] text-[#8a90a1] truncate">{u.email}</p>
+                          <p className="text-[13px] font-medium text-[#0c0d12] truncate">{u.name || 'Unknown'}</p>
+                          <p className="text-[11px] text-[#6b6f7d] truncate">{u.email}</p>
                         </div>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                           u.role === 'tutor'
@@ -136,12 +136,12 @@ const AdminDashboard = () => {
                 {/* Recent courses */}
                 <div className="bg-white rounded-2xl border border-[#ebebf0] overflow-hidden">
                   <div className="px-6 py-4 border-b border-[#f0f0f5] flex items-center justify-between">
-                    <h2 className="text-[15px] font-bold text-[#181b26]">Recent Courses</h2>
-                    <button onClick={() => navigate('/admin/courses')} className="text-[12px] text-[#4c6eff] hover:underline">View all</button>
+                    <h2 className="text-[15px] font-bold text-[#0c0d12]">Recent Courses</h2>
+                    <button onClick={() => navigate('/admin/courses')} className="text-[12px] text-[#0d9488] hover:underline">View all</button>
                   </div>
                   <div>
                     {recentCourses.length === 0 ? (
-                      <p className="text-[#8a90a1] text-[13px] text-center py-8">No courses yet</p>
+                      <p className="text-[#6b6f7d] text-[13px] text-center py-8">No courses yet</p>
                     ) : recentCourses.map((c) => (
                       <div key={c.id} className="flex items-center gap-3 px-6 py-3 border-b border-[#f8f9fc] last:border-0 hover:bg-[#f8f9fc] transition-colors">
                         <div className="w-8 h-8 rounded-[8px] bg-[#ff8032]/10 flex items-center justify-center flex-shrink-0">
@@ -150,11 +150,11 @@ const AdminDashboard = () => {
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-medium text-[#181b26] truncate">{c.title}</p>
-                          <p className="text-[11px] text-[#8a90a1]">{c.price > 0 ? `$${c.price}` : 'Free'}</p>
+                          <p className="text-[13px] font-medium text-[#0c0d12] truncate">{c.title}</p>
+                          <p className="text-[11px] text-[#6b6f7d]">{c.price > 0 ? `$${c.price}` : 'Free'}</p>
                         </div>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          c.is_published ? 'bg-[#22be70]/10 text-[#22be70]' : 'bg-[#f0f0f5] text-[#8a90a1]'
+                          c.is_published ? 'bg-[#22be70]/10 text-[#22be70]' : 'bg-[#f0f0f5] text-[#6b6f7d]'
                         }`}>
                           {c.is_published ? 'Published' : 'Draft'}
                         </span>

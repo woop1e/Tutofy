@@ -23,6 +23,7 @@ import (
 	"submission-service/proto/submissionpb"
 	"quiz-service/proto/quizpb"
 	"review-service/proto/reviewpb"
+	"certificate-service/proto/certificatepb"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -55,6 +56,7 @@ func main() {
 	submissionConn   := dial(cfg.SubmissionServiceAddr)
 	quizConn         := dial(cfg.QuizServiceAddr)
 	reviewConn       := dial(cfg.ReviewServiceAddr)
+	certificateConn  := dial(cfg.CertificateServiceAddr)
 
 	// Build handlers.
 	ah  := handler.NewAuthHandler(authpb.NewAuthServiceClient(authConn), userpb.NewUserServiceClient(userConn))
@@ -66,7 +68,7 @@ func main() {
 	ash := handler.NewAssignmentHandler(assignmentpb.NewAssignmentServiceClient(assignmentConn))
 	gh  := handler.NewGradingHandler(gradingpb.NewGradingServiceClient(gradingConn))
 	nh  := handler.NewNotificationHandler(notificationpb.NewNotificationServiceClient(notificationConn))
-	ph  := handler.NewProgressHandler(progresspb.NewProgressServiceClient(progressConn))
+	ph  := handler.NewProgressHandler(progresspb.NewProgressServiceClient(progressConn), coursepb.NewCourseServiceClient(courseConn))
 	pyh := handler.NewPaymentHandler(paymentpb.NewPaymentServiceClient(paymentConn))
 	msh := handler.NewMessagingHandler(
 		messagingpb.NewMessagingServiceClient(messagingConn),
@@ -78,6 +80,8 @@ func main() {
 	mdh := handler.NewMediaHandler(mediapb.NewMediaServiceClient(mediaConn))
 	sbh := handler.NewSubmissionHandler(submissionpb.NewSubmissionServiceClient(submissionConn))
 	qzh := handler.NewQuizHandler(quizpb.NewQuizServiceClient(quizConn))
+	rvh := handler.NewReviewHandler(reviewpb.NewReviewServiceClient(reviewConn))
+	cfh := handler.NewCertificateHandler(certificatepb.NewCertificateServiceClient(certificateConn))
 	sph := handler.NewStudentProfileHandler(
 		userpb.NewUserServiceClient(userConn),
 		coursepb.NewCourseServiceClient(courseConn),
@@ -163,6 +167,7 @@ func main() {
 	// Progress
 	mux.HandleFunc("GET /progress/{student_id}/{course_id}", ph.GetProgress)
 	mux.HandleFunc("GET /courses/{id}/progress",             ph.GetCourseProgress)
+	mux.HandleFunc("POST /lessons/{id}/complete",            ph.MarkLessonComplete)
 
 	// Payments
 	mux.HandleFunc("POST /payments",                 pyh.CreatePayment)
@@ -186,6 +191,16 @@ func main() {
 	mux.HandleFunc("POST /media/upload",            mdh.UploadFile)
 	mux.HandleFunc("GET /media/{id}/download",      mdh.GetDownloadURL)
 	mux.HandleFunc("DELETE /media/{id}",            mdh.DeleteFile)
+
+	// Certificates
+	mux.HandleFunc("POST /certificates",                          cfh.IssueCertificate)
+	mux.HandleFunc("GET /users/{id}/certificates",                cfh.GetUserCertificates)
+	mux.HandleFunc("GET /certificates/{student_id}/{course_id}",  cfh.GetCertificate)
+
+	// Reviews
+	mux.HandleFunc("POST /reviews",             rvh.CreateReview)
+	mux.HandleFunc("GET /courses/{id}/reviews", rvh.GetCourseReviews)
+	mux.HandleFunc("GET /courses/{id}/rating",  rvh.GetCourseRating)
 
 	// Submissions
 	mux.HandleFunc("POST /submissions",                           sbh.SubmitAssignment)

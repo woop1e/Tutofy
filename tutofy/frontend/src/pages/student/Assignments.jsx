@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
@@ -12,15 +12,15 @@ function formatDeadline(dateStr) {
   const d = new Date(dateStr);
   const now = new Date();
   const diff = d - now;
-  if (diff < 0) return { label: 'Overdue', color: '#f24545', bg: '#fff0f0' };
+  if (diff < 0) return { label: 'Overdue', color: '#ef4444', bg: '#fff0f0' };
   if (diff < 86400000) return { label: 'Due today', color: '#ff8032', bg: '#fff5ee' };
   if (diff < 3 * 86400000) return { label: `Due ${d.toLocaleDateString('en-GB', { weekday: 'short' })}`, color: '#ffa61a', bg: '#fffbf0' };
-  return { label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), color: '#8a90a1', bg: '#f8f9fc' };
+  return { label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), color: '#6b6f7d', bg: '#f8f9fc' };
 }
 
 const isPastDeadline = (dateStr) => dateStr && new Date(dateStr) < new Date();
 
-const COLORS = ['#4c6eff', '#935bf5', '#00beb7', '#ff8032', '#22be70'];
+const COLORS = ['#0d9488', '#935bf5', '#00beb7', '#ff8032', '#22c55e'];
 
 const Assignments = () => {
   const { user } = useAuth();
@@ -28,14 +28,14 @@ const Assignments = () => {
 
   const [assignments, setAssignments]   = useState([]);
   const [courseMap, setCourseMap]       = useState({});
-  const [submissions, setSubmissions]   = useState({});   // assignmentId → submission
+  const [submissions, setSubmissions]   = useState({});   // assignmentId ←' submission
   const [loading, setLoading]           = useState(true);
   const [filter, setFilter]             = useState('pending');
   const [submitting, setSubmitting]     = useState(null);
   const [textInput, setTextInput]       = useState({});
-  const [fileInput, setFileInput]       = useState({});   // assignmentId → File
+  const [fileInput, setFileInput]       = useState({});   // assignmentId ←' File
   const [uploadErr, setUploadErr]       = useState({});
-  const [editing, setEditing]           = useState({});   // assignmentId → bool
+  const [editing, setEditing]           = useState({});   // assignmentId ←' bool
   const fileRefs = useRef({});
 
   useEffect(() => {
@@ -93,10 +93,10 @@ const Assignments = () => {
     const overdue   = assignments.filter((a) => !submissions[a.id] && isPastDeadline(a.due_date)).length;
     const graded    = assignments.filter((a) => submissions[a.id]?.status === 'graded').length;
     return [
-      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><rect x="4" y="2" width="12" height="16" rx="1.5"/><path d="M7 2h6v3H7z"/><path d="M7 9h6M7 12h6M7 15h4" strokeLinecap="round"/></svg>, label: 'Total',     value: total,     color: '#4c6eff' },
+      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><rect x="4" y="2" width="12" height="16" rx="1.5"/><path d="M7 2h6v3H7z"/><path d="M7 9h6M7 12h6M7 15h4" strokeLinecap="round"/></svg>, label: 'Total',     value: total,     color: '#0d9488' },
       { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path d="M10 3v10M6 9l4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 17h12" strokeLinecap="round"/></svg>, label: 'Submitted', value: submitted, color: '#935bf5' },
-      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><circle cx="10" cy="10" r="8"/><path d="M6 10l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: 'Graded',    value: graded,    color: '#22be70' },
-      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><circle cx="10" cy="10" r="8"/><path d="M10 6v4M10 14h.01" strokeLinecap="round"/></svg>, label: 'Overdue',   value: overdue,   color: '#f24545' },
+      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><circle cx="10" cy="10" r="8"/><path d="M6 10l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: 'Graded',    value: graded,    color: '#22c55e' },
+      { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><circle cx="10" cy="10" r="8"/><path d="M10 6v4M10 14h.01" strokeLinecap="round"/></svg>, label: 'Overdue',   value: overdue,   color: '#ef4444' },
     ];
   }, [assignments, submissions]);
 
@@ -160,11 +160,11 @@ const Assignments = () => {
         {/* Top Bar */}
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-7 justify-between flex-shrink-0">
           <div>
-            <p className="text-[#181b26] text-[17px] font-bold leading-tight">Homework</p>
-            <p className="text-[#8a90a1] text-[12px]">Assignments from your tutors</p>
+            <p className="text-[#0c0d12] text-[17px] font-bold leading-tight">Homework</p>
+            <p className="text-[#6b6f7d] text-[12px]">Assignments from your tutors</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-[rgba(76,110,255,0.12)] flex items-center justify-center">
-            <span className="text-[#4c6eff] text-[12px] font-bold">
+          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+            <span className="text-[#0d9488] text-[12px] font-bold">
               {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
             </span>
           </div>
@@ -181,8 +181,8 @@ const Assignments = () => {
                   {s.icon}
                 </div>
                 <div>
-                  <p className="text-[#181b26] text-[22px] font-bold leading-none">{s.value}</p>
-                  <p className="text-[#8a90a1] text-[11px] mt-1">{s.label}</p>
+                  <p className="text-[#0c0d12] text-[22px] font-bold leading-none">{s.value}</p>
+                  <p className="text-[#6b6f7d] text-[11px] mt-1">{s.label}</p>
                 </div>
               </div>
             ))}
@@ -199,8 +199,8 @@ const Assignments = () => {
               <button key={tab.key} onClick={() => setFilter(tab.key)}
                 className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
                   filter === tab.key
-                    ? 'bg-[#4c6eff] text-white'
-                    : 'bg-white text-[#8a90a1] border border-[#f0f0f5] hover:text-[#181b26]'
+                    ? 'bg-[#0d9488] text-white'
+                    : 'bg-white text-[#6b6f7d] border border-[#f0f0f5] hover:text-[#0c0d12]'
                 }`}>
                 {tab.label}
               </button>
@@ -209,17 +209,17 @@ const Assignments = () => {
 
           {loading ? (
             <div className="flex items-center justify-center py-24">
-              <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-14 text-center">
               <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-4">
                 <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-8 h-8"><circle cx="10" cy="10" r="8"/><path d="M6 10l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <p className="text-[#181b26] text-[17px] font-bold mb-2">
+              <p className="text-[#0c0d12] text-[17px] font-bold mb-2">
                 {filter === 'pending' ? 'All caught up!' : 'No assignments here'}
               </p>
-              <p className="text-[#8a90a1] text-[14px]">
+              <p className="text-[#6b6f7d] text-[14px]">
                 {filter === 'pending' ? 'No pending assignments. Great work!' : 'Switch filter to see other assignments.'}
               </p>
             </div>
@@ -228,7 +228,7 @@ const Assignments = () => {
               {filtered.map((a) => {
                 const deadline  = formatDeadline(a.due_date);
                 const course    = courseMap[a.courseId] || {};
-                const color     = course.color || '#4c6eff';
+                const color     = course.color || '#0d9488';
                 const initial   = (course.title || 'C')[0].toUpperCase();
                 const sub       = submissions[a.id];
                 const isSubmitted = !!sub;
@@ -246,11 +246,11 @@ const Assignments = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3 mb-1">
-                          <h3 className="text-[#181b26] text-[14px] font-bold">{a.title}</h3>
+                          <h3 className="text-[#0c0d12] text-[14px] font-bold">{a.title}</h3>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {isSubmitted && (
-                              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[rgba(76,110,255,0.08)] text-[#4c6eff]">
-                                ✓ Submitted
+                              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[rgba(13,148,136,0.08)] text-[#0d9488]">
+                                âœ" Submitted
                               </span>
                             )}
                             {deadline && !isSubmitted && (
@@ -262,30 +262,30 @@ const Assignments = () => {
                           </div>
                         </div>
 
-                        <p className="text-[#8a90a1] text-[12px] mb-1">{course.title || `Course ${a.courseId}`}</p>
+                        <p className="text-[#6b6f7d] text-[12px] mb-1">{course.title || `Course ${a.courseId}`}</p>
 
                         {a.description && (
-                          <p className="text-[#4c5162] text-[13px] mt-2 leading-relaxed">{a.description}</p>
+                          <p className="text-[#383a44] text-[13px] mt-2 leading-relaxed">{a.description}</p>
                         )}
                         {a.max_score && (
-                          <p className="text-[#8a90a1] text-[12px] mt-1">Max score: {a.max_score} pts</p>
+                          <p className="text-[#6b6f7d] text-[12px] mt-1">Max score: {a.max_score} pts</p>
                         )}
 
-                        {/* Already submitted — show content + edit button */}
+                        {/* Already submitted - show content + edit button */}
                         {isSubmitted && !isEditing && (
                           <div className="mt-3">
                             {sub.content && (
-                              <div className="bg-[#f8f9fc] rounded-[10px] px-4 py-3 text-[13px] text-[#4c5162] leading-relaxed">
+                              <div className="bg-[var(--bg)] rounded-[10px] px-4 py-3 text-[13px] text-[#383a44] leading-relaxed">
                                 {sub.content}
                               </div>
                             )}
                             {sub.file_id && (
-                              <p className="text-[#4c6eff] text-[12px] mt-1 font-medium">📎 File attached</p>
+                              <p className="text-[#0d9488] text-[12px] mt-1 font-medium">ðŸ"Ž File attached</p>
                             )}
                             {canEdit && (
                               <button onClick={() => startEdit(a.id)}
-                                className="mt-2 text-[12px] text-[#4c6eff] font-semibold hover:underline">
-                                Edit submission →
+                                className="mt-2 text-[12px] text-[#0d9488] font-semibold hover:underline">
+                                Edit submission ←'
                               </button>
                             )}
                           </div>
@@ -305,7 +305,7 @@ const Assignments = () => {
                               value={textInput[a.id] || ''}
                               onChange={(e) => setTextInput((p) => ({ ...p, [a.id]: e.target.value }))}
                               placeholder="Write your answer or paste a link to your work..."
-                              className="w-full border border-[#f0f0f5] rounded-[10px] px-4 py-3 text-[13px] text-[#181b26] placeholder-[#8a90a1] outline-none focus:border-[#4c6eff] resize-none transition-colors"
+                              className="w-full border border-[#f0f0f5] rounded-[10px] px-4 py-3 text-[13px] text-[#0c0d12] placeholder-[#8a90a1] outline-none focus:border-[#0d9488] resize-none transition-colors"
                             />
 
                             {/* File upload */}
@@ -321,10 +321,10 @@ const Assignments = () => {
                                 };
                                 inp.click();
                               }}
-                              className="flex items-center gap-2 border border-dashed border-[#d5d8e3] rounded-[10px] px-4 py-2.5 cursor-pointer hover:border-[#4c6eff] hover:bg-[#f5f6ff] transition-colors"
+                              className="flex items-center gap-2 border border-dashed border-[#d5d8e3] rounded-[10px] px-4 py-2.5 cursor-pointer hover:border-[#0d9488] hover:bg-[#f5f6ff] transition-colors"
                             >
-                              <span className="text-[16px]">📎</span>
-                              <span className="text-[13px] text-[#8a90a1]">
+                              <span className="text-[16px]">ðŸ"Ž</span>
+                              <span className="text-[13px] text-[#6b6f7d]">
                                 {file ? file.name : 'Attach a file (optional)'}
                               </span>
                               {file && (
@@ -340,18 +340,18 @@ const Assignments = () => {
                             <div className="flex gap-2">
                               {isEditing && (
                                 <button onClick={() => setEditing((p) => ({ ...p, [a.id]: false }))}
-                                  className="px-4 py-2 rounded-[10px] border border-[#f0f0f5] text-[13px] text-[#8a90a1] hover:bg-[#f8f9fc]">
+                                  className="px-4 py-2 rounded-[10px] border border-[#f0f0f5] text-[13px] text-[#6b6f7d] hover:bg-[var(--bg)]">
                                   Cancel
                                 </button>
                               )}
                               <button
                                 onClick={() => handleSubmit(a.id, a.courseId)}
                                 disabled={(!textInput[a.id]?.trim() && !file) || submitting === a.id}
-                                className="bg-[#4c6eff] text-white text-[13px] font-semibold px-5 py-2 rounded-[10px] hover:bg-[#3a56e0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="bg-[#0d9488] text-white text-[13px] font-semibold px-5 py-2 rounded-[10px] hover:bg-[#0f766e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {submitting === a.id
                                   ? 'Submitting...'
-                                  : isEditing ? 'Update →' : 'Submit →'}
+                                  : isEditing ? 'Update ←' : 'Submit ←'}
                               </button>
                             </div>
                           </div>

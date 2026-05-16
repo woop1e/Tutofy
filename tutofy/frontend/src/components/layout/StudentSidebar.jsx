@@ -3,41 +3,63 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { coursesAPI } from '../../api/courses';
-import NotificationBell from '../ui/NotificationBell';
 
-const NAV_BOTTOM = [
-  { path: '/student/assignments', label: 'Homework', icon: active => (
-    <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px]" stroke={active ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6">
-      <rect x="4" y="2" width="12" height="16" rx="2"/><path d="M7 7h6M7 10h6M7 13h4"/>
-    </svg>
-  )},
-  { path: '/student/messages', label: 'Messages', icon: active => (
-    <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px]" stroke={active ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6">
-      <path d="M3 4h14a1 1 0 011 1v8a1 1 0 01-1 1H6l-4 3V5a1 1 0 011-1z"/>
-    </svg>
-  )},
-  { path: '/student/progress', label: 'Progress', icon: active => (
-    <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px]" stroke={active ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6">
-      <path d="M3 15l4-5 3 3 4-6 3 3"/>
-    </svg>
-  )},
+const COLORS = ['#0d9488', '#7c3aed', '#0ea5e9', '#f59e0b', '#22c55e', '#f43f5e'];
+
+const Icon = ({ name, size = 16, active }) => {
+  const s = active ? 'var(--accent)' : 'var(--muted)';
+  const icons = {
+    home:       <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M2 8L9 2l7 6v8a1 1 0 01-1 1H3a1 1 0 01-1-1V8z" strokeLinecap="round" strokeLinejoin="round"/><rect x="6.5" y="11" width="5" height="5" rx=".5"/></svg>,
+    book:       <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M3 3a1 1 0 011-1h10a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V3z"/><path d="M6 7h6M6 10h4" strokeLinecap="round"/></svg>,
+    clipboard:  <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><rect x="4" y="2" width="10" height="14" rx="1.5"/><path d="M6 6h6M6 9h6M6 12h4" strokeLinecap="round"/></svg>,
+    chart:      <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M3 14V8M7 14V5M11 14v-4M15 14V7" strokeLinecap="round"/></svg>,
+    award:      <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><circle cx="9" cy="8" r="5"/><path d="M6 13l-1 4 4-2 4 2-1-4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    message:    <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><path d="M3 3a1 1 0 011-1h10a1 1 0 011 1v8a1 1 0 01-1 1H6l-3 3V3z" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    schedule:   <svg viewBox="0 0 18 18" fill="none" stroke={s} strokeWidth="1.6" width={size} height={size}><rect x="2" y="3" width="14" height="13" rx="1.5"/><path d="M6 2v3M12 2v3M2 8h14" strokeLinecap="round"/></svg>,
+    chevron:    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width={10} height={10}><path d="M2 4l4 4 4-4"/></svg>,
+    logout:     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width={14} height={14}><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+    search:     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width={13} height={13}><circle cx="7" cy="7" r="4.5"/><path d="M12 12l-2-2" strokeLinecap="round"/></svg>,
+  };
+  return icons[name] || null;
+};
+
+const SECTIONS = [
+  {
+    label: 'Learn',
+    items: [
+      { path: '/student/dashboard',    label: 'Overview',      icon: 'home' },
+      { path: '/student/courses',      label: 'My Courses',    icon: 'book', expandable: true },
+      { path: '/student/assignments',  label: 'Homework',      icon: 'clipboard' },
+      { path: '/student/schedule',     label: 'Schedule',      icon: 'schedule' },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { path: '/student/progress',     label: 'Progress',      icon: 'chart' },
+      { path: '/student/certificates', label: 'Certificates',  icon: 'award' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { path: '/student/messages',     label: 'Messages',      icon: 'message' },
+    ],
+  },
 ];
-
-const COLORS = ['#4c6eff', '#935bf5', '#00beb7', '#ff8032', '#22be70', '#f24545'];
 
 const StudentSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const [courses,     setCourses]     = useState([]);
-  const [open,        setOpen]        = useState(false);
-  const [loaded,      setLoaded]      = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [open, setOpen]       = useState(false);
+  const [loaded, setLoaded]   = useState(false);
 
   const onCoursesSection = location.pathname.startsWith('/student/courses');
   const activeCourseId   = (() => {
     const parts = location.pathname.split('/').filter(Boolean);
-    // /student/courses/:id  → parts = ['student','courses',':id',...]
     return parts[1] === 'courses' && parts[2] ? parts[2] : null;
   })();
 
@@ -64,120 +86,113 @@ const StudentSidebar = () => {
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'S';
 
-  const navLink = ({ path, label, icon }) => {
-    const active = location.pathname === path ||
-      (path !== '/student/dashboard' && location.pathname.startsWith(path));
-    return (
-      <Link key={path} to={path}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-colors text-[13px] font-medium ${
-          active ? 'bg-[rgba(76,110,255,0.08)] text-[#4c6eff]' : 'text-[#4c5162] hover:bg-[#f8f9fc] hover:text-[#181b26]'
-        }`}>
-        <span className="flex-shrink-0">{icon(active)}</span>
-        {label}
-      </Link>
-    );
-  };
+  const isActive = (path) =>
+    location.pathname === path ||
+    (path !== '/student/dashboard' && location.pathname.startsWith(path));
 
   return (
-    <div className="w-[220px] min-h-screen bg-white border-r border-[#f0f0f5] flex flex-col flex-shrink-0">
+    <div className="app-sidebar">
       {/* Logo */}
-      <div className="px-6 pt-6 pb-5">
-        <Link to="/" className="text-[#4c6eff] text-[20px] font-bold block leading-none">Tutofy</Link>
-        <p className="text-[#8a90a1] text-[11px] mt-1">Student portal</p>
+      <div className="sidebar-logo">
+        <Link to="/">
+          <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+          <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
+        </Link>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-
-        {/* Dashboard */}
-        {(() => {
-          const active = location.pathname === '/student/dashboard';
-          return (
-            <Link to="/student/dashboard"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-colors text-[13px] font-medium ${
-                active ? 'bg-[rgba(76,110,255,0.08)] text-[#4c6eff]' : 'text-[#4c5162] hover:bg-[#f8f9fc] hover:text-[#181b26]'
-              }`}>
-              <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px]" stroke={active ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6">
-                <rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/>
-                <rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/>
-              </svg>
-              Dashboard
-            </Link>
-          );
-        })()}
-
-        {/* My Courses — expandable */}
-        <div>
-          <div className={`flex items-center rounded-[10px] transition-colors ${
-            onCoursesSection ? 'bg-[rgba(76,110,255,0.08)]' : 'hover:bg-[#f8f9fc]'
-          }`}>
-            <Link to="/student/courses"
-              className={`flex items-center gap-3 px-3 py-2.5 flex-1 min-w-0 text-[13px] font-medium ${
-                onCoursesSection ? 'text-[#4c6eff]' : 'text-[#4c5162]'
-              }`}>
-              <span className="flex-shrink-0">
-                <svg viewBox="0 0 20 20" fill="none" className="w-[18px] h-[18px]"
-                  stroke={onCoursesSection ? '#4c6eff' : '#8a90a1'} strokeWidth="1.6">
-                  <path d="M3 5h14M3 10h14M3 15h8"/>
-                  <rect x="12" y="12" width="6" height="6" rx="1" fill={onCoursesSection ? '#4c6eff' : 'none'}/>
-                </svg>
-              </span>
-              Learning
-            </Link>
-            <button onClick={() => setOpen(o => !o)}
-              className="w-8 h-8 flex items-center justify-center text-[#8a90a1] hover:text-[#4c6eff] transition-colors flex-shrink-0 mr-1">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"
-                className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
-                <path d="M2 4l4 4 4-4"/>
-              </svg>
-            </button>
-          </div>
-
-          {open && (
-            <div className="mt-0.5 mb-0.5 space-y-px">
-              {courses.length === 0 ? (
-                <p className="text-[11px] text-[#b0b5c4] pl-10 py-1.5">No enrolled courses</p>
-              ) : courses.map(c => {
-                const active = activeCourseId === c.courseId;
+      <nav className="sidebar-nav">
+        {SECTIONS.map((section) => (
+          <div key={section.label}>
+            <div className="sidebar-group-label">{section.label}</div>
+            {section.items.map((item) => {
+              const active = isActive(item.path);
+              if (item.expandable) {
                 return (
-                  <Link key={c.courseId} to={`/student/courses/${c.courseId}`}
-                    className={`flex items-center gap-2.5 pl-9 pr-3 py-2 rounded-[8px] text-[12px] font-medium transition-colors ${
-                      active
-                        ? 'bg-[rgba(76,110,255,0.06)] text-[#4c6eff]'
-                        : 'text-[#4c5162] hover:bg-[#f8f9fc] hover:text-[#181b26]'
-                    }`}>
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: active ? '#4c6eff' : c.color }} />
-                    <span className="truncate">{c.title}</span>
-                  </Link>
+                  <div key={item.path}>
+                    <div style={{ display: 'flex', alignItems: 'center', borderRadius: 'var(--r-md)', background: onCoursesSection ? 'var(--surface-hover)' : 'transparent' }}>
+                      <Link
+                        to={item.path}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, padding: '8px 12px', fontSize: 13, fontWeight: onCoursesSection ? 600 : 500, color: onCoursesSection ? 'var(--accent)' : 'var(--text-2)', textDecoration: 'none' }}
+                      >
+                        <Icon name={item.icon} active={onCoursesSection} />
+                        {item.label}
+                      </Link>
+                      <button
+                        onClick={() => setOpen(o => !o)}
+                        style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', marginRight: 4, transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform var(--t-fast)' }}
+                      >
+                        <Icon name="chevron" />
+                      </button>
+                    </div>
+                    {open && (
+                      <div style={{ marginTop: 2, marginBottom: 2 }}>
+                        {courses.length === 0 ? (
+                          <p style={{ fontSize: 11, color: 'var(--muted)', paddingLeft: 38, paddingTop: 6, paddingBottom: 6 }}>No enrolled courses</p>
+                        ) : courses.map(c => {
+                          const courseActive = activeCourseId === c.courseId;
+                          return (
+                            <Link
+                              key={c.courseId}
+                              to={`/student/courses/${c.courseId}`}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                paddingLeft: 36, paddingRight: 12, paddingTop: 7, paddingBottom: 7,
+                                borderRadius: 'var(--r-sm)',
+                                fontSize: 12, fontWeight: courseActive ? 600 : 500,
+                                color: courseActive ? 'var(--accent)' : 'var(--text-2)',
+                                background: courseActive ? 'rgba(13,148,136,0.06)' : 'transparent',
+                                textDecoration: 'none',
+                                transition: 'background var(--t-fast), color var(--t-fast)',
+                              }}
+                            >
+                              <div style={{ width: 7, height: 7, borderRadius: '50%', background: courseActive ? 'var(--accent)' : c.color, flexShrink: 0 }} />
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Other nav items */}
-        {NAV_BOTTOM.map(item => navLink(item))}
+              }
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`sidebar-link${active ? ' active' : ''}`}
+                >
+                  <Icon name={item.icon} active={active} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      {/* User + Logout */}
-      <div className="px-4 py-5 border-t border-[#f0f0f5]">
-        <div className="flex items-center justify-between mb-3">
-          <NotificationBell dark={false} />
-        </div>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-[rgba(76,110,255,0.12)] flex items-center justify-center flex-shrink-0">
-            <span className="text-[#4c6eff] text-[12px] font-bold">{initials}</span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[#181b26] text-[13px] font-semibold truncate">{user?.name || 'Student'}</p>
-            <p className="text-[#8a90a1] text-[11px]">Student</p>
+      {/* User */}
+      <div className="sidebar-user">
+        <div className="sidebar-user-row">
+          <div className="sidebar-avatar">{initials}</div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Student'}</p>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Student</p>
           </div>
         </div>
-        <button onClick={() => { logout(); navigate('/login'); }}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-[#8a90a1] text-[12px] hover:bg-[#f8f9fc] hover:text-[#f24545] transition-colors">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
-            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6"/>
-          </svg>
+
+        <Link
+          to="/marketplace"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--muted)', textDecoration: 'none', transition: 'background var(--t-fast)', marginBottom: 2 }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        >
+          <Icon name="search" />
+          Find tutors
+        </Link>
+
+        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }}>
+          <Icon name="logout" />
           Log out
         </button>
       </div>

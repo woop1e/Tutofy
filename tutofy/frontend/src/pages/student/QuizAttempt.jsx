@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+﻿﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
@@ -111,24 +111,24 @@ const QuizAttempt = () => {
     }
   };
 
-  // ── derived ────────────────────────────────────────────────────────────────
+  // â"€â"€ derived â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const maxAttempts   = quiz?.max_attempts ?? 0;
   const deadline      = quiz?.deadline ? new Date(quiz.deadline) : null;
   const deadlinePassed = deadline && new Date() > deadline;
   const noAttemptsLeft = maxAttempts > 0 && attemptsUsed >= maxAttempts;
   const canStart      = !deadlinePassed && !noAttemptsLeft;
 
-  // ── Loading ────────────────────────────────────────────────────────────────
+  // â"€â"€ Loading â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   if (loading) return (
     <div className="flex min-h-screen bg-[#f3f4f7]">
       <StudentSidebar />
       <div className="flex-1 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
       </div>
     </div>
   );
 
-  // ── Result screen ──────────────────────────────────────────────────────────
+  // â"€â"€ Result screen â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const pct = result ? (result.percentage ?? 0) : 0;
 
   return (
@@ -140,7 +140,7 @@ const QuizAttempt = () => {
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-6 gap-3 flex-shrink-0">
           <button
             onClick={() => navigate(`/student/courses/${courseId}`)}
-            className="text-[#8a90a1] text-[13px] hover:text-[#181b26] transition-colors flex items-center gap-1"
+            className="text-[#6b6f7d] text-[13px] hover:text-[#0c0d12] transition-colors flex items-center gap-1"
           >
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
               <path d="M10 13L5 8l5-5"/>
@@ -148,14 +148,14 @@ const QuizAttempt = () => {
             Back to course
           </button>
           <div className="w-px h-4 bg-[#e8eaef]" />
-          <p className="text-[#181b26] text-[14px] font-semibold truncate">{quiz?.title || 'Quiz'}</p>
+          <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{quiz?.title || 'Quiz'}</p>
 
           {/* Live timer in topbar during quiz */}
           {attemptId && !result && timeLeft !== null && (
             <div className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] font-mono text-[13px] font-semibold border ${
               timeLeft <= 60
                 ? 'bg-[rgba(242,69,69,0.08)] text-[#f24545] border-[#f24545]/25'
-                : 'bg-[#f0f0f5] text-[#181b26] border-[#e8eaef]'
+                : 'bg-[#f0f0f5] text-[#0c0d12] border-[#e8eaef]'
             }`}>
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                 <circle cx="8" cy="8" r="6"/>
@@ -168,7 +168,7 @@ const QuizAttempt = () => {
 
         <div className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full">
 
-          {/* ── Result screen ── */}
+          {/* â"€â"€ Result screen â"€â"€ */}
           {result && (
             <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-10 text-center">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
@@ -184,8 +184,8 @@ const QuizAttempt = () => {
                   </svg>
                 )}
               </div>
-              <p className="text-[#181b26] text-[28px] font-bold mb-1">{Math.round(pct)}%</p>
-              <p className="text-[#8a90a1] text-[14px] mb-2">
+              <p className="text-[#0c0d12] text-[28px] font-bold mb-1">{Math.round(pct)}%</p>
+              <p className="text-[#6b6f7d] text-[14px] mb-2">
                 {result.score ?? 0} / {result.total ?? 0} correct
               </p>
               <p className={`text-[15px] font-semibold mb-6 ${pct >= 70 ? 'text-[#22be70]' : 'text-[#f24545]'}`}>
@@ -193,14 +193,14 @@ const QuizAttempt = () => {
               </p>
               <button
                 onClick={() => navigate(`/student/courses/${courseId}`)}
-                className="bg-[#4c6eff] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:bg-[#3a56e0] transition-colors"
+                className="bg-[#0d9488] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:bg-[#0f766e] transition-colors"
               >
                 Back to Course
               </button>
             </div>
           )}
 
-          {/* ── Pre-start screen ── */}
+          {/* â"€â"€ Pre-start screen â"€â"€ */}
           {!result && !attemptId && (
             <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-10 text-center">
               <div className="w-16 h-16 rounded-[16px] bg-[rgba(147,91,245,0.1)] flex items-center justify-center mx-auto mb-4">
@@ -210,8 +210,8 @@ const QuizAttempt = () => {
                   <circle cx="12" cy="17" r="0.5" fill="#935bf5"/>
                 </svg>
               </div>
-              <h1 className="text-[#181b26] text-[22px] font-bold mb-2">{quiz?.title}</h1>
-              <p className="text-[#8a90a1] text-[14px] mb-5">
+              <h1 className="text-[#0c0d12] text-[22px] font-bold mb-2">{quiz?.title}</h1>
+              <p className="text-[#6b6f7d] text-[14px] mb-5">
                 {questions.length} question{questions.length !== 1 ? 's' : ''}
               </p>
 
@@ -219,7 +219,7 @@ const QuizAttempt = () => {
               {(quiz?.time_limit_minutes > 0 || maxAttempts > 0 || deadline) && (
                 <div className="flex flex-wrap justify-center gap-2 mb-6">
                   {quiz?.time_limit_minutes > 0 && (
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[rgba(76,110,255,0.08)] text-[#4c6eff] text-[12px] font-medium border border-[#4c6eff]/20">
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[rgba(13,148,136,0.08)] text-[#0d9488] text-[12px] font-medium border border-[#0d9488]/20">
                       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                         <circle cx="8" cy="8" r="6"/>
                         <path d="M8 5v3.5l2 1.5" strokeLinecap="round"/>
@@ -231,7 +231,7 @@ const QuizAttempt = () => {
                     <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border ${
                       noAttemptsLeft
                         ? 'bg-[rgba(242,69,69,0.08)] text-[#f24545] border-[#f24545]/25'
-                        : 'bg-[#f5f6fa] text-[#4c5162] border-[#e8eaef]'
+                        : 'bg-[#f5f6fa] text-[#383a44] border-[#e8eaef]'
                     }`}>
                       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                         <path d="M3 8c0-2.76 2.24-5 5-5s5 2.24 5 5-2.24 5-5 5" strokeLinecap="round"/>
@@ -240,7 +240,7 @@ const QuizAttempt = () => {
                       {attemptsUsed} / {maxAttempts} attempts used
                     </span>
                   ) : attemptsUsed > 0 ? (
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f5f6fa] text-[#4c5162] text-[12px] font-medium border border-[#e8eaef]">
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f5f6fa] text-[#383a44] text-[12px] font-medium border border-[#e8eaef]">
                       {attemptsUsed} attempt{attemptsUsed !== 1 ? 's' : ''} taken · unlimited
                     </span>
                   ) : null}
@@ -248,7 +248,7 @@ const QuizAttempt = () => {
                     <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border ${
                       deadlinePassed
                         ? 'bg-[rgba(242,69,69,0.08)] text-[#f24545] border-[#f24545]/25'
-                        : 'bg-[#f5f6fa] text-[#4c5162] border-[#e8eaef]'
+                        : 'bg-[#f5f6fa] text-[#383a44] border-[#e8eaef]'
                     }`}>
                       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                         <rect x="2" y="3" width="12" height="11" rx="2"/>
@@ -285,19 +285,19 @@ const QuizAttempt = () => {
             </div>
           )}
 
-          {/* ── Quiz in progress ── */}
+          {/* â"€â"€ Quiz in progress â"€â"€ */}
           {!result && attemptId && (
             <div className="space-y-4">
               <div className="bg-white rounded-[16px] border border-[#f0f0f5] px-6 py-4 flex items-center justify-between">
-                <h1 className="text-[#181b26] text-[17px] font-bold">{quiz?.title}</h1>
-                <span className="text-[#8a90a1] text-[13px]">
+                <h1 className="text-[#0c0d12] text-[17px] font-bold">{quiz?.title}</h1>
+                <span className="text-[#6b6f7d] text-[13px]">
                   {Object.keys(answers).length} / {questions.length} answered
                 </span>
               </div>
 
               {questions.map((q, qi) => (
                 <div key={q.id} className="bg-white rounded-[16px] border border-[#f0f0f5] p-6">
-                  <p className="text-[#181b26] text-[14px] font-semibold mb-4">
+                  <p className="text-[#0c0d12] text-[14px] font-semibold mb-4">
                     <span className="text-[#935bf5] mr-2">{qi + 1}.</span>
                     {q.text}
                   </p>
@@ -311,7 +311,7 @@ const QuizAttempt = () => {
                           className={`w-full text-left px-4 py-3 rounded-[10px] border-2 text-[13px] transition-all ${
                             isSelected
                               ? 'border-[#935bf5] bg-[rgba(147,91,245,0.06)] text-[#935bf5] font-semibold'
-                              : 'border-[#e8eaef] text-[#181b26] hover:border-[#935bf5]/40 hover:bg-[rgba(147,91,245,0.02)]'
+                              : 'border-[#e8eaef] text-[#0c0d12] hover:border-[#935bf5]/40 hover:bg-[rgba(147,91,245,0.02)]'
                           }`}
                         >
                           {opt.text}
@@ -325,7 +325,7 @@ const QuizAttempt = () => {
               {error && <p className="text-[#f24545] text-[13px]">{error}</p>}
 
               <div className="flex items-center justify-between pt-2 pb-6">
-                <p className="text-[#8a90a1] text-[13px]">
+                <p className="text-[#6b6f7d] text-[13px]">
                   {questions.length - Object.keys(answers).length} question{questions.length - Object.keys(answers).length !== 1 ? 's' : ''} remaining
                 </p>
                 <button

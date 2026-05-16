@@ -34,8 +34,11 @@ func (h *CourseHandler) CreateCourse(ctx context.Context, req *coursepb.CreateCo
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	course, err := h.svc.CreateCourse(ctx, callerID, callerRole, req.GetTitle(), req.GetDescription(), req.GetPrice(),
-		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline())
+	course, err := h.svc.CreateCourse(ctx, callerID, callerRole,
+		req.GetTitle(), req.GetDescription(), req.GetPrice(),
+		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline(),
+		req.GetTotalLessons(), req.GetTotalWeeks(), req.GetReleaseType(),
+		req.GetStartDate(), req.GetEndDate())
 	if err != nil {
 		if errors.Is(err, service.ErrNotTutor) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -89,7 +92,9 @@ func (h *CourseHandler) UpdateCourse(ctx context.Context, req *coursepb.UpdateCo
 	callerRole := middleware.RoleFromContext(ctx)
 
 	course, err := h.svc.UpdateCourse(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetDescription(),
-		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline())
+		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline(),
+		req.GetTotalLessons(), req.GetTotalWeeks(), req.GetReleaseType(),
+		req.GetStartDate(), req.GetEndDate())
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			return nil, status.Error(codes.PermissionDenied, "forbidden")
@@ -149,6 +154,11 @@ func toProto(c *model.Course) *coursepb.CourseResponse {
 		MaxStudents:        c.MaxStudents,
 		EnrollmentDeadline: c.EnrollmentDeadline,
 		IsPublished:        c.IsPublished,
+		TotalLessons:       c.TotalLessons,
+		TotalWeeks:         c.TotalWeeks,
+		ReleaseType:        c.ReleaseType,
+		StartDate:          c.StartDate,
+		EndDate:            c.EndDate,
 	}
 }
 

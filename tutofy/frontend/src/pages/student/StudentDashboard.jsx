@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
@@ -8,7 +8,7 @@ import { assignmentsAPI } from '../../api/assignments';
 import { lessonsAPI } from '../../api/lessons';
 import { notificationsAPI } from '../../api/notifications';
 
-const COLORS = ['#4c6eff', '#935bf5', '#00beb7', '#ff8032', '#22be70'];
+const COLORS = ['#0d9488', '#7c3aed', '#0ea5e9', '#f59e0b', '#22c55e'];
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function getWeek() {
@@ -47,8 +47,8 @@ const TabBtn = ({ active, onClick, children }) => (
   <button onClick={onClick}
     className="px-3 py-1 rounded-[8px] text-[12px] font-medium transition-colors"
     style={active
-      ? { backgroundColor: 'rgba(76,110,255,0.1)', color: '#4c6eff' }
-      : { color: '#8a90a1' }}>
+      ? { backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }
+      : { color: 'var(--muted)' }}>
     {children}
   </button>
 );
@@ -61,7 +61,7 @@ const ProgressBar = ({ value, color }) => (
 
 const CircleIcon = ({ done, color }) => (
   <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-    style={done ? { backgroundColor: color || '#22be70' } : { border: '2px solid #d2d4d9' }}>
+    style={done ? { backgroundColor: color || '#22c55e' } : { border: '2px solid #d2d4d9' }}>
     {done && (
       <svg viewBox="0 0 10 8" fill="none" className="w-2.5 h-2.5">
         <path d="M1 4l2.5 2.5L9 1" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -70,7 +70,7 @@ const CircleIcon = ({ done, color }) => (
   </div>
 );
 
-/* ═══════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const StudentDashboard = () => {
   const { user } = useAuth();
   const userId = user?.user_id;
@@ -104,7 +104,7 @@ const StudentDashboard = () => {
         const notifs      = notifsRes?.notifications || (Array.isArray(notifsRes) ? notifsRes : []);
         setUnreadCount(notifs.filter(n => !n.is_read).length);
 
-        // Individual (private) lessons — no course_id
+        // Individual (private) lessons - no course_id
         const allStudentLessons = privateRes?.lessons || (Array.isArray(privateRes) ? privateRes : []);
         setPrivateLessons(allStudentLessons.filter(l => !l.course_id && !l.courseId));
 
@@ -179,10 +179,11 @@ const StudentDashboard = () => {
         title:     lesson.title || 'Online lesson',
         sub:       `${enr?.course?.title || 'Course'} · ${lesson.duration_minutes || 60} min`,
         status:    isToday(date) ? 'today' : 'upcoming',
-        color:     enr?.color || '#4c6eff',
+        color:     enr?.color || '#0d9488',
         id:        `lesson-${lesson.id}`,
         courseId:  cid,
         videoLink: lesson.video_link,
+        duration:  lesson.duration_minutes || 60,
       });
     });
 
@@ -200,7 +201,8 @@ const StudentDashboard = () => {
         id:          `private-${lesson.id}`,
         videoLink:   lesson.video_link,
         hasLink:     !!(lesson.video_link),
-        lessonStatus: lesson.status, // 1=planned,2=completed,3=cancelled
+        lessonStatus: lesson.status,
+        duration:    lesson.duration_minutes || 60,
       });
     });
 
@@ -263,70 +265,68 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <StudentSidebar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 32, height: 32, border: '3px solid var(--accent-soft)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <StudentSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
         {/* Top bar */}
-        <div className="bg-white border-b border-[#ebebf0] h-[64px] flex items-center px-7 justify-between flex-shrink-0">
+        <div className="app-topbar">
           <div>
-            <p className="text-[#181b26] text-[20px] leading-tight" style={{ fontWeight: 500 }}>
+            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em' }}>
               {greeting}, {firstName}!
-            </p>
-            <p className="text-[#8a90a1] text-[12px] mt-0.5">{todayStr}</p>
+            </h1>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{todayStr}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <button className="w-9 h-9 rounded-full bg-[#f5f6fa] flex items-center justify-center hover:bg-[#ebebf0] transition-colors">
-                <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.6" className="w-5 h-5">
+          <div className="topbar-right">
+            <div style={{ position: 'relative' }}>
+              <button style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--surface-hover)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <svg viewBox="0 0 20 20" fill="none" stroke="var(--muted)" strokeWidth="1.6" width={18} height={18}>
                   <path d="M10 2a6 6 0 016 6c0 3.5 1.5 5 1.5 5h-15S4 11.5 4 8a6 6 0 016-6zM8.5 17a1.5 1.5 0 003 0" />
                 </svg>
               </button>
               {unreadCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-[#f24545] rounded-full border-2 border-white text-white text-[8px] font-bold flex items-center justify-center">
+                <span style={{ position: 'absolute', top: 1, right: 1, width: 14, height: 14, background: 'var(--danger)', borderRadius: '50%', border: '2px solid var(--surface)', color: '#fff', fontSize: 8, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {unreadCount > 9 ? '9' : unreadCount}
                 </span>
               )}
             </div>
-            <div className="w-9 h-9 rounded-full bg-[rgba(76,110,255,0.12)] flex items-center justify-center">
-              <span className="text-[#4c6eff] text-[12px] font-bold">{initials}</span>
-            </div>
+            <div className="sidebar-avatar">{initials}</div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 space-y-5 overflow-y-auto">
+        <div className="page-fade" style={{ flex: 1, padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto' }}>
 
           {/* Start learning banner */}
           {noLearning && (
-            <div className="flex items-center justify-between px-5 py-4 rounded-[14px]"
-              style={{ background: 'linear-gradient(90deg, #4c6eff 0%, #935bf5 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderRadius: 'var(--r-xl)', background: 'var(--accent)', gap: 16 }}>
               <div>
-                <p className="text-white text-[14px] font-semibold">Start learning today</p>
-                <p className="text-[rgba(255,255,255,0.75)] text-[12px]">Enroll in a course or book a private lesson to unlock your dashboard</p>
+                <p style={{ margin: '0 0 4px', color: '#fff', fontSize: 15, fontWeight: 700 }}>Start learning today</p>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>Enroll in a course or book a private lesson to unlock your dashboard.</p>
               </div>
-              <Link to="/tutors"
-                className="bg-white text-[#4c6eff] text-[13px] font-bold px-4 py-2 rounded-[10px] hover:opacity-90 transition-opacity flex-shrink-0">
-                Find a Tutor →
+              <Link to="/marketplace"
+                style={{ background: '#fff', color: 'var(--accent)', fontSize: 13, fontWeight: 700, padding: '9px 18px', borderRadius: 'var(--r-md)', textDecoration: 'none', flexShrink: 0 }}>
+                Find a tutor ←'
               </Link>
             </div>
           )}
 
           {/* Schedule */}
-          <div className="bg-white rounded-[16px] border border-[#ebebf0] p-5">
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: 20 }}>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[#181b26] text-[15px] font-semibold">Schedule</h2>
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Schedule</h2>
               <div className="flex items-center gap-1">
                 {[
                   { key: '7days',   label: '7 days' },
@@ -337,15 +337,15 @@ const StudentDashboard = () => {
                     onClick={() => setFilterMode(filterMode === key ? 'day' : key)}
                     className="px-3 py-1 rounded-[8px] text-[12px] font-medium transition-colors"
                     style={filterMode === key
-                      ? { backgroundColor: 'rgba(76,110,255,0.1)', color: '#4c6eff' }
-                      : { color: '#8a90a1' }}>
+                      ? { backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }
+                      : { color: 'var(--muted)' }}>
                     {label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <p className="text-[#8a90a1] text-[12px] mb-3">
+            <p className="text-[#6b6f7d] text-[12px] mb-3">
               {filterMode === 'day'
                 ? selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
                 : filterMode === '7days'   ? 'Next 7 days'
@@ -365,16 +365,16 @@ const StudentDashboard = () => {
                   <button key={i}
                     onClick={() => { const nd = new Date(d); nd.setHours(0, 0, 0, 0); setSelectedDay(nd); setFilterMode('day'); }}
                     className="flex flex-col items-center py-2 rounded-[10px] transition-all relative"
-                    style={isSelected ? { backgroundColor: '#4c6eff' } : today ? { backgroundColor: 'rgba(76,110,255,0.08)' } : {}}>
-                    <span className="text-[11px] font-medium mb-1" style={{ color: isSelected ? '#b8c5ff' : '#8a90a1' }}>
+                    style={isSelected ? { backgroundColor: 'var(--accent)' } : today ? { backgroundColor: 'var(--accent-soft)' } : {}}>
+                    <span className="text-[11px] font-medium mb-1" style={{ color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--muted)' }}>
                       {DAYS_SHORT[i]}
                     </span>
-                    <span className="text-[15px] font-semibold" style={{ color: isSelected ? '#fff' : today ? '#4c6eff' : '#181b26' }}>
+                    <span className="text-[15px] font-semibold" style={{ color: isSelected ? '#fff' : today ? 'var(--accent)' : 'var(--text)' }}>
                       {d.getDate()}
                     </span>
                     {hasDot && (
                       <span className="absolute bottom-1 w-1 h-1 rounded-full"
-                        style={{ backgroundColor: isSelected ? '#b8c5ff' : '#4c6eff' }} />
+                        style={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--accent)' }} />
                     )}
                   </button>
                 );
@@ -384,12 +384,12 @@ const StudentDashboard = () => {
             {/* Schedule rows */}
             {scheduleItems.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-[#8a90a1] text-[13px]">
+                <p className="text-[#6b6f7d] text-[13px]">
                   {filterMode === 'day' ? 'No events on this day.' : 'No events in this period.'}
                 </p>
                 {noLearning && (
-                  <Link to="/tutors" className="text-[#4c6eff] text-[13px] font-medium hover:underline mt-1 block">
-                    Browse tutors →
+                  <Link to="/marketplace" style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginTop: 4, display: 'block' }}>
+                    Browse tutors ←'
                   </Link>
                 )}
               </div>
@@ -401,30 +401,35 @@ const StudentDashboard = () => {
                   // Type badge
                   const typeBadge =
                     item.type === 'private-lesson' ? { label: 'Private',   bg: 'rgba(147,91,245,0.1)',  fg: '#935bf5' }
-                    : item.type === 'group-lesson' ? { label: 'Group',     bg: 'rgba(76,110,255,0.1)',  fg: '#4c6eff' }
+                    : item.type === 'group-lesson' ? { label: 'Group',     bg: 'var(--accent-soft)',    fg: 'var(--accent)' }
                     : null;
 
                   // Status badge for homework
                   const hwBadge =
                     item.type === 'homework'
-                      ? item.status === 'overdue'   ? { label: 'Overdue',   bg: '#fff0f0', fg: '#f24545' }
-                        : item.status === 'submitted' ? { label: 'Submitted', bg: '#edfbf4', fg: '#22be70' }
+                      ? item.status === 'overdue'   ? { label: 'Overdue',   bg: '#fff0f0', fg: '#ef4444' }
+                        : item.status === 'submitted' ? { label: 'Submitted', bg: '#edfbf4', fg: '#22c55e' }
                         : { label: 'Due soon',  bg: '#fff5ee', fg: '#ff8032' }
                       : null;
 
-                  // Action button for lessons
-                  const canJoin = (item.type === 'group-lesson' || item.type === 'private-lesson')
-                    && todayItem && item.videoLink;
+                  // Action button for lessons — active 5 min before start until end
+                  const isLesson = item.type === 'group-lesson' || item.type === 'private-lesson';
+                  const nowMs = Date.now();
+                  const lessonEnd = isLesson ? item.date.getTime() + (item.duration || 60) * 60000 : 0;
+                  const joinWindowStart = isLesson ? item.date.getTime() - 5 * 60 * 1000 : 0;
+                  const canJoin = isLesson && item.videoLink
+                    && nowMs >= joinWindowStart && nowMs <= lessonEnd;
+                  const isSoon = isLesson && todayItem && nowMs < joinWindowStart;
 
                   return (
                     <div key={item.id} className="flex items-center rounded-[10px] overflow-hidden" style={{ backgroundColor: '#f8f9fc' }}>
                       <div className="w-[3px] self-stretch flex-shrink-0" style={{ backgroundColor: item.color }} />
                       <div className="flex items-center gap-3 flex-1 px-4 py-3">
                         <div className="flex-shrink-0" style={{ width: 52 }}>
-                          <p className="text-[11px] font-medium" style={{ color: todayItem ? '#4c6eff' : '#8a90a1' }}>
+                          <p className="text-[11px] font-medium" style={{ color: todayItem ? 'var(--accent)' : 'var(--muted)' }}>
                             {todayItem ? 'Today' : item.date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}
                           </p>
-                          <p className="text-[13px] font-semibold text-[#181b26]">
+                          <p className="text-[13px] font-semibold text-[#0c0d12]">
                             {item.date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
@@ -436,16 +441,16 @@ const StudentDashboard = () => {
                                 {typeBadge.label}
                               </span>
                             )}
-                            <p className="text-[13px] font-semibold text-[#181b26] truncate">{item.title}</p>
+                            <p className="text-[13px] font-semibold text-[#0c0d12] truncate">{item.title}</p>
                           </div>
-                          <p className="text-[12px] text-[#8a90a1] truncate">{item.sub}</p>
+                          <p className="text-[12px] text-[#6b6f7d] truncate">{item.sub}</p>
                         </div>
                         {/* Lesson action */}
-                        {(item.type === 'group-lesson' || item.type === 'private-lesson') && (
+                        {isLesson && (
                           canJoin ? (
                             <a href={item.videoLink} target="_blank" rel="noopener noreferrer"
                               className="flex-shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] border transition-colors"
-                              style={{ borderColor: '#22be70', color: '#22be70' }}>
+                              style={{ borderColor: '#22c55e', color: '#22c55e', background: 'rgba(34,197,94,0.08)' }}>
                               Join
                             </a>
                           ) : item.type === 'private-lesson' && !item.hasLink ? (
@@ -453,12 +458,17 @@ const StudentDashboard = () => {
                               style={{ backgroundColor: 'rgba(255,128,50,0.1)', color: '#ff8032' }}>
                               Pending link
                             </span>
-                          ) : (
+                          ) : isSoon ? (
                             <span className="flex-shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] border"
-                              style={{ borderColor: '#d2d4d9', color: '#8a90a1' }}>
-                              {todayItem ? 'Today' : 'Soon'}
+                              style={{ borderColor: 'var(--border-strong)', color: 'var(--muted)' }}>
+                              Soon
                             </span>
-                          )
+                          ) : !todayItem ? (
+                            <span className="flex-shrink-0 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] border"
+                              style={{ borderColor: 'var(--border-strong)', color: 'var(--muted)' }}>
+                              Upcoming
+                            </span>
+                          ) : null
                         )}
                         {/* Homework badge */}
                         {hwBadge && (
@@ -476,27 +486,27 @@ const StudentDashboard = () => {
           </div>
 
           {/* Bottom row */}
-          <div className="grid grid-cols-2 gap-5">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
 
             {/* Active learning */}
-            <div className="bg-white rounded-[16px] border border-[#ebebf0] p-5">
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: 20 }}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[#181b26] text-[15px] font-semibold">Active learning</h2>
-                <Link to="/student/courses" className="text-[#4c6eff] text-[12px] font-medium hover:underline">
-                  View all →
+                <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Active learning</h2>
+                <Link to="/student/courses" style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                  View all ←'
                 </Link>
               </div>
 
               {noLearning ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <div className="w-10 h-10 rounded-[10px] bg-[rgba(76,110,255,0.1)] flex items-center justify-center mb-3">
-                    <svg viewBox="0 0 20 20" fill="none" stroke="#4c6eff" strokeWidth="1.6" className="w-5 h-5">
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                    <svg viewBox="0 0 20 20" fill="none" stroke="var(--accent)" strokeWidth="1.6" width={20} height={20}>
                       <path d="M3 5h14M3 10h14M3 15h8"/>
                     </svg>
                   </div>
-                  <p className="text-[#8a90a1] text-[13px] mb-3">No active learning yet</p>
-                  <Link to="/tutors" className="text-[#4c6eff] text-[12px] font-semibold hover:underline">
-                    Browse tutors →
+                  <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 12 }}>No active learning yet</p>
+                  <Link to="/marketplace" style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                    Browse tutors ←'
                   </Link>
                 </div>
               ) : (
@@ -513,8 +523,8 @@ const StudentDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 mb-1">
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[rgba(76,110,255,0.08)] text-[#4c6eff]">Group</span>
-                            <p className="text-[13px] font-semibold text-[#181b26] truncate group-hover:text-[#4c6eff] transition-colors">
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: 'var(--accent-soft)', color: 'var(--accent)' }}>Group</span>
+                            <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text)' }}>
                               {title}
                             </p>
                           </div>
@@ -543,33 +553,39 @@ const StudentDashboard = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 mb-1">
                             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[rgba(147,91,245,0.1)] text-[#935bf5]">Private</span>
-                            <p className="text-[13px] font-semibold text-[#181b26] truncate">Private Tutoring</p>
+                            <p className="text-[13px] font-semibold text-[#0c0d12] truncate">Private Tutoring</p>
                           </div>
                           {nextDate ? (
-                            <p className="text-[11px] text-[#8a90a1]">
+                            <p className="text-[11px] text-[#6b6f7d]">
                               {nextDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                               {' · '}
                               {nextDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           ) : (
-                            <p className="text-[11px] text-[#8a90a1]">{pt.count} session{pt.count !== 1 ? 's' : ''} booked</p>
+                            <p className="text-[11px] text-[#6b6f7d]">{pt.count} session{pt.count !== 1 ? 's' : ''} booked</p>
                           )}
                           {next && (
                             <span className="inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                               style={hasLink
-                                ? { backgroundColor: 'rgba(34,190,112,0.1)', color: '#22be70' }
+                                ? { backgroundColor: 'rgba(34,190,112,0.1)', color: '#22c55e' }
                                 : { backgroundColor: 'rgba(255,128,50,0.1)', color: '#ff8032' }}>
                               {hasLink ? 'Link ready' : 'Pending link'}
                             </span>
                           )}
                         </div>
-                        {next && hasLink && isToday(nextDate) && (
-                          <a href={next.video_link} target="_blank" rel="noopener noreferrer"
-                            className="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-[8px] border"
-                            style={{ borderColor: '#22be70', color: '#22be70' }}>
-                            Join
-                          </a>
-                        )}
+                        {next && hasLink && nextDate && (() => {
+                          const nowMs = Date.now();
+                          const lessonEnd = nextDate.getTime() + (next.duration_minutes || 60) * 60000;
+                          const joinWindowStart = nextDate.getTime() - 5 * 60 * 1000;
+                          const canJoinNow = nowMs >= joinWindowStart && nowMs <= lessonEnd;
+                          return canJoinNow ? (
+                            <a href={next.video_link} target="_blank" rel="noopener noreferrer"
+                              className="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-[8px] border"
+                              style={{ borderColor: '#22c55e', color: '#22c55e', background: 'rgba(34,197,94,0.08)' }}>
+                              Join
+                            </a>
+                          ) : null;
+                        })()}
                       </div>
                     );
                   })}
@@ -578,9 +594,9 @@ const StudentDashboard = () => {
             </div>
 
             {/* Homework */}
-            <div className="bg-white rounded-[16px] border border-[#ebebf0] p-5">
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: 20 }}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[#181b26] text-[15px] font-semibold">Homework</h2>
+                <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Homework</h2>
                 <div className="flex items-center gap-1">
                   <TabBtn active={hwTab === 'upcoming'} onClick={() => setHwTab('upcoming')}>Upcoming</TabBtn>
                   <TabBtn active={hwTab === 'past'}     onClick={() => setHwTab('past')}>Past</TabBtn>
@@ -594,10 +610,10 @@ const StudentDashboard = () => {
                       <rect x="4" y="2" width="12" height="16" rx="2"/><path d="M7 7h6M7 10h6M7 13h4"/>
                     </svg>
                   </div>
-                  <p className="text-[#8a90a1] text-[13px]">No homework yet</p>
+                  <p className="text-[#6b6f7d] text-[13px]">No homework yet</p>
                 </div>
               ) : hwList.length === 0 ? (
-                <p className="text-[#8a90a1] text-[13px] text-center py-8">
+                <p className="text-[#6b6f7d] text-[13px] text-center py-8">
                   {hwTab === 'upcoming' ? 'All caught up! No pending homework.' : 'No graded assignments yet.'}
                 </p>
               ) : (
@@ -606,7 +622,7 @@ const StudentDashboard = () => {
                     const status = assignmentStatus(a);
                     const isDone = status === 'graded' || status === 'submitted';
                     const enr    = enrolledCourses.find(e => e.course_id === a.courseId);
-                    const color  = enr?.color || '#4c6eff';
+                    const color  = enr?.color || '#0d9488';
                     const dueText = a.due_date
                       ? `Due ${new Date(a.due_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`
                       : '';
@@ -616,11 +632,11 @@ const StudentDashboard = () => {
                         <CircleIcon done={isDone} color={color} />
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-medium"
-                            style={{ color: isDone ? '#8a90a1' : '#181b26', textDecoration: isDone ? 'line-through' : 'none' }}>
+                            style={{ color: isDone ? 'var(--muted)' : 'var(--text)', textDecoration: isDone ? 'line-through' : 'none' }}>
                             {a.title}
                           </p>
                           <p className="text-[11px] mt-0.5"
-                            style={{ color: status === 'overdue' ? '#f24545' : status === 'graded' ? '#22be70' : '#8a90a1' }}>
+                            style={{ color: status === 'overdue' ? 'var(--danger)' : status === 'graded' ? 'var(--success)' : 'var(--muted)' }}>
                             {status === 'graded'
                               ? `Graded${a.score !== undefined ? ` · ${a.score}/100` : ''}`
                               : status === 'submitted'
@@ -631,8 +647,8 @@ const StudentDashboard = () => {
                       </div>
                     );
                   })}
-                  <Link to="/student/assignments" className="mt-4 block text-center text-[12px] text-[#4c6eff] font-medium hover:underline">
-                    View all homework →
+                  <Link to="/student/assignments" style={{ display: 'block', textAlign: 'center', fontSize: 12, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', marginTop: 12 }}>
+                    View all homework ←'
                   </Link>
                 </div>
               )}

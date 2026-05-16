@@ -5,14 +5,12 @@ import { authAPI } from '../../api/auth';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,185 +36,151 @@ const Login = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Left Panel */}
+    <div className="page-fade" style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+      {/* Left — quote panel */}
       <div style={{
         flex: 1,
-        background: 'linear-gradient(135deg, #4c6eff 0%, #3a56e8 100%)',
+        background: 'var(--surface-2)',
+        borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '60px 64px',
-        position: 'relative',
-        overflow: 'hidden',
+        justifyContent: 'space-between',
+        padding: '40px 56px',
       }}>
-        {/* Decorative circles */}
-        <div style={{
-          position: 'absolute', width: 400, height: 400,
-          borderRadius: '50%', background: 'rgba(255,255,255,0.06)',
-          top: -100, right: -100,
-        }} />
-        <div style={{
-          position: 'absolute', width: 300, height: 300,
-          borderRadius: '50%', background: 'rgba(255,255,255,0.04)',
-          bottom: -80, left: -60,
-        }} />
-
         {/* Logo */}
-        <div style={{ marginBottom: 48 }}>
-          <p style={{ color: '#fff', fontSize: 28, fontWeight: 800, margin: 0 }}>Tutofy</p>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: '4px 0 0' }}>EdTech Platform</p>
-        </div>
+        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <span style={{
+            width: 32, height: 32, borderRadius: 9, background: 'var(--accent)',
+            color: '#fff', fontSize: 15, fontWeight: 800,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>T</span>
+          <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 17 }}>tutofy</span>
+        </Link>
 
-        <h1 style={{
-          color: '#fff', fontSize: 40, fontWeight: 800,
-          lineHeight: 1.2, margin: '0 0 20px', maxWidth: 440,
-        }}>
-          Sign in and continue learning
-        </h1>
-        <p style={{
-          color: 'rgba(255,255,255,0.7)', fontSize: 16,
-          lineHeight: 1.6, margin: '0 0 48px', maxWidth: 400,
-        }}>
-          Access your courses, schedule lessons, submit assignments, and track progress in one place.
-        </p>
+        {/* Quote */}
+        <div>
+          <p style={{
+            fontSize: 22, fontWeight: 600, lineHeight: 1.45,
+            color: 'var(--text)', marginBottom: 16, letterSpacing: '-0.02em',
+          }}>
+            "Tutofy turned three weekends of frustration into the breakthrough I needed."
+          </p>
+          <p style={{ fontSize: 14, color: 'var(--muted)', fontWeight: 500 }}>
+            — Maya R., Engineering student at AITU
+          </p>
 
-        {/* Feature list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {[
-            { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:20,height:20}}><path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 3v14M4 7h4M4 11h4" strokeLinecap="round"/></svg>, text: 'Access all your enrolled courses' },
-            { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:20,height:20}}><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 4V4z"/></svg>, text: 'Chat with your tutors directly' },
-            { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:20,height:20}}><path d="M3 17V9M7 17V5M11 17v-6M15 17V7" strokeLinecap="round"/></svg>, text: 'Track your learning progress' },
-            { icon: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:20,height:20}}><rect x="4" y="9" width="12" height="9" rx="1.5"/><path d="M7 9V6a3 3 0 016 0v3" strokeLinecap="round"/></svg>, text: 'Secure JWT authentication' },
-          ].map((item) => (
-            <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'rgba(255,255,255,0.9)', flexShrink: 0,
-              }}>
-                {item.icon}
+          {/* Trust stats */}
+          <div style={{ display: 'flex', gap: 32, marginTop: 40 }}>
+            {[['2 000+', 'Expert tutors'], ['50K', 'Active students'], ['4.9', 'Avg rating']].map(([n, l]) => (
+              <div key={l}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>{n}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{l}</div>
               </div>
-              <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, margin: 0 }}>{item.text}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        <p style={{ fontSize: 12, color: 'var(--muted)' }}>© 2026 Tutofy. All rights reserved.</p>
       </div>
 
-      {/* Right Panel */}
+      {/* Right — form */}
       <div style={{
         width: 480,
         flexShrink: 0,
-        background: '#ffffff',
+        background: 'var(--bg)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        padding: '60px 48px',
+        padding: '60px 52px',
       }}>
         <div style={{ marginBottom: 36 }}>
-          <h2 style={{ color: '#181b26', fontSize: 26, fontWeight: 800, margin: '0 0 8px' }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em' }}>
             Welcome back
-          </h2>
-          <p style={{ color: '#8a90a1', fontSize: 14, margin: 0 }}>
-            Sign in to your account to continue
+          </h1>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>
+            Sign in to continue where you left off.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {error && (
             <div style={{
-              background: 'rgba(242,69,69,0.08)',
-              border: '1px solid rgba(242,69,69,0.25)',
-              color: '#f24545',
-              borderRadius: 10,
-              padding: '12px 16px',
+              background: 'var(--danger-soft)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              color: 'var(--danger)',
+              borderRadius: 'var(--r-md)',
+              padding: '11px 14px',
               fontSize: 13,
-              marginBottom: 20,
             }}>
               {error}
             </div>
           )}
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', color: '#4c5162', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-              Email address
-            </label>
+          <div>
+            <label className="form-label">Email</label>
             <input
+              className="form-input"
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
               placeholder="you@example.com"
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                background: '#f3f4f7', border: '1.5px solid #f3f4f7',
-                borderRadius: 10, padding: '12px 16px',
-                fontSize: 14, color: '#181b26',
-                outline: 'none', transition: 'border-color 0.2s',
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#4c6eff'}
-              onBlur={(e) => e.target.style.borderColor = '#f3f4f7'}
             />
           </div>
 
-          <div style={{ marginBottom: 28 }}>
-            <label style={{ display: 'block', color: '#4c5162', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-              Password
-            </label>
+          <div>
+            <label className="form-label">Password</label>
             <input
+              className="form-input"
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               required
               placeholder="••••••••"
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                background: '#f3f4f7', border: '1.5px solid #f3f4f7',
-                borderRadius: 10, padding: '12px 16px',
-                fontSize: 14, color: '#181b26',
-                outline: 'none', transition: 'border-color 0.2s',
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#4c6eff'}
-              onBlur={(e) => e.target.style.borderColor = '#f3f4f7'}
             />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-2)', cursor: 'pointer' }}>
+              <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent)' }} />
+              Remember me
+            </label>
+            <a style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 500 }}>Forgot password?</a>
           </div>
 
           <button
             type="submit"
             disabled={loading}
             style={{
-              width: '100%', padding: '14px',
-              background: loading ? '#8a90a1' : '#4c6eff',
-              color: '#fff', border: 'none', borderRadius: 10,
-              fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: '0px 4px 16px rgba(76,110,255,0.35)',
-              transition: 'opacity 0.2s',
+              background: loading ? 'var(--muted)' : 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 'var(--r-md)',
+              padding: '13px',
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background var(--t-fast)',
+              marginTop: 4,
             }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 
-        <div style={{
-          marginTop: 28, paddingTop: 28,
-          borderTop: '1px solid #f3f4f7',
-          textAlign: 'center',
-        }}>
-          <p style={{ color: '#8a90a1', fontSize: 13, margin: '0 0 10px' }}>
+        <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'center' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>
             Don't have an account?{' '}
-            <Link
-              to={`/register${window.location.search}`}
-              style={{ color: '#4c6eff', fontWeight: 700, textDecoration: 'none' }}
-            >
-              Sign up as student
+            <Link to={`/register${window.location.search}`} style={{ color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>
+              Create one
             </Link>
           </p>
-          <p style={{ color: '#8a90a1', fontSize: 13, margin: 0 }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>
             Want to teach?{' '}
-            <Link to="/become-tutor" style={{ color: '#4c6eff', fontWeight: 700, textDecoration: 'none' }}>
+            <Link to="/become-tutor" style={{ color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>
               Become a tutor
             </Link>
           </p>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
@@ -68,8 +68,8 @@ const AdminUsers = () => {
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[#181b26] text-[22px] font-bold leading-none">Users</h1>
-            <p className="text-[#8a90a1] text-[13px] mt-1">
+            <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Users</h1>
+            <p className="text-[#6b6f7d] text-[13px] mt-1">
               {users.length} total · {tutorCount} tutors · {studentCount} students
             </p>
           </div>
@@ -85,20 +85,20 @@ const AdminUsers = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or email..."
-              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#4c6eff] bg-white"
+              className="w-full pl-9 pr-3 h-9 border border-[#d2d4d9] rounded-[8px] text-[13px] focus:outline-none focus:border-[#0d9488] bg-white"
             />
           </div>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="h-9 px-3 border border-[#d2d4d9] rounded-[8px] text-[13px] text-[#181b26] bg-white focus:outline-none focus:border-[#4c6eff]"
+            className="h-9 px-3 border border-[#d2d4d9] rounded-[8px] text-[13px] text-[#0c0d12] bg-white focus:outline-none focus:border-[#0d9488]"
           >
             <option value="">All Roles</option>
             <option value="student">Students</option>
             <option value="tutor">Tutors</option>
             <option value="admin">Admins</option>
           </select>
-          <p className="text-[12px] text-[#8a90a1] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-[12px] text-[#6b6f7d] ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Table */}
@@ -112,17 +112,17 @@ const AdminUsers = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[#f0f0f5]">
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">User</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Email</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">Role</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide">ID</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">User</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Email</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">Role</th>
+                    <th className="text-left px-6 py-3 text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide">ID</th>
                     <th className="px-6 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-[#8a90a1] text-[13px]">
+                      <td colSpan={5} className="text-center py-12 text-[#6b6f7d] text-[13px]">
                         No users found
                       </td>
                     </tr>
@@ -130,17 +130,17 @@ const AdminUsers = () => {
                     <tr key={u.id} className="border-b border-[#f8f9fc] last:border-0 hover:bg-[#f8f9fc] transition-colors">
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#4c6eff]/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-[#4c6eff] text-[11px] font-bold">
+                          <div className="w-8 h-8 rounded-full bg-[#0d9488]/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[#0d9488] text-[11px] font-bold">
                               {(u.name || '?').charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <span className="text-[13px] font-medium text-[#181b26]">{u.name || 'Unknown'}</span>
+                          <span className="text-[13px] font-medium text-[#0c0d12]">{u.name || 'Unknown'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-3 text-[13px] text-[#4c5162]">{u.email || '—'}</td>
+                      <td className="px-6 py-3 text-[13px] text-[#383a44]">{u.email || '-'}</td>
                       <td className="px-6 py-3">
-                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ROLE_STYLE[u.role] || 'bg-[#f0f0f5] text-[#8a90a1]'}`}>
+                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${ROLE_STYLE[u.role] || 'bg-[#f0f0f5] text-[#6b6f7d]'}`}>
                           {u.role || 'unknown'}
                         </span>
                       </td>
@@ -167,14 +167,14 @@ const AdminUsers = () => {
       {confirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-7 w-[400px] shadow-2xl">
-            <h3 className="text-[17px] font-bold text-[#181b26] mb-2">Delete user?</h3>
-            <p className="text-[13px] text-[#4c5162] mb-6">
+            <h3 className="text-[17px] font-bold text-[#0c0d12] mb-2">Delete user?</h3>
+            <p className="text-[13px] text-[#383a44] mb-6">
               Are you sure you want to delete <strong>{confirm.name || confirm.email}</strong>? This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirm(null)}
-                className="flex-1 border border-[#d2d4d9] text-[#4c5162] text-[13px] font-semibold py-2.5 rounded-[10px] hover:bg-[#f8f9fc] transition-colors"
+                className="flex-1 border border-[#d2d4d9] text-[#383a44] text-[13px] font-semibold py-2.5 rounded-[10px] hover:bg-[#f8f9fc] transition-colors"
               >
                 Cancel
               </button>

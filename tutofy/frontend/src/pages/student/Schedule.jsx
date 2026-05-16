@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
@@ -58,7 +58,7 @@ const Schedule = () => {
   const todayDay = new Date().getDay();
   const activeIdx = (todayDay + 6) % 7;
 
-  const weekLabel = `${weekDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${weekDates[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+  const weekLabel = `${weekDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - ${weekDates[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
   const sessions = enrollments.map((enr, i) => {
     const course = courses.find((c) => c.id === enr.course_id) || {};
@@ -120,7 +120,7 @@ const Schedule = () => {
                 onClick={() => setWeekOffset((o) => o - 1)}
                 className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-body hover:text-primary transition-colors"
               >
-                ←
+                ←
               </button>
               <button
                 onClick={() => setWeekOffset(0)}
@@ -132,7 +132,7 @@ const Schedule = () => {
                 onClick={() => setWeekOffset((o) => o + 1)}
                 className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-body hover:text-primary transition-colors"
               >
-                →
+                ←'
               </button>
             </div>
           </div>

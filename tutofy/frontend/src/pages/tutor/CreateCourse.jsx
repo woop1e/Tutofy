@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
+import { usersAPI } from '../../api/users';
 
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
 
@@ -13,6 +14,9 @@ const CreateCourse = () => {
   const { isAuthenticated, role, user } = useAuth();
   const navigate = useNavigate();
 
+  const [profileStatus, setProfileStatus] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -21,9 +25,25 @@ const CreateCourse = () => {
     level: 'beginner',
     status: 'draft',
     max_students: '5',
+    total_lessons: '',
+    total_weeks: '',
+    release_type: 'static',
+    start_date: '',
+    end_date: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const uid = user?.user_id;
+    if (!uid) { setProfileLoading(false); return; }
+    usersAPI.getTutorProfile(uid)
+      .then(data => setProfileStatus(data?.status || 'pending'))
+      .catch(() => setProfileStatus('pending'))
+      .finally(() => setProfileLoading(false));
+  }, [user]);
+
+  const isApproved = profileStatus === 'approved';
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -35,17 +55,23 @@ const CreateCourse = () => {
       setError('Course title is required');
       return;
     }
+    // Prevent publishing if not approved
+    const status = (!isApproved && form.status === 'published') ? 'draft' : form.status;
+
     setLoading(true);
     setError('');
     try {
       const created = await coursesAPI.createCourse({
         ...form,
-        price: form.price ? parseFloat(form.price) : 0,
+        status,
+        price: form.price ? parseInt(form.price) : 0,
         max_students: form.max_students ? parseInt(form.max_students) : 5,
+        total_lessons: form.total_lessons ? parseInt(form.total_lessons) : 0,
+        total_weeks: form.total_weeks ? parseInt(form.total_weeks) : 0,
         tutor_id: user?.user_id,
       });
       const newId = created?.id || created?.course_id || created?.Id;
-      if (newId && form.status === 'published') {
+      if (newId && status === 'published') {
         await coursesAPI.publishCourse(newId).catch(() => {});
       }
       if (newId) {
@@ -88,6 +114,23 @@ const CreateCourse = () => {
 
         <div className="flex-1 p-6">
           <div className="max-w-[680px] mx-auto">
+
+            {/* Approval warning */}
+            {!profileLoading && !isApproved && (
+              <div className="bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.25)] rounded-[14px] px-5 py-4 flex items-start gap-3 mb-5">
+                <svg viewBox="0 0 20 20" fill="none" stroke="#f59e0b" strokeWidth="1.6" width={18} height={18} className="flex-shrink-0 mt-0.5">
+                  <circle cx="10" cy="10" r="8"/><path d="M10 6v4l2 2" strokeLinecap="round"/>
+                </svg>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#b45309]">Profile approval required to publish</p>
+                  <p className="text-[12px] text-[#b45309]/80 mt-0.5">
+                    Your tutor profile must be approved by an admin before you can publish courses.
+                    You can save this course as a draft and publish it once your profile is approved.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit}>
               {error && (
                 <div className="bg-[#f24545]/10 border border-[#f24545]/30 text-[#f24545] rounded-[12px] px-5 py-4 text-[13px] mb-5">
@@ -138,17 +181,20 @@ const CreateCourse = () => {
                       />
                     </div>
                     <div>
-                      <label className={LBL}>Total course price ($)</label>
-                      <input
-                        type="number"
-                        name="price"
-                        value={form.price}
-                        onChange={handleChange}
-                        placeholder="0 for free"
-                        min="0"
-                        step="0.01"
-                        className={INP}
-                      />
+                      <label className={LBL}>Total course price (KZT)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          name="price"
+                          value={form.price}
+                          onChange={handleChange}
+                          placeholder="0 for free"
+                          min="0"
+                          step="1"
+                          className={INP + ' pr-14'}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b6f7d] text-[12px] font-semibold pointer-events-none">KZT</span>
+                      </div>
                     </div>
                   </div>
 
@@ -176,10 +222,72 @@ const CreateCourse = () => {
                     </div>
                     <div>
                       <label className={LBL}>Status</label>
-                      <select name="status" value={form.status} onChange={handleChange} className={INP}>
+                      <select name="status" value={form.status} onChange={handleChange} className={INP} disabled={!isApproved && form.status !== 'draft'}>
                         <option value="draft">Draft</option>
-                        <option value="published">Published</option>
+                        {isApproved && <option value="published">Published</option>}
                       </select>
+                      {!isApproved && (
+                        <p className="text-[11px] text-[#b45309] mt-1">Available after profile approval</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className={LBL}>Total lessons planned</label>
+                      <input
+                        type="number"
+                        name="total_lessons"
+                        value={form.total_lessons}
+                        onChange={handleChange}
+                        placeholder="e.g. 36"
+                        min="0"
+                        className={INP}
+                      />
+                      <p className="text-[11px] text-muted mt-1">Used for overall progress %</p>
+                    </div>
+                    <div>
+                      <label className={LBL}>Duration (weeks)</label>
+                      <input
+                        type="number"
+                        name="total_weeks"
+                        value={form.total_weeks}
+                        onChange={handleChange}
+                        placeholder="e.g. 12"
+                        min="0"
+                        className={INP}
+                      />
+                    </div>
+                    <div>
+                      <label className={LBL}>Release type</label>
+                      <select name="release_type" value={form.release_type} onChange={handleChange} className={INP}>
+                        <option value="static">Static (all at once)</option>
+                        <option value="scheduled">Scheduled (week by week)</option>
+                        <option value="live">Live sessions</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={LBL}>Start date</label>
+                      <input
+                        type="date"
+                        name="start_date"
+                        value={form.start_date}
+                        onChange={handleChange}
+                        className={INP}
+                      />
+                    </div>
+                    <div>
+                      <label className={LBL}>End date</label>
+                      <input
+                        type="date"
+                        name="end_date"
+                        value={form.end_date}
+                        onChange={handleChange}
+                        className={INP}
+                      />
                     </div>
                   </div>
                 </div>
@@ -195,7 +303,7 @@ const CreateCourse = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || profileLoading}
                   className="bg-primary text-white text-[14px] font-semibold px-8 py-3 rounded-[10px] shadow-[0px_4px_12px_0px_rgba(76,110,255,0.3)] hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {loading ? 'Creating...' : 'Create Course'}

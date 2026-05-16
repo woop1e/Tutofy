@@ -10,4 +10,9 @@ export const progressAPI = {
     const response = await apiClient.get(`/courses/${courseId}/progress`);
     return response.data;
   },
+
+  markLessonComplete: async (lessonId, courseId) => {
+    const response = await apiClient.post(`/lessons/${lessonId}/complete`, { course_id: courseId });
+    return response.data;
+  },
 };

@@ -1,17 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { lessonsAPI } from '../../api/lessons';
 import { usersAPI } from '../../api/users';
 
-/* ── Constants ─────────────────────────────────────────────────────────────── */
-const HOURS     = Array.from({ length: 15 }, (_, i) => i + 7); // 07:00 – 21:00
+/* â"€â"€ Constants â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
+const HOURS     = Array.from({ length: 15 }, (_, i) => i + 7); // 07:00 - 21:00
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_FULL  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MONTHS    = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-/* ── Helpers ────────────────────────────────────────────────────────────────── */
+/* â"€â"€ Helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 function startOfWeek(d) {
   const date = new Date(d);
   const day  = date.getDay();
@@ -73,7 +73,7 @@ function sameDay(a, b) {
 function lessonColor(lesson) {
   const isGroup = lesson.course_id || (lesson.title || '').toLowerCase().includes('group');
   if (isGroup) return { bg: '#fff7ed', border: '#ff8032', text: '#c05e1a', dot: '#ff8032' };
-  return { bg: '#eff3ff', border: '#4c6eff', text: '#2d4db8', dot: '#4c6eff' };
+  return { bg: '#eff3ff', border: '#0d9488', text: '#2d4db8', dot: '#0d9488' };
 }
 
 function extractStudentName(lesson) {
@@ -83,7 +83,7 @@ function extractStudentName(lesson) {
   return title;
 }
 
-/* ── Mini Calendar ──────────────────────────────────────────────────────────── */
+/* â"€â"€ Mini Calendar â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 function MiniCalendar({ today, selected, onSelect }) {
   const [view, setView] = useState(() => new Date(selected));
 
@@ -95,16 +95,16 @@ function MiniCalendar({ today, selected, onSelect }) {
     <div>
       <div className="flex items-center justify-between mb-3">
         <button onClick={() => setView(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-          className="w-6 h-6 rounded hover:bg-[#f0f0f5] flex items-center justify-center text-[#8a90a1]">‹</button>
-        <span className="text-[13px] font-bold text-[#181b26]">
+          className="w-6 h-6 rounded hover:bg-[#f0f0f5] flex items-center justify-center text-[#6b6f7d]">"¹</button>
+        <span className="text-[13px] font-bold text-[#0c0d12]">
           {MONTHS[view.getMonth()]} {view.getFullYear()}
         </span>
         <button onClick={() => setView(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-          className="w-6 h-6 rounded hover:bg-[#f0f0f5] flex items-center justify-center text-[#8a90a1]">›</button>
+          className="w-6 h-6 rounded hover:bg-[#f0f0f5] flex items-center justify-center text-[#6b6f7d]">"º</button>
       </div>
       <div className="grid grid-cols-7 mb-1">
         {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d => (
-          <div key={d} className="text-center text-[10px] font-semibold text-[#8a90a1] py-0.5">{d}</div>
+          <div key={d} className="text-center text-[10px] font-semibold text-[#6b6f7d] py-0.5">{d}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-y-0.5">
@@ -117,9 +117,9 @@ function MiniCalendar({ today, selected, onSelect }) {
               key={i}
               onClick={() => onSelect(cell)}
               className={`h-6 w-full text-[11px] rounded-full transition-colors
-                ${isToday && !isSel ? 'font-bold text-[#4c6eff]' : ''}
-                ${isSel ? 'bg-[#4c6eff] text-white font-bold' : ''}
-                ${!isSel && isMonth ? 'hover:bg-[#f0f2ff] text-[#181b26]' : ''}
+                ${isToday && !isSel ? 'font-bold text-[#0d9488]' : ''}
+                ${isSel ? 'bg-[#0d9488] text-white font-bold' : ''}
+                ${!isSel && isMonth ? 'hover:bg-[#f0f2ff] text-[#0c0d12]' : ''}
                 ${!isMonth ? 'text-[#c8ccdd]' : ''}
               `}
             >
@@ -132,14 +132,14 @@ function MiniCalendar({ today, selected, onSelect }) {
   );
 }
 
-/* ── Attendance status pill ──────────────────────────────────────────────────── */
+/* â"€â"€ Attendance status pill â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 const ATT_OPTS = [
-  { v: 'present', label: 'Present', color: '#22be70' },
-  { v: 'absent',  label: 'Absent',  color: '#f24545' },
+  { v: 'present', label: 'Present', color: '#22c55e' },
+  { v: 'absent',  label: 'Absent',  color: '#ef4444' },
   { v: 'excused', label: 'Excused', color: '#ffa61a' },
 ];
 
-/* ── Combined Lesson Detail Modal ───────────────────────────────────────────── */
+/* â"€â"€ Combined Lesson Detail Modal â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 function LessonDetailModal({ lesson, onSave, onClose }) {
   const navigate = useNavigate();
   const [tab, setTab]       = useState('link'); // 'link' | 'attendance'
@@ -212,12 +212,12 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
         <div className="px-6 pt-5 pb-3">
           <div className="flex items-start justify-between mb-1">
             <div className="min-w-0">
-              <p className="text-[15px] font-bold text-[#181b26] truncate">{lesson.title}</p>
-              <p className="text-[12px] text-[#8a90a1]">
-                {lesson._startTime ? `${lesson._startTime} – ${lesson._endTime}` : ''}
+              <p className="text-[15px] font-bold text-[#0c0d12] truncate">{lesson.title}</p>
+              <p className="text-[12px] text-[#6b6f7d]">
+                {lesson._startTime ? `${lesson._startTime} - ${lesson._endTime}` : ''}
               </p>
             </div>
-            <button onClick={onClose} className="text-[#8a90a1] hover:text-[#181b26] ml-3 flex-shrink-0">
+            <button onClick={onClose} className="text-[#6b6f7d] hover:text-[#0c0d12] ml-3 flex-shrink-0">
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
                 <path d="M3 3l8 8M11 3l-8 8" strokeLinecap="round"/>
               </svg>
@@ -229,8 +229,8 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={`px-4 py-2 text-[12px] font-semibold border-b-2 transition-colors -mb-px ${
                   tab === t.id
-                    ? 'border-[#4c6eff] text-[#4c6eff]'
-                    : 'border-transparent text-[#8a90a1] hover:text-[#181b26]'
+                    ? 'border-[#0d9488] text-[#0d9488]'
+                    : 'border-transparent text-[#6b6f7d] hover:text-[#0c0d12]'
                 }`}>
                 {t.label}
               </button>
@@ -241,29 +241,29 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
         {/* Tab: Meeting Link */}
         {tab === 'link' && (
           <div className="px-6 pb-5 pt-3">
-            <label className="block text-[12px] font-semibold text-[#4c5162] mb-1.5">
+            <label className="block text-[12px] font-semibold text-[#383a44] mb-1.5">
               Zoom / Google Meet / Teams link
             </label>
             <input
               value={link}
               onChange={e => setLink(e.target.value)}
               placeholder="https://zoom.us/j/... or meet.google.com/..."
-              className="w-full border border-[#d2d4d9] rounded-[10px] px-3 py-2.5 text-[13px] focus:outline-none focus:border-[#4c6eff] mb-3"
+              className="w-full border border-[#d2d4d9] rounded-[10px] px-3 py-2.5 text-[13px] focus:outline-none focus:border-[#0d9488] mb-3"
             />
             {error && <p className="text-[12px] text-[#f24545] mb-3">{error}</p>}
             {link && (
               <a href={link} target="_blank" rel="noreferrer"
                 className="block text-center text-[12px] font-semibold text-[#22be70] border border-[#22be70]/30 rounded-[8px] py-2 mb-3 hover:bg-[#22be70]/5 transition-colors">
-                Open link →
+                Open link ←'
               </a>
             )}
             <div className="flex gap-2">
               <button onClick={handleSaveLink} disabled={saving}
-                className="flex-1 bg-[#4c6eff] text-white text-[13px] font-bold py-2.5 rounded-[10px] hover:opacity-90 disabled:opacity-50">
+                className="flex-1 bg-[#0d9488] text-white text-[13px] font-bold py-2.5 rounded-[10px] hover:opacity-90 disabled:opacity-50">
                 {saving ? 'Saving…' : 'Save link'}
               </button>
               <button onClick={onClose}
-                className="px-4 border border-[#d2d4d9] text-[#4c5162] text-[13px] rounded-[10px] hover:border-[#4c6eff]">
+                className="px-4 border border-[#d2d4d9] text-[#383a44] text-[13px] rounded-[10px] hover:border-[#0d9488]">
                 Cancel
               </button>
             </div>
@@ -275,27 +275,27 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
           <div className="px-6 pb-5 pt-3">
             {isGroup ? (
               <div className="text-center py-6">
-                <p className="text-[13px] text-[#4c5162] mb-3">
+                <p className="text-[13px] text-[#383a44] mb-3">
                   This is a group lesson. Manage attendance from the course attendance page.
                 </p>
                 <button
                   onClick={() => { onClose(); navigate(`/tutor/courses/${lesson.course_id}/attendance`); }}
-                  className="bg-[#4c6eff] text-white text-[12px] font-bold px-5 py-2.5 rounded-[9px] hover:opacity-90"
+                  className="bg-[#0d9488] text-white text-[12px] font-bold px-5 py-2.5 rounded-[9px] hover:opacity-90"
                 >
                   Open Attendance Page
                 </button>
               </div>
             ) : loadingAtt ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-3 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-3 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : attRecords.length === 0 ? (
               <div className="text-center py-6">
                 <div className="w-12 h-12 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-2">
                   <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-6 h-6"><rect x="4" y="2" width="12" height="16" rx="1.5"/><path d="M7 2h6v3H7z"/><path d="M7 9h6M7 12h6M7 15h4" strokeLinecap="round"/></svg>
                 </div>
-                <p className="text-[13px] font-semibold text-[#181b26] mb-1">No attendance records</p>
-                <p className="text-[12px] text-[#8a90a1]">
+                <p className="text-[13px] font-semibold text-[#0c0d12] mb-1">No attendance records</p>
+                <p className="text-[12px] text-[#6b6f7d]">
                   Attendance is recorded when a student books this lesson.
                 </p>
               </div>
@@ -306,7 +306,7 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
                     const status = attMap[rec.student_id] || 'absent';
                     return (
                       <div key={rec.student_id} className="flex items-center justify-between gap-3">
-                        <span className="text-[13px] font-medium text-[#181b26] truncate flex-1">
+                        <span className="text-[13px] font-medium text-[#0c0d12] truncate flex-1">
                           {rec.student_name || rec.student_id}
                         </span>
                         <div className="flex items-center gap-1 flex-shrink-0">
@@ -334,7 +334,7 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
                     </span>
                   )}
                   <button onClick={handleSaveAttendance} disabled={savingAtt || !attIsDirty}
-                    className="ml-auto bg-[#4c6eff] text-white text-[12px] font-bold px-4 py-2 rounded-[9px] hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5">
+                    className="ml-auto bg-[#0d9488] text-white text-[12px] font-bold px-4 py-2 rounded-[9px] hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5">
                     {savingAtt ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
                     Save attendance
                   </button>
@@ -348,7 +348,7 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
   );
 }
 
-/* ── Add Slot Modal ─────────────────────────────────────────────────────────── */
+/* â"€â"€ Add Slot Modal â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
   const [day,       setDay]       = useState(DAY_FULL[0]);
   const [startTime, setStartTime] = useState('09:00');
@@ -399,8 +399,8 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-[440px] mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-[16px] font-bold text-[#181b26]">Add Availability Slot</h3>
-          <button onClick={onClose} className="text-[#8a90a1] hover:text-[#181b26]">
+          <h3 className="text-[16px] font-bold text-[#0c0d12]">Add Availability Slot</h3>
+          <button onClick={onClose} className="text-[#6b6f7d] hover:text-[#0c0d12]">
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
               <path d="M3 3l8 8M11 3l-8 8" strokeLinecap="round"/>
             </svg>
@@ -409,7 +409,7 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
 
         {/* Day picker */}
         <div className="mb-4">
-          <p className="text-[12px] font-semibold text-[#4c5162] mb-2">Day</p>
+          <p className="text-[12px] font-semibold text-[#383a44] mb-2">Day</p>
           <div className="flex flex-wrap gap-2">
             {DAY_FULL.map(d => (
               <button
@@ -418,7 +418,7 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
                 className={`px-3 py-1.5 rounded-[8px] text-[12px] font-semibold border transition-colors ${
                   day === d
                     ? 'bg-[#22be70] text-white border-[#22be70]'
-                    : 'bg-white text-[#4c5162] border-[#d2d4d9] hover:border-[#22be70]'
+                    : 'bg-white text-[#383a44] border-[#d2d4d9] hover:border-[#22be70]'
                 }`}
               >
                 {d.slice(0, 3)}
@@ -430,11 +430,11 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
         {/* Existing slots for selected day */}
         {daySlots.length > 0 && (
           <div className="mb-4 bg-[#f5f6fa] rounded-[10px] p-3">
-            <p className="text-[11px] font-semibold text-[#8a90a1] uppercase tracking-wide mb-2">Existing slots on {day}</p>
+            <p className="text-[11px] font-semibold text-[#6b6f7d] uppercase tracking-wide mb-2">Existing slots on {day}</p>
             <div className="flex flex-wrap gap-2">
               {daySlots.map(s => (
                 <span key={s.id} className="text-[11px] bg-[#22be70]/15 text-[#22be70] font-semibold px-2 py-0.5 rounded-full">
-                  {s.start} – {s.end}
+                  {s.start} - {s.end}
                 </span>
               ))}
             </div>
@@ -443,16 +443,16 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
 
         {/* Time range */}
         <div className="mb-5">
-          <p className="text-[12px] font-semibold text-[#4c5162] mb-2">Time range</p>
+          <p className="text-[12px] font-semibold text-[#383a44] mb-2">Time range</p>
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <label className="block text-[11px] text-[#8a90a1] mb-1">From</label>
+              <label className="block text-[11px] text-[#6b6f7d] mb-1">From</label>
               <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
                 className="w-full border border-[#d2d4d9] rounded-[10px] px-3 py-2 text-[13px] focus:outline-none focus:border-[#22be70]" />
             </div>
-            <div className="text-[#8a90a1] text-[14px] mt-4">–</div>
+            <div className="text-[#6b6f7d] text-[14px] mt-4">""</div>
             <div className="flex-1">
-              <label className="block text-[11px] text-[#8a90a1] mb-1">To</label>
+              <label className="block text-[11px] text-[#6b6f7d] mb-1">To</label>
               <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
                 className="w-full border border-[#d2d4d9] rounded-[10px] px-3 py-2 text-[13px] focus:outline-none focus:border-[#22be70]" />
             </div>
@@ -466,7 +466,7 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
             className="flex-1 bg-[#22be70] text-white text-[13px] font-bold py-2.5 rounded-[10px] hover:opacity-90 disabled:opacity-50">
             {saving ? 'Saving…' : 'Add Slot'}
           </button>
-          <button onClick={onClose} className="px-4 border border-[#d2d4d9] text-[#4c5162] text-[13px] rounded-[10px] hover:border-[#4c6eff]">
+          <button onClick={onClose} className="px-4 border border-[#d2d4d9] text-[#383a44] text-[13px] rounded-[10px] hover:border-[#0d9488]">
             Cancel
           </button>
         </div>
@@ -475,7 +475,7 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
   );
 }
 
-/* ── Lesson Card (inside calendar cell) ─────────────────────────────────────── */
+/* â"€â"€ Lesson Card (inside calendar cell) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 function LessonCard({ lesson, onClick }) {
   const c         = lessonColor(lesson);
   const start     = parseTS(lesson.scheduled_at);
@@ -495,7 +495,7 @@ function LessonCard({ lesson, onClick }) {
     >
       <div className="flex items-center justify-between gap-1 mb-0.5">
         <span className="text-[10px] font-bold truncate" style={{ color: c.text }}>
-          {fmtTime(start)} – {fmtTime(end)}
+          {fmtTime(start)} - {fmtTime(end)}
         </span>
         <span
           className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 leading-none"
@@ -506,15 +506,15 @@ function LessonCard({ lesson, onClick }) {
       </div>
       <p className="text-[11px] font-bold truncate" style={{ color: c.text }}>{name}</p>
       {lesson.video_link ? (
-        <span className="text-[9px] text-[#22be70] font-semibold">● Link set</span>
+        <span className="text-[9px] text-[#22be70] font-semibold">Link set</span>
       ) : (
-        <span className="text-[9px] text-[#f24545] font-semibold">● No link</span>
+        <span className="text-[9px] text-[#f24545] font-semibold">No link</span>
       )}
     </div>
   );
 }
 
-/* ── Availability Block ─────────────────────────────────────────────────────── */
+/* â"€â"€ Availability Block â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 function AvailBlock({ slot, startH, endH, onDelete }) {
   const top    = (startH - 7) * 64;
   const height = Math.max((endH - startH) * 64, 24);
@@ -526,7 +526,7 @@ function AvailBlock({ slot, startH, endH, onDelete }) {
       <div className="flex items-start justify-between px-2 pt-1">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold text-[#22be70]">Available</p>
-          <p className="text-[9px] text-[#22be70]/70">{slot.start} – {slot.end}</p>
+          <p className="text-[9px] text-[#22be70]/70">{slot.start} - {slot.end}</p>
         </div>
         <button
           onClick={e => { e.stopPropagation(); onDelete(slot.id); }}
@@ -540,7 +540,7 @@ function AvailBlock({ slot, startH, endH, onDelete }) {
   );
 }
 
-/* ── Main Component ─────────────────────────────────────────────────────────── */
+/* â"€â"€ Main Component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 const TutorSchedule = () => {
   const { user } = useAuth();
   const today    = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
@@ -672,8 +672,8 @@ const TutorSchedule = () => {
 
   const monthLabel = `${MONTHS[weekDays[0].getMonth()]} ${weekDays[0].getFullYear()}`;
   const weekLabel  = weekDays[0].getMonth() === weekDays[6].getMonth()
-    ? `${weekDays[0].getDate()} – ${weekDays[6].getDate()} ${MONTHS[weekDays[0].getMonth()]} ${weekDays[0].getFullYear()}`
-    : `${weekDays[0].getDate()} ${MONTHS[weekDays[0].getMonth()]} – ${weekDays[6].getDate()} ${MONTHS[weekDays[6].getMonth()]} ${weekDays[0].getFullYear()}`;
+    ? `${weekDays[0].getDate()} - ${weekDays[6].getDate()} ${MONTHS[weekDays[0].getMonth()]} ${weekDays[0].getFullYear()}`
+    : `${weekDays[0].getDate()} ${MONTHS[weekDays[0].getMonth()]} - ${weekDays[6].getDate()} ${MONTHS[weekDays[6].getMonth()]} ${weekDays[0].getFullYear()}`;
 
   const nowH = new Date().getHours() + new Date().getMinutes() / 60;
   const nowTop = (nowH - 7) * 64;
@@ -704,13 +704,13 @@ const TutorSchedule = () => {
         {/* Header */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-4 flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-[22px] font-bold text-[#181b26] leading-none">Schedule</h1>
-            <p className="text-[#8a90a1] text-[13px] mt-1">Manage your availability and lessons.</p>
+            <h1 className="text-[22px] font-bold text-[#0c0d12] leading-none">Schedule</h1>
+            <p className="text-[#6b6f7d] text-[13px] mt-1">Manage your availability and lessons.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowAvail(true)}
-              className="flex items-center gap-2 border border-[#d2d4d9] text-[#4c5162] text-[12px] font-semibold px-3 py-2 rounded-[8px] hover:border-[#22be70] hover:text-[#22be70] transition-colors"
+              className="flex items-center gap-2 border border-[#d2d4d9] text-[#383a44] text-[12px] font-semibold px-3 py-2 rounded-[8px] hover:border-[#22be70] hover:text-[#22be70] transition-colors"
             >
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                 <path d="M7 2v10M2 7h10" strokeLinecap="round"/>
@@ -719,7 +719,7 @@ const TutorSchedule = () => {
             </button>
             <Link
               to="/tutor/courses/new"
-              className="flex items-center gap-2 bg-[#4c6eff] text-white text-[12px] font-bold px-4 py-2 rounded-[8px] hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 bg-[#0d9488] text-white text-[12px] font-bold px-4 py-2 rounded-[8px] hover:opacity-90 transition-opacity"
             >
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                 <path d="M7 2v10M2 7h10" strokeLinecap="round"/>
@@ -736,14 +736,14 @@ const TutorSchedule = () => {
             <div className="bg-white border-b border-[#ebebf0] px-6 py-3 flex items-center gap-4 flex-shrink-0">
               <button
                 onClick={() => setWeekStart(new Date(today))}
-                className="text-[12px] font-semibold text-[#4c6eff] border border-[#4c6eff]/30 px-3 py-1.5 rounded-[7px] hover:bg-[#4c6eff]/5"
+                className="text-[12px] font-semibold text-[#0d9488] border border-[#0d9488]/30 px-3 py-1.5 rounded-[7px] hover:bg-[#0d9488]/5"
               >
                 Today
               </button>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setWeekStart(d => addDays(d, -7))}
-                  className="w-7 h-7 rounded-[6px] hover:bg-[#f0f0f5] flex items-center justify-center text-[#8a90a1]"
+                  className="w-7 h-7 rounded-[6px] hover:bg-[#f0f0f5] flex items-center justify-center text-[#6b6f7d]"
                 >
                   <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3">
                     <path d="M8 2L4 6l4 4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -751,14 +751,14 @@ const TutorSchedule = () => {
                 </button>
                 <button
                   onClick={() => setWeekStart(d => addDays(d, 7))}
-                  className="w-7 h-7 rounded-[6px] hover:bg-[#f0f0f5] flex items-center justify-center text-[#8a90a1]"
+                  className="w-7 h-7 rounded-[6px] hover:bg-[#f0f0f5] flex items-center justify-center text-[#6b6f7d]"
                 >
                   <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3">
                     <path d="M4 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
               </div>
-              <span className="text-[14px] font-bold text-[#181b26]">{weekLabel}</span>
+              <span className="text-[14px] font-bold text-[#0c0d12]">{weekLabel}</span>
             </div>
 
             {/* Day headers */}
@@ -769,11 +769,11 @@ const TutorSchedule = () => {
                   const isToday = sameDay(day, today);
                   return (
                     <div key={i} className="flex-1 py-2.5 text-center border-l border-[#f0f0f5] first:border-l-0">
-                      <p className={`text-[11px] font-semibold ${isToday ? 'text-[#4c6eff]' : 'text-[#8a90a1]'}`}>
+                      <p className={`text-[11px] font-semibold ${isToday ? 'text-[#0d9488]' : 'text-[#6b6f7d]'}`}>
                         {DAY_NAMES[i]}
                       </p>
                       <div className={`w-7 h-7 rounded-full mx-auto flex items-center justify-center text-[14px] font-bold ${
-                        isToday ? 'bg-[#4c6eff] text-white' : 'text-[#181b26]'
+                        isToday ? 'bg-[#0d9488] text-white' : 'text-[#0c0d12]'
                       }`}>
                         {day.getDate()}
                       </div>
@@ -790,13 +790,13 @@ const TutorSchedule = () => {
                   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0">
                     <circle cx="8" cy="8" r="6.5"/><path d="M8 5v3M8 11v.5" strokeLinecap="round"/>
                   </svg>
-                  Could not load schedule — check that the lesson service is running.
+                  Could not load schedule - check that the lesson service is running.
                   <button onClick={load} className="ml-auto text-[12px] font-semibold underline hover:no-underline">Retry</button>
                 </div>
               )}
               {loading ? (
                 <div className="flex items-center justify-center h-48">
-                  <div className="w-7 h-7 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-7 h-7 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
                 <div className="flex relative" style={{ minHeight: `${HOURS.length * 64}px` }}>
@@ -804,7 +804,7 @@ const TutorSchedule = () => {
                   <div className="w-14 flex-shrink-0 relative">
                     {HOURS.map(h => (
                       <div key={h} className="absolute w-full flex justify-end pr-2" style={{ top: (h - 7) * 64 - 8 }}>
-                        <span className="text-[10px] text-[#8a90a1]">{String(h).padStart(2,'0')}:00</span>
+                        <span className="text-[10px] text-[#6b6f7d]">{String(h).padStart(2,'0')}:00</span>
                       </div>
                     ))}
                   </div>
@@ -836,8 +836,8 @@ const TutorSchedule = () => {
                             className="absolute left-0 right-0 z-20 flex items-center"
                             style={{ top: nowTop }}
                           >
-                            <div className="w-2 h-2 rounded-full bg-[#4c6eff] -ml-1 flex-shrink-0" />
-                            <div className="flex-1 h-px bg-[#4c6eff]" />
+                            <div className="w-2 h-2 rounded-full bg-[#0d9488] -ml-1 flex-shrink-0" />
+                            <div className="flex-1 h-px bg-[#0d9488]" />
                           </div>
                         )}
 
@@ -874,13 +874,13 @@ const TutorSchedule = () => {
             {/* Legend */}
             <div className="bg-white border-t border-[#ebebf0] px-6 py-3 flex items-center gap-6 flex-shrink-0">
               {[
-                { dot: '#4c6eff', label: 'Individual lesson' },
+                { dot: '#0d9488', label: 'Individual lesson' },
                 { dot: '#ff8032', label: 'Group lesson' },
-                { dot: '#22be70', label: 'Available' },
+                { dot: '#22c55e', label: 'Available' },
               ].map(({ dot, label }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dot }} />
-                  <span className="text-[11px] text-[#8a90a1]">{label}</span>
+                  <span className="text-[11px] text-[#6b6f7d]">{label}</span>
                 </div>
               ))}
             </div>
@@ -900,10 +900,10 @@ const TutorSchedule = () => {
             {/* Upcoming meetings */}
             <div className="p-5 flex-1">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] font-bold text-[#181b26]">Upcoming Lessons</p>
+                <p className="text-[13px] font-bold text-[#0c0d12]">Upcoming Lessons</p>
               </div>
               {upcoming.length === 0 ? (
-                <p className="text-[12px] text-[#8a90a1]">No upcoming lessons this week.</p>
+                <p className="text-[12px] text-[#6b6f7d]">No upcoming lessons this week.</p>
               ) : (
                 <div className="space-y-3">
                   {upcoming.map(lesson => {
@@ -919,18 +919,18 @@ const TutorSchedule = () => {
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-semibold text-[#181b26] truncate">{lesson.title}</p>
-                          <p className="text-[11px] text-[#8a90a1]">
+                          <p className="text-[12px] font-semibold text-[#0c0d12] truncate">{lesson.title}</p>
+                          <p className="text-[11px] text-[#6b6f7d]">
                             {isToday2 ? 'Today' : start ? `${DAY_NAMES[(start.getDay() + 6) % 7]}, ${start.getDate()} ${MONTHS[start.getMonth()].slice(0,3)}` : ''}
-                            {start && end ? `, ${fmtTime(start)} – ${fmtTime(end)}` : ''}
+                            {start && end ? `, ${fmtTime(start)} - ${fmtTime(end)}` : ''}
                           </p>
                         </div>
                         <button
                           onClick={() => openModal(lesson)}
                           className={`flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-[6px] ${
                             lesson.video_link
-                              ? 'bg-[#4c6eff] text-white hover:opacity-90'
-                              : 'border border-[#d2d4d9] text-[#4c5162] hover:border-[#4c6eff] hover:text-[#4c6eff]'
+                              ? 'bg-[#0d9488] text-white hover:opacity-90'
+                              : 'border border-[#d2d4d9] text-[#383a44] hover:border-[#0d9488] hover:text-[#0d9488]'
                           }`}
                         >
                           {lesson.video_link ? 'Join' : 'Link'}
@@ -945,20 +945,20 @@ const TutorSchedule = () => {
             {/* Availability slots summary */}
             <div className="p-5 border-t border-[#ebebf0]">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-bold text-[#8a90a1] uppercase tracking-wider">Availability</p>
+                <p className="text-[11px] font-bold text-[#6b6f7d] uppercase tracking-wider">Availability</p>
                 <button onClick={() => setShowAvail(true)} className="text-[11px] text-[#22be70] font-semibold hover:underline">
                   + Add slot
                 </button>
               </div>
               {availSlots.length === 0 ? (
-                <p className="text-[11px] text-[#8a90a1]">No slots set yet.</p>
+                <p className="text-[11px] text-[#6b6f7d]">No slots set yet.</p>
               ) : (
                 <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
                   {availSlots.map(slot => (
                     <div key={slot.id} className="flex items-center justify-between group">
                       <div>
-                        <span className="text-[11px] font-semibold text-[#181b26]">{slot.day.slice(0, 3)}</span>
-                        <span className="text-[11px] text-[#4c5162] ml-1.5">{slot.start} – {slot.end}</span>
+                        <span className="text-[11px] font-semibold text-[#0c0d12]">{slot.day.slice(0, 3)}</span>
+                        <span className="text-[11px] text-[#383a44] ml-1.5">{slot.start} - {slot.end}</span>
                       </div>
                       <button
                         onClick={() => handleDeleteSlot(slot.id)}

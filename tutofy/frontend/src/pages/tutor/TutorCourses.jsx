@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
@@ -6,8 +6,9 @@ import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { lessonsAPI } from '../../api/lessons';
 import { assignmentsAPI } from '../../api/assignments';
+import { usersAPI } from '../../api/users';
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function parseDate(val) {
   if (!val) return null;
@@ -29,16 +30,16 @@ function fmtUpcoming(val) {
 
 function formatPrice(price) {
   if (!price || price === 0) return 'Free';
-  return new Intl.NumberFormat('ru-KZ').format(price) + ' ₸';
+  return new Intl.NumberFormat('ru-KZ').format(price) + ' KZT';
 }
 
 const GRADIENTS = [
-  ['#4c6eff', '#935bf5'],
-  ['#22be70', '#00beb7'],
-  ['#ff8032', '#f24545'],
-  ['#935bf5', '#4c6eff'],
+  ['#0d9488', '#935bf5'],
+  ['#22c55e', '#00beb7'],
+  ['#ff8032', '#ef4444'],
+  ['#935bf5', '#0d9488'],
   ['#00beb7', '#185FA5'],
-  ['#f24545', '#ff8032'],
+  ['#ef4444', '#ff8032'],
 ];
 function courseGrad(id) {
   const n = (id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -46,11 +47,11 @@ function courseGrad(id) {
 }
 
 function getStatus(course) {
-  if (course.is_published) return { label: 'Active', color: '#22be70', bg: 'rgba(34,190,112,0.18)' };
-  return { label: 'Draft', color: '#8a90a1', bg: 'rgba(138,144,161,0.18)' };
+  if (course.is_published) return { label: 'Active', color: '#22c55e', bg: 'rgba(34,190,112,0.18)' };
+  return { label: 'Draft', color: '#6b6f7d', bg: 'rgba(138,144,161,0.18)' };
 }
 
-// ── icons ─────────────────────────────────────────────────────────────────────
+// â"€â"€ icons â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const StudentsIcon = () => (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
@@ -70,7 +71,7 @@ const AssignIcon = () => (
   </svg>
 );
 
-// ── CourseCard ────────────────────────────────────────────────────────────────
+// â"€â"€ CourseCard â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const CourseCard = ({ course, extra, onDelete, deleting }) => {
   const [c1, c2] = courseGrad(course.id);
@@ -110,17 +111,17 @@ const CourseCard = ({ course, extra, onDelete, deleting }) => {
       <div className="p-4 flex-1 flex flex-col">
 
         {/* Title */}
-        <h3 className="text-[#181b26] text-[14px] font-bold leading-snug mb-2 line-clamp-2">{course.title}</h3>
+        <h3 className="text-[#0c0d12] text-[14px] font-bold leading-snug mb-2 line-clamp-2">{course.title}</h3>
 
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {course.subject && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(76,110,255,0.08)] text-[#4c6eff]">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(13,148,136,0.08)] text-[#0d9488]">
               {course.subject}
             </span>
           )}
           {course.level && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#f3f4f7] text-[#8a90a1] capitalize">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#f3f4f7] text-[#6b6f7d] capitalize">
               {course.level}
             </span>
           )}
@@ -129,13 +130,13 @@ const CourseCard = ({ course, extra, onDelete, deleting }) => {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-0 mb-3 rounded-[10px] bg-[#f8f9fc] overflow-hidden border border-[#f0f0f5]">
           {[
-            { icon: <StudentsIcon />, value: students !== null ? students : '—', label: 'Students' },
-            { icon: <CalIcon />,      value: upcoming || '—',                   label: 'Next lesson', small: !!upcoming },
-            { icon: <AssignIcon />,   value: assignments !== null ? assignments : '—', label: 'Assignments' },
+            { icon: <StudentsIcon />, value: students !== null ? students : '-', label: 'Students' },
+            { icon: <CalIcon />,      value: upcoming || '-',                   label: 'Next lesson', small: !!upcoming },
+            { icon: <AssignIcon />,   value: assignments !== null ? assignments : '-', label: 'Assignments' },
           ].map((s, i) => (
             <div key={i} className={`py-2.5 px-1 text-center ${i > 0 ? 'border-l border-[#f0f0f5]' : ''}`}>
-              <div className="flex justify-center text-[#8a90a1] mb-1">{s.icon}</div>
-              <p className={`text-[#181b26] font-bold leading-tight ${s.small ? 'text-[10px]' : 'text-[15px]'}`}>
+              <div className="flex justify-center text-[#6b6f7d] mb-1">{s.icon}</div>
+              <p className={`text-[#0c0d12] font-bold leading-tight ${s.small ? 'text-[10px]' : 'text-[15px]'}`}>
                 {s.value}
               </p>
               <p className="text-[#b0b5c4] text-[9px] mt-0.5 uppercase tracking-wide">{s.label}</p>
@@ -144,19 +145,19 @@ const CourseCard = ({ course, extra, onDelete, deleting }) => {
         </div>
 
         {/* Price */}
-        <p className="text-[#181b26] text-[15px] font-bold mb-3">{formatPrice(course.price)}</p>
+        <p className="text-[#0c0d12] text-[15px] font-bold mb-3">{formatPrice(course.price)}</p>
 
         {/* Buttons */}
         <div className="flex gap-2 mt-auto">
           <Link to={`/tutor/courses/${course.id}`}
-            className="flex-1 text-center bg-[#4c6eff] text-white text-[12px] font-semibold py-2 rounded-[8px] hover:opacity-90 transition-opacity">
+            className="flex-1 text-center bg-[#0d9488] text-white text-[12px] font-semibold py-2 rounded-[8px] hover:opacity-90 transition-opacity">
             View
           </Link>
           <button
             onClick={() => onDelete(course.id)}
             disabled={deleting === course.id}
             className="text-[12px] font-semibold text-[#f24545] border border-[rgba(242,69,69,0.3)] px-3 py-2 rounded-[8px] hover:bg-[rgba(242,69,69,0.06)] disabled:opacity-40 transition-colors">
-            {deleting === course.id ? '…' : 'Delete'}
+            {deleting === course.id ? '...' : 'Delete'}
           </button>
         </div>
       </div>
@@ -164,27 +165,33 @@ const CourseCard = ({ course, extra, onDelete, deleting }) => {
   );
 };
 
-// ── main page ─────────────────────────────────────────────────────────────────
+// â"€â"€ main page â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const TutorCourses = () => {
   const { isAuthenticated, role, user } = useAuth();
   const navigate = useNavigate();
 
-  const [courses,     setCourses]     = useState([]);
-  const [extraData,   setExtraData]   = useState({});
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState('');
-  const [statusFilter,setStatusFilter]= useState('all');
-  const [deleting,    setDeleting]    = useState(null);
+  const [courses,       setCourses]       = useState([]);
+  const [extraData,     setExtraData]     = useState({});
+  const [loading,       setLoading]       = useState(true);
+  const [search,        setSearch]        = useState('');
+  const [statusFilter,  setStatusFilter]  = useState('all');
+  const [deleting,      setDeleting]      = useState(null);
+  const [profileStatus, setProfileStatus] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated || role !== 'tutor') navigate('/login', { replace: true });
   }, [isAuthenticated, role, navigate]);
 
-  // Load courses
+  // Load courses + profile status
   useEffect(() => {
     const userId = user?.user_id;
     if (!userId) { setLoading(false); return; }
+
+    usersAPI.getTutorProfile(userId)
+      .then(data => setProfileStatus(data?.status || 'pending'))
+      .catch(() => setProfileStatus('pending'));
+
     coursesAPI.getAllCourses()
       .then(res => {
         const all = res?.courses || [];
@@ -265,11 +272,11 @@ const TutorCourses = () => {
         {/* Top bar */}
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-7 justify-between flex-shrink-0">
           <div>
-            <p className="text-[#181b26] text-[20px] font-bold">My Courses</p>
-            <p className="text-[#8a90a1] text-[12px]">{courses.length} courses · {totalStudents} students total</p>
+            <p className="text-[#0c0d12] text-[20px] font-bold">My Courses</p>
+            <p className="text-[#6b6f7d] text-[12px]">{courses.length} courses · {totalStudents} students total</p>
           </div>
           <Link to="/tutor/courses/new"
-            className="bg-[#4c6eff] text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-[0_4px_14px_rgba(76,110,255,0.3)]">
+            className="bg-[#0d9488] text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-[0_4px_14px_rgba(76,110,255,0.3)]">
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
               <path d="M7 2v10M2 7h10" strokeLinecap="round"/>
             </svg>
@@ -277,13 +284,29 @@ const TutorCourses = () => {
           </Link>
         </div>
 
+        {/* Approval banner */}
+        {profileStatus && profileStatus !== 'approved' && (
+          <div className="mx-6 mt-4 bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.25)] rounded-[14px] px-5 py-3 flex items-center gap-3">
+            <svg viewBox="0 0 20 20" fill="none" stroke="#f59e0b" strokeWidth="1.6" width={18} height={18} className="flex-shrink-0">
+              <circle cx="10" cy="10" r="8"/><path d="M10 6v4l2 2" strokeLinecap="round"/>
+            </svg>
+            <p className="text-[13px] text-[#b45309] flex-1">
+              <span className="font-semibold">Profile approval required to publish courses.</span>{' '}
+              You can create and edit draft courses, but publishing requires admin approval of your tutor profile.
+            </p>
+            <Link to="/tutor/profile" className="flex-shrink-0 text-[12px] font-semibold text-[#b45309] border border-[rgba(245,158,11,0.4)] px-3 py-1.5 rounded-[8px] hover:bg-[rgba(245,158,11,0.08)] transition-colors">
+              Complete profile
+            </Link>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-6">
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             {[
-              { label: 'Total courses', value: courses.length, color: '#4c6eff', icon: 'M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4z M7 9h6M7 12h4' },
-              { label: 'Active',        value: activeCount,    color: '#22be70', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+              { label: 'Total courses', value: courses.length, color: '#0d9488', icon: 'M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4z M7 9h6M7 12h4' },
+              { label: 'Active',        value: activeCount,    color: '#22c55e', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
               { label: 'Drafts',        value: draftCount,     color: '#ffa61a', icon: 'M11 5H6a2 2 0 00-2 2v11m0 0a2 2 0 002 2h11a2 2 0 002-2V9m-3-7l3 3m0 0v6m0-6H9' },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-[14px] border border-[#f0f0f5] p-4 flex items-center gap-3">
@@ -295,7 +318,7 @@ const TutorCourses = () => {
                 </div>
                 <div>
                   <p className="text-[22px] font-bold leading-none" style={{ color: s.color }}>{s.value}</p>
-                  <p className="text-[#8a90a1] text-[12px] mt-0.5">{s.label}</p>
+                  <p className="text-[#6b6f7d] text-[12px] mt-0.5">{s.label}</p>
                 </div>
               </div>
             ))}
@@ -312,8 +335,8 @@ const TutorCourses = () => {
                 <button key={f.key} onClick={() => setStatusFilter(f.key)}
                   className={`px-4 py-2 text-[12px] font-medium transition-colors ${
                     statusFilter === f.key
-                      ? 'bg-[#4c6eff] text-white'
-                      : 'text-[#8a90a1] hover:text-[#181b26]'
+                      ? 'bg-[#0d9488] text-white'
+                      : 'text-[#6b6f7d] hover:text-[#0c0d12]'
                   }`}>
                   {f.label}
                 </button>
@@ -325,17 +348,17 @@ const TutorCourses = () => {
                 <circle cx="7" cy="7" r="5"/><path d="M11 11l3 3" strokeLinecap="round"/>
               </svg>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search courses…"
-                className="flex-1 bg-transparent text-[12px] text-[#181b26] placeholder-[#b0b5c4] outline-none" />
+                placeholder="Search courses..."
+                className="flex-1 bg-transparent text-[12px] text-[#0c0d12] placeholder-[#b0b5c4] outline-none" />
             </div>
 
-            <span className="text-[#8a90a1] text-[12px] ml-auto">{filtered.length} results</span>
+            <span className="text-[#6b6f7d] text-[12px] ml-auto">{filtered.length} results</span>
           </div>
 
           {/* Content */}
           {loading ? (
             <div className="flex items-center justify-center py-24">
-              <div className="w-8 h-8 border-4 border-[#4c6eff] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-white rounded-[18px] border border-[#f0f0f5] p-16 text-center">
@@ -344,15 +367,15 @@ const TutorCourses = () => {
                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4z"/><path d="M7 9h6M7 12h4" strokeLinecap="round"/>
                 </svg>
               </div>
-              <p className="text-[#181b26] text-[16px] font-bold mb-1">
+              <p className="text-[#0c0d12] text-[16px] font-bold mb-1">
                 {courses.length === 0 ? "No courses yet" : "No courses match your filter"}
               </p>
-              <p className="text-[#8a90a1] text-[13px] mb-5">
+              <p className="text-[#6b6f7d] text-[13px] mb-5">
                 {courses.length === 0 ? "Create your first course to get started" : "Try adjusting the search or filter"}
               </p>
               {courses.length === 0 && (
                 <Link to="/tutor/courses/new"
-                  className="inline-block bg-[#4c6eff] text-white text-[13px] font-semibold px-6 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity">
+                  className="inline-block bg-[#0d9488] text-white text-[13px] font-semibold px-6 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity">
                   + Create your first course
                 </Link>
               )}

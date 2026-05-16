@@ -23,7 +23,8 @@ type Config struct {
 	MediaServiceAddr      string
 	ReviewServiceAddr     string
 	SubmissionServiceAddr string
-	QuizServiceAddr       string
+	QuizServiceAddr         string
+	CertificateServiceAddr  string
 }
 
 func Load() *Config {
@@ -50,7 +51,8 @@ func Load() *Config {
 		MediaServiceAddr:      env("MEDIA_SERVICE_ADDR", "localhost:50062"),
 		ReviewServiceAddr:     env("REVIEW_SERVICE_ADDR", "localhost:50065"),
 		SubmissionServiceAddr: env("SUBMISSION_SERVICE_ADDR", "localhost:50063"),
-		QuizServiceAddr:       env("QUIZ_SERVICE_ADDR", "localhost:50064"),
+		QuizServiceAddr:        env("QUIZ_SERVICE_ADDR", "localhost:50064"),
+		CertificateServiceAddr: env("CERTIFICATE_SERVICE_ADDR", "localhost:50066"),
 	}
 }
 
