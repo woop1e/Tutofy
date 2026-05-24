@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"auth-service/internal/repository"
 	"auth-service/internal/service"
 	"auth-service/proto/authpb"
 	"context"
 	"regexp"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,11 +16,12 @@ var emailRE = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
 type AuthHandler struct {
 	authpb.UnimplementedAuthServiceServer
-	svc *service.AuthService
+	svc  *service.AuthService
+	repo *repository.UserRepository
 }
 
-func NewAuthHandler(svc *service.AuthService) *AuthHandler {
-	return &AuthHandler{svc: svc}
+func NewAuthHandler(svc *service.AuthService, repo *repository.UserRepository) *AuthHandler {
+	return &AuthHandler{svc: svc, repo: repo}
 }
 
 func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest) (*authpb.AuthResponse, error) {
@@ -74,4 +77,37 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *authpb.TokenReques
 	}
 
 	return &authpb.ValidateResponse{UserId: userID, Role: role}, nil
+}
+
+func (h *AuthHandler) StoreGoogleToken(ctx context.Context, req *authpb.StoreGoogleTokenRequest) (*authpb.StoreGoogleTokenResponse, error) {
+	if req.UserId == "" || req.AccessToken == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id and access_token are required")
+	}
+	expiry, err := time.Parse(time.RFC3339, req.Expiry)
+	if err != nil {
+		expiry = time.Now().Add(time.Hour)
+	}
+	if err := h.repo.StoreGoogleToken(req.UserId, req.AccessToken, req.RefreshToken, expiry); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &authpb.StoreGoogleTokenResponse{}, nil
+}
+
+func (h *AuthHandler) GetGoogleToken(ctx context.Context, req *authpb.GetGoogleTokenRequest) (*authpb.GoogleTokenResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	t, err := h.repo.GetGoogleToken(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if t == nil {
+		return nil, status.Error(codes.NotFound, "no Google token for user")
+	}
+	return &authpb.GoogleTokenResponse{
+		UserId:       t.UserID,
+		AccessToken:  t.AccessToken,
+		RefreshToken: t.RefreshToken,
+		Expiry:       t.Expiry.Format(time.RFC3339),
+	}, nil
 }

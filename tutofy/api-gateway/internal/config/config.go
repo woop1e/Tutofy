@@ -25,6 +25,9 @@ type Config struct {
 	SubmissionServiceAddr string
 	QuizServiceAddr         string
 	CertificateServiceAddr  string
+	GoogleClientID          string
+	GoogleClientSecret      string
+	GoogleRedirectURI       string
 }
 
 func Load() *Config {
@@ -53,6 +56,9 @@ func Load() *Config {
 		SubmissionServiceAddr: env("SUBMISSION_SERVICE_ADDR", "localhost:50063"),
 		QuizServiceAddr:        env("QUIZ_SERVICE_ADDR", "localhost:50064"),
 		CertificateServiceAddr: env("CERTIFICATE_SERVICE_ADDR", "localhost:50066"),
+		GoogleClientID:         os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:     os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURI:      os.Getenv("GOOGLE_REDIRECT_URI"),
 	}
 }
 

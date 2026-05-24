@@ -214,13 +214,21 @@ services:
       DB_URL: "postgres://tutofy:secret@postgres/notifications?sslmode=disable"
       PORT: "50057"
       AUTH_SERVICE_ADDR: "auth-service:50051"
+      USER_SERVICE_ADDR: "user-service:50052"
       NATS_ADDR: "nats://nats:4222"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
     depends_on:
       postgres:
         condition: service_healthy
       nats:
         condition: service_started
       auth-service:
+        condition: service_started
+      user-service:
         condition: service_started
     restart: unless-stopped
 
@@ -429,6 +437,9 @@ services:
       REVIEW_SERVICE_ADDR: "review-service:50065"
       SUBMISSION_SERVICE_ADDR: "submission-service:50063"
       QUIZ_SERVICE_ADDR: "quiz-service:50064"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-http://localhost:8080/auth/google/callback}"
     depends_on:
       auth-service:
         condition: service_started

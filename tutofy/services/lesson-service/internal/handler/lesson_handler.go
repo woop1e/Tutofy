@@ -46,7 +46,7 @@ func (h *LessonHandler) CreateLesson(ctx context.Context, req *lessonpb.CreateLe
 			return nil, status.Error(codes.InvalidArgument, "course_id is required (or x-tutor-id for individual booking)")
 		}
 		studentID := middleware.UserIDFromContext(ctx)
-		lesson, err := h.svc.BookIndividualLesson(ctx, tutorIDs[0], studentID, req.GetTitle(), req.GetScheduledAt().AsTime(), req.GetDurationMinutes())
+		lesson, err := h.svc.BookIndividualLesson(ctx, tutorIDs[0], studentID, req.GetTitle(), req.GetScheduledAt().AsTime(), req.GetDurationMinutes(), 0)
 		if err != nil {
 			return nil, mapError(err)
 		}
@@ -148,6 +148,10 @@ func protoStatusToModel(s lessonpb.LessonStatus) model.LessonStatus {
 		return model.LessonStatusCompleted
 	case lessonpb.LessonStatus_LESSON_STATUS_CANCELLED:
 		return model.LessonStatusCancelled
+	case lessonpb.LessonStatus_LESSON_STATUS_PENDING_CONFIRMATION:
+		return model.LessonStatusPendingConfirmation
+	case lessonpb.LessonStatus_LESSON_STATUS_AWAITING_PAYMENT:
+		return model.LessonStatusAwaitingPayment
 	default:
 		return model.LessonStatusUnspecified
 	}
@@ -161,6 +165,10 @@ func modelStatusToProto(s model.LessonStatus) lessonpb.LessonStatus {
 		return lessonpb.LessonStatus_LESSON_STATUS_COMPLETED
 	case model.LessonStatusCancelled:
 		return lessonpb.LessonStatus_LESSON_STATUS_CANCELLED
+	case model.LessonStatusPendingConfirmation:
+		return lessonpb.LessonStatus_LESSON_STATUS_PENDING_CONFIRMATION
+	case model.LessonStatusAwaitingPayment:
+		return lessonpb.LessonStatus_LESSON_STATUS_AWAITING_PAYMENT
 	default:
 		return lessonpb.LessonStatus_LESSON_STATUS_UNSPECIFIED
 	}
@@ -172,11 +180,73 @@ func mapError(err error) error {
 		return status.Error(codes.PermissionDenied, err.Error())
 	case errors.Is(err, service.ErrNotEnrolled):
 		return status.Error(codes.PermissionDenied, err.Error())
+	case errors.Is(err, service.ErrWrongStatus):
+		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return status.Error(codes.NotFound, "lesson not found")
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}
+}
+
+func (h *LessonHandler) BookIndividualLesson(ctx context.Context, req *lessonpb.BookIndividualLessonRequest) (*lessonpb.Lesson, error) {
+	if req.GetTutorId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tutor_id is required")
+	}
+	if req.GetTitle() == "" {
+		return nil, status.Error(codes.InvalidArgument, "title is required")
+	}
+	if req.GetScheduledAt() == nil {
+		return nil, status.Error(codes.InvalidArgument, "scheduled_at is required")
+	}
+	studentID := middleware.UserIDFromContext(ctx)
+	lesson, err := h.svc.BookIndividualLesson(ctx,
+		req.GetTutorId(), studentID, req.GetTitle(),
+		req.GetScheduledAt().AsTime(), req.GetDurationMinutes(), req.GetPrice(),
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return toProto(lesson), nil
+}
+
+func (h *LessonHandler) ConfirmLesson(ctx context.Context, req *lessonpb.ConfirmLessonRequest) (*lessonpb.Lesson, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	lesson, err := h.svc.ConfirmLesson(ctx, callerID, callerRole, req.GetLessonId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return toProto(lesson), nil
+}
+
+func (h *LessonHandler) DeclineLesson(ctx context.Context, req *lessonpb.DeclineLessonRequest) (*lessonpb.Lesson, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	lesson, err := h.svc.DeclineLesson(ctx, callerID, callerRole, req.GetLessonId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return toProto(lesson), nil
+}
+
+func (h *LessonHandler) ActivateLesson(ctx context.Context, req *lessonpb.ActivateLessonRequest) (*lessonpb.Lesson, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	lesson, err := h.svc.ActivateLesson(ctx, callerID, callerRole, req.GetLessonId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return toProto(lesson), nil
 }
 
 func (h *LessonHandler) SetVideoLink(ctx context.Context, req *lessonpb.SetVideoLinkRequest) (*lessonpb.Lesson, error) {

@@ -47,13 +47,19 @@ func main() {
 			name       TEXT NOT NULL DEFAULT '',
 			role       TEXT NOT NULL DEFAULT 'student'
 		);
+		CREATE TABLE IF NOT EXISTS google_tokens (
+			user_id       TEXT PRIMARY KEY,
+			access_token  TEXT NOT NULL,
+			refresh_token TEXT NOT NULL DEFAULT '',
+			token_expiry  TIMESTAMPTZ NOT NULL
+		);
 	`); err != nil {
 		log.Fatalf("schema migration: %v", err)
 	}
 
 	repo := repository.NewUserRepository(db)
 	svc := service.NewAuthService(repo, cfg.JWTSecret, rdb)
-	h := handler.NewAuthHandler(svc)
+	h := handler.NewAuthHandler(svc, repo)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {

@@ -51,14 +51,14 @@ func NewPostgresRepo(db *sql.DB) LessonRepository {
 	return &postgresRepo{db: db}
 }
 
-const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status`
+const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, COALESCE(price, 0)`
 
 func (r *postgresRepo) CreateLesson(ctx context.Context, lesson *model.Lesson) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO lessons (id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		`INSERT INTO lessons (id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, price)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		lesson.ID, lesson.CourseID, lesson.TutorID, lesson.StudentID, lesson.Title,
-		lesson.ScheduledAt, lesson.DurationMinutes, lesson.VideoLink, int32(lesson.Status),
+		lesson.ScheduledAt, lesson.DurationMinutes, lesson.VideoLink, int32(lesson.Status), lesson.Price,
 	)
 	return err
 }
@@ -147,7 +147,7 @@ func scanLesson(s scanner) (*model.Lesson, error) {
 	var status int32
 	err := s.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
-		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status,
+		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -164,7 +164,7 @@ func scanLessonRow(rows *sql.Rows) (*model.Lesson, error) {
 	var status int32
 	err := rows.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
-		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status,
+		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
 	)
 	if err != nil {
 		return nil, err

@@ -65,6 +65,46 @@ func (x *UpdatePaymentStatusRequest) ProtoMessage()    {}
 func (x *UpdatePaymentStatusRequest) GetPaymentId() string { return x.PaymentId }
 func (x *UpdatePaymentStatusRequest) GetStatus() string    { return x.Status }
 
+type CreateLessonPaymentRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	LessonId string  `protobuf:"bytes,1,opt,name=lesson_id,json=lessonId,proto3" json:"lesson_id,omitempty"`
+	Amount   float64 `protobuf:"fixed64,2,opt,name=amount,proto3" json:"amount,omitempty"`
+}
+
+func (x *CreateLessonPaymentRequest) Reset()           { *x = CreateLessonPaymentRequest{} }
+func (x *CreateLessonPaymentRequest) String() string    { return x.LessonId }
+func (x *CreateLessonPaymentRequest) ProtoMessage()    {}
+func (x *CreateLessonPaymentRequest) GetLessonId() string { return x.LessonId }
+func (x *CreateLessonPaymentRequest) GetAmount() float64  { return x.Amount }
+
+type CheckLessonPaymentRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	UserId   string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	LessonId string `protobuf:"bytes,2,opt,name=lesson_id,json=lessonId,proto3" json:"lesson_id,omitempty"`
+}
+
+func (x *CheckLessonPaymentRequest) Reset()           { *x = CheckLessonPaymentRequest{} }
+func (x *CheckLessonPaymentRequest) String() string    { return "" }
+func (x *CheckLessonPaymentRequest) ProtoMessage()    {}
+func (x *CheckLessonPaymentRequest) GetUserId() string   { return x.UserId }
+func (x *CheckLessonPaymentRequest) GetLessonId() string { return x.LessonId }
+
+type CheckLessonPaymentResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	HasPaid bool `protobuf:"varint,1,opt,name=has_paid,json=hasPaid,proto3" json:"has_paid,omitempty"`
+}
+
+func (x *CheckLessonPaymentResponse) Reset()          { *x = CheckLessonPaymentResponse{} }
+func (x *CheckLessonPaymentResponse) String() string   { return "" }
+func (x *CheckLessonPaymentResponse) ProtoMessage()   {}
+func (x *CheckLessonPaymentResponse) GetHasPaid() bool { return x.HasPaid }
+
 type PaymentResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -75,6 +115,7 @@ type PaymentResponse struct {
 	Amount    float64 `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"`
 	Status    string  `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	CreatedAt string  `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LessonId  string  `protobuf:"bytes,7,opt,name=lesson_id,json=lessonId,proto3" json:"lesson_id,omitempty"`
 }
 
 func (x *PaymentResponse) Reset()           { *x = PaymentResponse{} }
@@ -86,6 +127,7 @@ func (x *PaymentResponse) GetCourseId() string  { return x.CourseId }
 func (x *PaymentResponse) GetAmount() float64   { return x.Amount }
 func (x *PaymentResponse) GetStatus() string    { return x.Status }
 func (x *PaymentResponse) GetCreatedAt() string { return x.CreatedAt }
+func (x *PaymentResponse) GetLessonId() string  { return x.LessonId }
 
 type PaymentsList struct {
 	state         protoimpl.MessageState
@@ -129,17 +171,22 @@ func (x *PaymentsList) GetPayments() []*PaymentResponse { return x.Payments }
 
 type PaymentServiceServer interface {
 	CreatePayment(context.Context, *CreatePaymentRequest) (*PaymentResponse, error)
+	CreateLessonPayment(context.Context, *CreateLessonPaymentRequest) (*PaymentResponse, error)
 	GetPayment(context.Context, *GetPaymentRequest) (*PaymentResponse, error)
 	GetUserPayments(context.Context, *GetUserPaymentsRequest) (*PaymentsList, error)
 	CompletePayment(context.Context, *UpdatePaymentStatusRequest) (*PaymentResponse, error)
 	FailPayment(context.Context, *UpdatePaymentStatusRequest) (*PaymentResponse, error)
 	CheckCoursePayment(context.Context, *CheckCoursePaymentRequest) (*CheckCoursePaymentResponse, error)
+	CheckLessonPayment(context.Context, *CheckLessonPaymentRequest) (*CheckLessonPaymentResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
 type UnimplementedPaymentServiceServer struct{}
 
 func (UnimplementedPaymentServiceServer) CreatePayment(context.Context, *CreatePaymentRequest) (*PaymentResponse, error) {
+	return nil, nil
+}
+func (UnimplementedPaymentServiceServer) CreateLessonPayment(context.Context, *CreateLessonPaymentRequest) (*PaymentResponse, error) {
 	return nil, nil
 }
 func (UnimplementedPaymentServiceServer) GetPayment(context.Context, *GetPaymentRequest) (*PaymentResponse, error) {
@@ -157,6 +204,9 @@ func (UnimplementedPaymentServiceServer) FailPayment(context.Context, *UpdatePay
 func (UnimplementedPaymentServiceServer) CheckCoursePayment(context.Context, *CheckCoursePaymentRequest) (*CheckCoursePaymentResponse, error) {
 	return nil, nil
 }
+func (UnimplementedPaymentServiceServer) CheckLessonPayment(context.Context, *CheckLessonPaymentRequest) (*CheckLessonPaymentResponse, error) {
+	return nil, nil
+}
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -170,11 +220,13 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*PaymentServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{MethodName: "CreatePayment", Handler: _PaymentService_CreatePayment_Handler},
+		{MethodName: "CreateLessonPayment", Handler: _PaymentService_CreateLessonPayment_Handler},
 		{MethodName: "GetPayment", Handler: _PaymentService_GetPayment_Handler},
 		{MethodName: "GetUserPayments", Handler: _PaymentService_GetUserPayments_Handler},
 		{MethodName: "CompletePayment", Handler: _PaymentService_CompletePayment_Handler},
 		{MethodName: "FailPayment", Handler: _PaymentService_FailPayment_Handler},
 		{MethodName: "CheckCoursePayment", Handler: _PaymentService_CheckCoursePayment_Handler},
+		{MethodName: "CheckLessonPayment", Handler: _PaymentService_CheckLessonPayment_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "payment.proto",
@@ -270,15 +322,47 @@ func _PaymentService_CheckCoursePayment_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PaymentService_CreateLessonPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateLessonPaymentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).CreateLessonPayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/payment.PaymentService/CreateLessonPayment"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).CreateLessonPayment(ctx, req.(*CreateLessonPaymentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_CheckLessonPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckLessonPaymentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).CheckLessonPayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/payment.PaymentService/CheckLessonPayment"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).CheckLessonPayment(ctx, req.(*CheckLessonPaymentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client interface ──────────────────────────────────────────────────────────
 
 type PaymentServiceClient interface {
 	CreatePayment(ctx context.Context, in *CreatePaymentRequest, opts ...grpc.CallOption) (*PaymentResponse, error)
+	CreateLessonPayment(ctx context.Context, in *CreateLessonPaymentRequest, opts ...grpc.CallOption) (*PaymentResponse, error)
 	GetPayment(ctx context.Context, in *GetPaymentRequest, opts ...grpc.CallOption) (*PaymentResponse, error)
 	GetUserPayments(ctx context.Context, in *GetUserPaymentsRequest, opts ...grpc.CallOption) (*PaymentsList, error)
 	CompletePayment(ctx context.Context, in *UpdatePaymentStatusRequest, opts ...grpc.CallOption) (*PaymentResponse, error)
 	FailPayment(ctx context.Context, in *UpdatePaymentStatusRequest, opts ...grpc.CallOption) (*PaymentResponse, error)
 	CheckCoursePayment(ctx context.Context, in *CheckCoursePaymentRequest, opts ...grpc.CallOption) (*CheckCoursePaymentResponse, error)
+	CheckLessonPayment(ctx context.Context, in *CheckLessonPaymentRequest, opts ...grpc.CallOption) (*CheckLessonPaymentResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -322,5 +406,17 @@ func (c *paymentServiceClient) FailPayment(ctx context.Context, in *UpdatePaymen
 func (c *paymentServiceClient) CheckCoursePayment(ctx context.Context, in *CheckCoursePaymentRequest, opts ...grpc.CallOption) (*CheckCoursePaymentResponse, error) {
 	out := new(CheckCoursePaymentResponse)
 	err := c.cc.Invoke(ctx, "/payment.PaymentService/CheckCoursePayment", in, out, opts...)
+	return out, err
+}
+
+func (c *paymentServiceClient) CreateLessonPayment(ctx context.Context, in *CreateLessonPaymentRequest, opts ...grpc.CallOption) (*PaymentResponse, error) {
+	out := new(PaymentResponse)
+	err := c.cc.Invoke(ctx, "/payment.PaymentService/CreateLessonPayment", in, out, opts...)
+	return out, err
+}
+
+func (c *paymentServiceClient) CheckLessonPayment(ctx context.Context, in *CheckLessonPaymentRequest, opts ...grpc.CallOption) (*CheckLessonPaymentResponse, error) {
+	out := new(CheckLessonPaymentResponse)
+	err := c.cc.Invoke(ctx, "/payment.PaymentService/CheckLessonPayment", in, out, opts...)
 	return out, err
 }

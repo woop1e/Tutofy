@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	auth-service v0.0.0-00010101000000-000000000000
+	user-service v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.3
@@ -24,3 +25,5 @@ require (
 )
 
 replace auth-service => ../auth-service
+
+replace user-service => ../user-service

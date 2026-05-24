@@ -9,6 +9,7 @@ import (
 	"enrollment-service/proto/enrollmentpb"
 	"lesson-service/proto/lessonpb"
 	"notification-service/proto/notificationpb"
+	"payment-service/proto/paymentpb"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -17,10 +18,11 @@ type LessonHandler struct {
 	client        lessonpb.LessonServiceClient
 	notifClient   notificationpb.NotificationServiceClient
 	enrollClient  enrollmentpb.EnrollmentServiceClient
+	paymentClient paymentpb.PaymentServiceClient
 }
 
-func NewLessonHandler(c lessonpb.LessonServiceClient, nc notificationpb.NotificationServiceClient, ec enrollmentpb.EnrollmentServiceClient) *LessonHandler {
-	return &LessonHandler{client: c, notifClient: nc, enrollClient: ec}
+func NewLessonHandler(c lessonpb.LessonServiceClient, nc notificationpb.NotificationServiceClient, ec enrollmentpb.EnrollmentServiceClient, pc paymentpb.PaymentServiceClient) *LessonHandler {
+	return &LessonHandler{client: c, notifClient: nc, enrollClient: ec, paymentClient: pc}
 }
 
 type createLessonBody struct {
@@ -143,8 +145,8 @@ func (h *LessonHandler) GetMySchedule(w http.ResponseWriter, r *http.Request) {
 	jsonResp(w, http.StatusOK, resp)
 }
 
-// BookLesson lets an authenticated student (or any user) book a 1-on-1 lesson with a tutor.
-// It creates the lesson and immediately notifies the tutor.
+// BookLesson lets an authenticated student request a 1-on-1 lesson with a tutor.
+// The lesson is created with status PENDING_CONFIRMATION; the tutor must confirm before payment.
 func (h *LessonHandler) BookLesson(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		TutorId         string  `json:"tutor_id"`
@@ -170,46 +172,103 @@ func (h *LessonHandler) BookLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build outgoing context: forward student JWT + add x-tutor-id for lesson service.
-	outMD := metadata.New(map[string]string{"x-tutor-id": body.TutorId})
-	base := tokenCtx(r)
-	// Merge any existing metadata with x-tutor-id.
-	if existing, ok := metadata.FromOutgoingContext(base); ok {
-		for k, v := range existing {
-			outMD[k] = v
-		}
-	}
-	ctx := metadata.NewOutgoingContext(base, outMD)
-
 	durationMinutes := body.DurationMinutes
 	if durationMinutes <= 0 {
 		durationMinutes = 60
 	}
 
-	resp, err := h.client.CreateLesson(ctx, &lessonpb.CreateLessonRequest{
-		CourseId:        "", // empty = individual lesson
+	resp, err := h.client.BookIndividualLesson(tokenCtx(r), &lessonpb.BookIndividualLessonRequest{
+		TutorId:         body.TutorId,
 		Title:           body.Title,
 		ScheduledAt:     timestamppb.New(t),
 		DurationMinutes: durationMinutes,
+		Price:           body.Price,
 	})
 	if err != nil {
 		errResp(w, err)
 		return
 	}
 
-	// Notify the tutor asynchronously.
+	// Notify the tutor: new booking request awaits their confirmation.
 	if h.notifClient != nil {
 		go func() {
-			msg := fmt.Sprintf("New lesson booked: \"%s\" on %s", body.Title, t.Format("Jan 2, 2006 at 15:04"))
+			msg := fmt.Sprintf("New lesson booking request: \"%s\" on %s. Please confirm or decline.", body.Title, t.Format("Jan 2, 2006 at 15:04"))
 			_, _ = h.notifClient.NotifyUser(context.Background(), &notificationpb.NotifyUserRequest{
 				UserId:  body.TutorId,
-				Type:    3, // NOTIFICATION_TYPE_NEW_LESSON
+				Type:    8, // NOTIFICATION_TYPE_BOOKING_REQUEST
 				Message: msg,
 			})
 		}()
 	}
 
 	jsonResp(w, http.StatusCreated, resp)
+}
+
+// ConfirmLesson lets a tutor accept a pending individual lesson booking.
+func (h *LessonHandler) ConfirmLesson(w http.ResponseWriter, r *http.Request) {
+	lessonID := r.PathValue("id")
+	resp, err := h.client.ConfirmLesson(tokenCtx(r), &lessonpb.ConfirmLessonRequest{LessonId: lessonID})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	// notification-service is notified via NATS (lesson.confirmed event from lesson-service)
+	jsonResp(w, http.StatusOK, resp)
+}
+
+// DeclineLesson lets a tutor reject a pending individual lesson booking.
+func (h *LessonHandler) DeclineLesson(w http.ResponseWriter, r *http.Request) {
+	lessonID := r.PathValue("id")
+	resp, err := h.client.DeclineLesson(tokenCtx(r), &lessonpb.DeclineLessonRequest{LessonId: lessonID})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}
+
+// PayForLesson creates a lesson payment and, on success, activates the lesson (PLANNED).
+func (h *LessonHandler) PayForLesson(w http.ResponseWriter, r *http.Request) {
+	lessonID := r.PathValue("id")
+	var body struct {
+		Amount float64 `json:"amount"`
+	}
+	if err := decode(r, &body); err != nil {
+		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		return
+	}
+	if body.Amount <= 0 {
+		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "amount must be greater than 0"})
+		return
+	}
+
+	// Create pending payment.
+	payResp, err := h.paymentClient.CreateLessonPayment(tokenCtx(r), &paymentpb.CreateLessonPaymentRequest{
+		LessonId: lessonID,
+		Amount:   body.Amount,
+	})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+
+	// Immediately complete the payment (in a real system this would go through a payment gateway).
+	_, err = h.paymentClient.CompletePayment(tokenCtx(r), &paymentpb.UpdatePaymentStatusRequest{
+		PaymentId: payResp.GetPaymentId(),
+	})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+
+	// Activate the lesson: AWAITING_PAYMENT → PLANNED.
+	lesson, err := h.client.ActivateLesson(tokenCtx(r), &lessonpb.ActivateLessonRequest{LessonId: lessonID})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+
+	jsonResp(w, http.StatusOK, lesson)
 }
 
 func (h *LessonHandler) SetVideoLink(w http.ResponseWriter, r *http.Request) {

@@ -24,10 +24,12 @@ const (
 type LessonStatus int32
 
 const (
-	LessonStatus_LESSON_STATUS_UNSPECIFIED LessonStatus = 0
-	LessonStatus_LESSON_STATUS_PLANNED     LessonStatus = 1
-	LessonStatus_LESSON_STATUS_COMPLETED   LessonStatus = 2
-	LessonStatus_LESSON_STATUS_CANCELLED   LessonStatus = 3
+	LessonStatus_LESSON_STATUS_UNSPECIFIED          LessonStatus = 0
+	LessonStatus_LESSON_STATUS_PLANNED              LessonStatus = 1
+	LessonStatus_LESSON_STATUS_COMPLETED            LessonStatus = 2
+	LessonStatus_LESSON_STATUS_CANCELLED            LessonStatus = 3
+	LessonStatus_LESSON_STATUS_PENDING_CONFIRMATION LessonStatus = 4
+	LessonStatus_LESSON_STATUS_AWAITING_PAYMENT     LessonStatus = 5
 )
 
 // Enum value maps for LessonStatus.
@@ -37,12 +39,16 @@ var (
 		1: "LESSON_STATUS_PLANNED",
 		2: "LESSON_STATUS_COMPLETED",
 		3: "LESSON_STATUS_CANCELLED",
+		4: "LESSON_STATUS_PENDING_CONFIRMATION",
+		5: "LESSON_STATUS_AWAITING_PAYMENT",
 	}
 	LessonStatus_value = map[string]int32{
-		"LESSON_STATUS_UNSPECIFIED": 0,
-		"LESSON_STATUS_PLANNED":     1,
-		"LESSON_STATUS_COMPLETED":   2,
-		"LESSON_STATUS_CANCELLED":   3,
+		"LESSON_STATUS_UNSPECIFIED":          0,
+		"LESSON_STATUS_PLANNED":              1,
+		"LESSON_STATUS_COMPLETED":            2,
+		"LESSON_STATUS_CANCELLED":            3,
+		"LESSON_STATUS_PENDING_CONFIRMATION": 4,
+		"LESSON_STATUS_AWAITING_PAYMENT":     5,
 	}
 )
 

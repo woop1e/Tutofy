@@ -4,6 +4,7 @@ import (
 	"auth-service/internal/model"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 type UserRepository struct {
@@ -38,4 +39,36 @@ func (r *UserRepository) GetUserByID(id string) (*model.User, error) {
 		return nil, nil
 	}
 	return user, err
+}
+
+func (r *UserRepository) StoreGoogleToken(userID, accessToken, refreshToken string, expiry time.Time) error {
+	_, err := r.db.Exec(`
+		INSERT INTO google_tokens (user_id, access_token, refresh_token, token_expiry)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (user_id) DO UPDATE
+		  SET access_token  = EXCLUDED.access_token,
+		      refresh_token = EXCLUDED.refresh_token,
+		      token_expiry  = EXCLUDED.token_expiry`,
+		userID, accessToken, refreshToken, expiry,
+	)
+	return err
+}
+
+type GoogleToken struct {
+	UserID       string
+	AccessToken  string
+	RefreshToken string
+	Expiry       time.Time
+}
+
+func (r *UserRepository) GetGoogleToken(userID string) (*GoogleToken, error) {
+	t := &GoogleToken{}
+	err := r.db.QueryRow(
+		`SELECT user_id, access_token, refresh_token, token_expiry FROM google_tokens WHERE user_id = $1`,
+		userID,
+	).Scan(&t.UserID, &t.AccessToken, &t.RefreshToken, &t.Expiry)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return t, err
 }

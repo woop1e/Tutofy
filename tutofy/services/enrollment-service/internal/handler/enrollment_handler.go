@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"time"
 
 	"enrollment-service/internal/middleware"
 	"enrollment-service/internal/model"
@@ -91,6 +92,70 @@ func (h *EnrollmentHandler) GetCourseEnrollments(ctx context.Context, req *enrol
 	return toList(enrollments), nil
 }
 
+func (h *EnrollmentHandler) RequestEnrollment(ctx context.Context, req *enrollmentpb.RequestEnrollmentRequest) (*enrollmentpb.EnrollmentRequestResponse, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	r, err := h.svc.RequestEnrollment(ctx, callerID, callerRole, req.GetCourseId())
+	if err != nil {
+		if errors.Is(err, service.ErrNotStudent) {
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return toRequestProto(r), nil
+}
+
+func (h *EnrollmentHandler) GetCourseEnrollmentRequests(ctx context.Context, req *enrollmentpb.CourseRequest) (*enrollmentpb.EnrollmentRequestsList, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	reqs, err := h.svc.GetCourseEnrollmentRequests(ctx, callerID, callerRole, req.GetCourseId())
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	list := make([]*enrollmentpb.EnrollmentRequestResponse, 0, len(reqs))
+	for _, r := range reqs {
+		list = append(list, toRequestProto(r))
+	}
+	return &enrollmentpb.EnrollmentRequestsList{Requests: list}, nil
+}
+
+func (h *EnrollmentHandler) ApproveEnrollmentRequest(ctx context.Context, req *enrollmentpb.EnrollmentRequestActionRequest) (*enrollmentpb.Empty, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	if err := h.svc.ApproveEnrollmentRequest(ctx, callerID, callerRole, req.GetRequestId()); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, service.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "enrollment request not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &enrollmentpb.Empty{}, nil
+}
+
+func (h *EnrollmentHandler) RejectEnrollmentRequest(ctx context.Context, req *enrollmentpb.EnrollmentRequestActionRequest) (*enrollmentpb.Empty, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+
+	if err := h.svc.RejectEnrollmentRequest(ctx, callerID, callerRole, req.GetRequestId()); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, service.ErrNotFound) {
+			return nil, status.Error(codes.NotFound, "enrollment request not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &enrollmentpb.Empty{}, nil
+}
+
 func toProto(e *model.Enrollment) *enrollmentpb.EnrollmentResponse {
 	return &enrollmentpb.EnrollmentResponse{
 		Id:       e.ID,
@@ -105,4 +170,14 @@ func toList(enrollments []*model.Enrollment) *enrollmentpb.EnrollmentsList {
 		list = append(list, toProto(e))
 	}
 	return &enrollmentpb.EnrollmentsList{Enrollments: list}
+}
+
+func toRequestProto(r *model.EnrollmentRequest) *enrollmentpb.EnrollmentRequestResponse {
+	return &enrollmentpb.EnrollmentRequestResponse{
+		Id:        r.ID,
+		UserId:    r.UserID,
+		CourseId:  r.CourseID,
+		Status:    r.Status,
+		CreatedAt: r.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
 }

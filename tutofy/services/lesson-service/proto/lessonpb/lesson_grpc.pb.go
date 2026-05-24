@@ -36,6 +36,10 @@ type LessonServiceClient interface {
 	GetStudentLessons(ctx context.Context, in *GetStudentLessonsRequest, opts ...grpc.CallOption) (*CourseLessonsList, error)
 	GetTutorBookedSlots(ctx context.Context, in *GetTutorBookedSlotsRequest, opts ...grpc.CallOption) (*TutorBookedSlotsResponse, error)
 	GetTutorIndividualLessons(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CourseLessonsList, error)
+	BookIndividualLesson(ctx context.Context, in *BookIndividualLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
+	ConfirmLesson(ctx context.Context, in *ConfirmLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
+	DeclineLesson(ctx context.Context, in *DeclineLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
+	ActivateLesson(ctx context.Context, in *ActivateLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
 }
 
 type lessonServiceClient struct {
@@ -109,6 +113,10 @@ type LessonServiceServer interface {
 	GetStudentLessons(context.Context, *GetStudentLessonsRequest) (*CourseLessonsList, error)
 	GetTutorBookedSlots(context.Context, *GetTutorBookedSlotsRequest) (*TutorBookedSlotsResponse, error)
 	GetTutorIndividualLessons(context.Context, *Empty) (*CourseLessonsList, error)
+	BookIndividualLesson(context.Context, *BookIndividualLessonRequest) (*Lesson, error)
+	ConfirmLesson(context.Context, *ConfirmLessonRequest) (*Lesson, error)
+	DeclineLesson(context.Context, *DeclineLessonRequest) (*Lesson, error)
+	ActivateLesson(context.Context, *ActivateLessonRequest) (*Lesson, error)
 	mustEmbedUnimplementedLessonServiceServer()
 }
 

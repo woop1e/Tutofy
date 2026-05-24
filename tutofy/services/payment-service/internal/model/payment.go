@@ -15,6 +15,7 @@ type Payment struct {
 	ID        string
 	UserID    string
 	CourseID  string
+	LessonID  string // set for individual lesson payments; empty for course payments
 	Amount    float64
 	Status    PaymentStatus
 	CreatedAt time.Time

@@ -57,3 +57,47 @@ func (h *EnrollmentHandler) GetCourseEnrollments(w http.ResponseWriter, r *http.
 	}
 	jsonResp(w, http.StatusOK, resp)
 }
+
+func (h *EnrollmentHandler) RequestEnrollment(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.client.RequestEnrollment(tokenCtx(r), &enrollmentpb.RequestEnrollmentRequest{
+		CourseId: r.PathValue("id"),
+	})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusCreated, resp)
+}
+
+func (h *EnrollmentHandler) GetCourseEnrollmentRequests(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.client.GetCourseEnrollmentRequests(tokenCtx(r), &enrollmentpb.CourseRequest{
+		CourseId: r.PathValue("id"),
+	})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}
+
+func (h *EnrollmentHandler) ApproveEnrollmentRequest(w http.ResponseWriter, r *http.Request) {
+	_, err := h.client.ApproveEnrollmentRequest(tokenCtx(r), &enrollmentpb.EnrollmentRequestActionRequest{
+		RequestId: r.PathValue("id"),
+	})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *EnrollmentHandler) RejectEnrollmentRequest(w http.ResponseWriter, r *http.Request) {
+	_, err := h.client.RejectEnrollmentRequest(tokenCtx(r), &enrollmentpb.EnrollmentRequestActionRequest{
+		RequestId: r.PathValue("id"),
+	})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

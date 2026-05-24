@@ -70,6 +70,14 @@ func main() {
 			course_id TEXT NOT NULL,
 			UNIQUE (user_id, course_id)
 		);
+		CREATE TABLE IF NOT EXISTS enrollment_requests (
+			id         TEXT PRIMARY KEY,
+			user_id    TEXT NOT NULL,
+			course_id  TEXT NOT NULL,
+			status     TEXT NOT NULL DEFAULT 'pending',
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			UNIQUE (user_id, course_id)
+		);
 	`); err != nil {
 		log.Fatalf("schema migration: %v", err)
 	}

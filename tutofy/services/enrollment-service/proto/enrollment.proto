@@ -33,9 +33,33 @@ message UnenrollRequest {
 
 message Empty {}
 
+message EnrollmentRequestResponse {
+  string id         = 1;
+  string user_id    = 2;
+  string course_id  = 3;
+  string status     = 4;
+  string created_at = 5;
+}
+
+message EnrollmentRequestsList {
+  repeated EnrollmentRequestResponse requests = 1;
+}
+
+message RequestEnrollmentRequest {
+  string course_id = 1;
+}
+
+message EnrollmentRequestActionRequest {
+  string request_id = 1;
+}
+
 service EnrollmentService {
   rpc EnrollUser(EnrollRequest)               returns (EnrollmentResponse);
   rpc GetUserEnrollments(UserRequest)         returns (EnrollmentsList);
   rpc GetCourseEnrollments(CourseRequest)     returns (EnrollmentsList);
   rpc UnenrollUser(UnenrollRequest)           returns (Empty);
+  rpc RequestEnrollment(RequestEnrollmentRequest)               returns (EnrollmentRequestResponse);
+  rpc GetCourseEnrollmentRequests(CourseRequest)                returns (EnrollmentRequestsList);
+  rpc ApproveEnrollmentRequest(EnrollmentRequestActionRequest)  returns (Empty);
+  rpc RejectEnrollmentRequest(EnrollmentRequestActionRequest)   returns (Empty);
 }

@@ -8,8 +8,11 @@ import (
 	"time"
 
 	"lesson-service/internal/client"
+	"lesson-service/internal/gcal"
 	"lesson-service/internal/model"
 	"lesson-service/internal/repository"
+
+	"auth-service/proto/authpb"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -23,15 +26,19 @@ type lessonStatusEvent struct {
 }
 
 var statusName = map[model.LessonStatus]string{
-	model.LessonStatusPlanned:   "PLANNED",
-	model.LessonStatusCompleted: "COMPLETED",
-	model.LessonStatusCancelled: "CANCELLED",
+	model.LessonStatusPlanned:             "PLANNED",
+	model.LessonStatusCompleted:           "COMPLETED",
+	model.LessonStatusCancelled:           "CANCELLED",
+	model.LessonStatusPendingConfirmation: "PENDING_CONFIRMATION",
+	model.LessonStatusAwaitingPayment:     "AWAITING_PAYMENT",
 }
 
 var (
-	ErrForbidden       = errors.New("forbidden")
-	ErrNotTutorOrAdmin = errors.New("only tutors and admins can perform this action")
-	ErrNotEnrolled     = errors.New("student is not enrolled in this course")
+	ErrForbidden               = errors.New("forbidden")
+	ErrNotTutorOrAdmin         = errors.New("only tutors and admins can perform this action")
+	ErrNotEnrolled             = errors.New("student is not enrolled in this course")
+	ErrWrongStatus             = errors.New("lesson is not in the expected status")
+	ErrApprovalRequired        = errors.New("enrollment requires tutor approval first")
 )
 
 // AttendanceEntry is one per-student attendance record with status.
@@ -43,8 +50,14 @@ type AttendanceEntry struct {
 // LessonService is the business-logic contract.
 type LessonService interface {
 	CreateLesson(ctx context.Context, callerID, callerRole, courseID, title, videoLink string, scheduledAt time.Time, durationMinutes int32) (*model.Lesson, error)
-	// BookIndividualLesson creates a 1-on-1 lesson. studentID is stored so tutors can mark attendance later.
-	BookIndividualLesson(ctx context.Context, tutorID, studentID, title string, scheduledAt time.Time, durationMinutes int32) (*model.Lesson, error)
+	// BookIndividualLesson creates a 1-on-1 lesson request (status=PENDING_CONFIRMATION). studentID is stored so tutors can mark attendance later.
+	BookIndividualLesson(ctx context.Context, tutorID, studentID, title string, scheduledAt time.Time, durationMinutes int32, price float64) (*model.Lesson, error)
+	// ConfirmLesson lets the tutor accept a PENDING_CONFIRMATION lesson → moves it to AWAITING_PAYMENT.
+	ConfirmLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error)
+	// DeclineLesson lets the tutor reject a PENDING_CONFIRMATION lesson → moves it to CANCELLED.
+	DeclineLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error)
+	// ActivateLesson moves an AWAITING_PAYMENT lesson to PLANNED after student payment is confirmed.
+	ActivateLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error)
 	GetLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error)
 	GetCourseLessons(ctx context.Context, callerID, callerRole, courseID string, limit, offset int32) ([]*model.Lesson, error)
 	UpdateLessonStatus(ctx context.Context, callerID, callerRole, lessonID string, status model.LessonStatus) (*model.Lesson, error)
@@ -65,6 +78,7 @@ type lessonService struct {
 	enrollment client.EnrollmentClient
 	course     client.CourseClient
 	nc         *nats.Conn
+	authClient authpb.AuthServiceClient
 }
 
 // NewLessonService creates a LessonService wired to all required dependencies.
@@ -73,12 +87,14 @@ func NewLessonService(
 	enrollment client.EnrollmentClient,
 	course client.CourseClient,
 	nc *nats.Conn,
+	authClient authpb.AuthServiceClient,
 ) LessonService {
 	return &lessonService{
 		repo:       repo,
 		enrollment: enrollment,
 		course:     course,
 		nc:         nc,
+		authClient: authClient,
 	}
 }
 
@@ -122,6 +138,7 @@ func (s *lessonService) BookIndividualLesson(
 	tutorID, studentID, title string,
 	scheduledAt time.Time,
 	durationMinutes int32,
+	price float64,
 ) (*model.Lesson, error) {
 	lesson := &model.Lesson{
 		ID:              uuid.NewString(),
@@ -132,7 +149,8 @@ func (s *lessonService) BookIndividualLesson(
 		ScheduledAt:     scheduledAt,
 		DurationMinutes: durationMinutes,
 		VideoLink:       "",
-		Status:          model.LessonStatusPlanned,
+		Status:          model.LessonStatusPendingConfirmation,
+		Price:           price,
 	}
 	if err := s.repo.CreateLesson(ctx, lesson); err != nil {
 		return nil, err
@@ -141,6 +159,85 @@ func (s *lessonService) BookIndividualLesson(
 		_ = s.repo.UpsertAttendance(ctx, lesson.ID, studentID, "absent")
 	}
 	return lesson, nil
+}
+
+func (s *lessonService) ConfirmLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error) {
+	lesson, err := s.repo.GetLessonByID(ctx, lessonID)
+	if err != nil {
+		return nil, err
+	}
+	if callerRole != "admin" && lesson.TutorID != callerID {
+		return nil, ErrForbidden
+	}
+	if lesson.Status != model.LessonStatusPendingConfirmation {
+		return nil, ErrWrongStatus
+	}
+
+	// Try to auto-generate a Google Meet link if the tutor has connected their Google account.
+	if s.authClient != nil {
+		go s.tryCreateMeetLink(ctx, lesson)
+	}
+
+	updated, err := s.repo.UpdateLessonStatus(ctx, lessonID, model.LessonStatusAwaitingPayment)
+	if err != nil {
+		return nil, err
+	}
+	// Publish event so notification-service can email the student and schedule a reminder.
+	go s.publishConfirmed(lesson)
+	return updated, nil
+}
+
+func (s *lessonService) tryCreateMeetLink(ctx context.Context, lesson *model.Lesson) {
+	tokResp, err := s.authClient.GetGoogleToken(context.Background(), &authpb.GetGoogleTokenRequest{UserId: lesson.TutorID})
+	if err != nil {
+		return // tutor hasn't connected Google account — silently skip
+	}
+	meetURL, err := gcal.CreateMeetLink(tokResp.GetAccessToken(), lesson.Title, lesson.ScheduledAt, lesson.DurationMinutes)
+	if err != nil {
+		log.Printf("gcal: could not create Meet link for lesson %s: %v", lesson.ID, err)
+		return
+	}
+	if _, err := s.repo.UpdateVideoLink(ctx, lesson.ID, meetURL); err != nil {
+		log.Printf("gcal: could not save Meet link for lesson %s: %v", lesson.ID, err)
+	}
+}
+
+func (s *lessonService) DeclineLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error) {
+	lesson, err := s.repo.GetLessonByID(ctx, lessonID)
+	if err != nil {
+		return nil, err
+	}
+	if callerRole != "admin" && lesson.TutorID != callerID {
+		return nil, ErrForbidden
+	}
+	if lesson.Status != model.LessonStatusPendingConfirmation {
+		return nil, ErrWrongStatus
+	}
+	updated, err := s.repo.UpdateLessonStatus(ctx, lessonID, model.LessonStatusCancelled)
+	if err != nil {
+		return nil, err
+	}
+	go s.publishDeclined(lesson)
+	return updated, nil
+}
+
+func (s *lessonService) ActivateLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error) {
+	lesson, err := s.repo.GetLessonByID(ctx, lessonID)
+	if err != nil {
+		return nil, err
+	}
+	// Only the student who booked, or an admin, may activate after payment.
+	if callerRole != "admin" && lesson.StudentID != callerID {
+		return nil, ErrForbidden
+	}
+	if lesson.Status != model.LessonStatusAwaitingPayment {
+		return nil, ErrWrongStatus
+	}
+	updated, err := s.repo.UpdateLessonStatus(ctx, lessonID, model.LessonStatusPlanned)
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 func (s *lessonService) GetLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error) {
@@ -263,6 +360,62 @@ func (s *lessonService) notifyProgress(ctx context.Context, courseID, lessonID s
 
 func isTutorOrAdmin(role string) bool {
 	return role == "tutor" || role == "admin"
+}
+
+type lessonConfirmedEvent struct {
+	LessonID    string  `json:"lesson_id"`
+	StudentID   string  `json:"student_id"`
+	TutorID     string  `json:"tutor_id"`
+	Title       string  `json:"title"`
+	ScheduledAt string  `json:"scheduled_at"`
+	Price       float64 `json:"price"`
+}
+
+type lessonDeclinedEvent struct {
+	LessonID  string `json:"lesson_id"`
+	StudentID string `json:"student_id"`
+	TutorID   string `json:"tutor_id"`
+	Title     string `json:"title"`
+}
+
+func (s *lessonService) publishConfirmed(lesson *model.Lesson) {
+	if s.nc == nil {
+		return
+	}
+	ev := lessonConfirmedEvent{
+		LessonID:    lesson.ID,
+		StudentID:   lesson.StudentID,
+		TutorID:     lesson.TutorID,
+		Title:       lesson.Title,
+		ScheduledAt: lesson.ScheduledAt.UTC().Format(time.RFC3339),
+		Price:       lesson.Price,
+	}
+	data, err := json.Marshal(ev)
+	if err != nil {
+		return
+	}
+	if err := s.nc.Publish("lesson.confirmed", data); err != nil {
+		log.Printf("warn: NATS publish lesson.confirmed failed: %v", err)
+	}
+}
+
+func (s *lessonService) publishDeclined(lesson *model.Lesson) {
+	if s.nc == nil {
+		return
+	}
+	ev := lessonDeclinedEvent{
+		LessonID:  lesson.ID,
+		StudentID: lesson.StudentID,
+		TutorID:   lesson.TutorID,
+		Title:     lesson.Title,
+	}
+	data, err := json.Marshal(ev)
+	if err != nil {
+		return
+	}
+	if err := s.nc.Publish("lesson.declined", data); err != nil {
+		log.Printf("warn: NATS publish lesson.declined failed: %v", err)
+	}
 }
 
 func (s *lessonService) MarkAttendance(ctx context.Context, callerID, callerRole, lessonID string, entries []AttendanceEntry) error {

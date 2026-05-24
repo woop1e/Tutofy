@@ -4,15 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
+	"notification-service/internal/email"
 	"notification-service/internal/model"
 	"notification-service/internal/repository"
+
+	"user-service/proto/userpb"
 
 	"github.com/google/uuid"
 )
 
 var ErrForbidden = errors.New("forbidden")
+
+// emailSubjects maps notification types to email subject lines.
+// Types not in this map do not trigger an email.
+var emailSubjects = map[model.NotificationType]string{
+	model.NotificationTypeEnrollment:         "Course Enrollment Confirmed",
+	model.NotificationTypeLessonReminder:     "Upcoming Lesson Reminder",
+	model.NotificationTypeBookingConfirmed:   "Lesson Booking Confirmed",
+	model.NotificationTypeBookingDeclined:    "Lesson Booking Declined",
+	model.NotificationTypeEnrollmentApproved: "Enrollment Request Approved",
+	model.NotificationTypeEnrollmentRejected: "Enrollment Request Update",
+}
 
 // NotificationService is the business-logic contract.
 type NotificationService interface {
@@ -30,12 +45,14 @@ type NotificationService interface {
 }
 
 type notificationService struct {
-	repo repository.NotificationRepository
+	repo       repository.NotificationRepository
+	mailer     *email.Mailer
+	userClient userpb.UserServiceClient
 }
 
 // NewNotificationService creates a NotificationService backed by the given repository.
-func NewNotificationService(repo repository.NotificationRepository) NotificationService {
-	return &notificationService{repo: repo}
+func NewNotificationService(repo repository.NotificationRepository, mailer *email.Mailer, userClient userpb.UserServiceClient) NotificationService {
+	return &notificationService{repo: repo, mailer: mailer, userClient: userClient}
 }
 
 func (s *notificationService) NotifyGrade(ctx context.Context, assignmentID, studentID string, grade float32) error {
@@ -69,13 +86,31 @@ func (s *notificationService) MarkAsRead(ctx context.Context, callerID, notifica
 }
 
 func (s *notificationService) NotifyUser(ctx context.Context, userID string, notifType int32, message string) error {
+	nt := model.NotificationType(notifType)
 	n := &model.Notification{
 		ID:        uuid.NewString(),
 		UserID:    userID,
-		Type:      model.NotificationType(notifType),
+		Type:      nt,
 		Message:   message,
 		IsRead:    false,
 		CreatedAt: time.Now(),
 	}
-	return s.repo.CreateNotification(ctx, n)
+	if err := s.repo.CreateNotification(ctx, n); err != nil {
+		return err
+	}
+
+	if subject, ok := emailSubjects[nt]; ok && s.mailer != nil && s.userClient != nil {
+		go func() {
+			userResp, err := s.userClient.GetUser(context.Background(), &userpb.GetUserRequest{UserId: userID})
+			if err != nil {
+				log.Printf("email: could not fetch user %s: %v", userID, err)
+				return
+			}
+			if err := s.mailer.SendEmail(userResp.GetEmail(), subject, message); err != nil {
+				log.Printf("email: send to %s failed: %v", userResp.GetEmail(), err)
+			}
+		}()
+	}
+
+	return nil
 }

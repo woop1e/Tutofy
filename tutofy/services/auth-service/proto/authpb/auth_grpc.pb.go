@@ -31,6 +31,8 @@ type AuthServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	ValidateToken(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*ValidateResponse, error)
+	StoreGoogleToken(ctx context.Context, in *StoreGoogleTokenRequest, opts ...grpc.CallOption) (*StoreGoogleTokenResponse, error)
+	GetGoogleToken(ctx context.Context, in *GetGoogleTokenRequest, opts ...grpc.CallOption) (*GoogleTokenResponse, error)
 }
 
 type authServiceClient struct {
@@ -71,6 +73,24 @@ func (c *authServiceClient) ValidateToken(ctx context.Context, in *TokenRequest,
 	return out, nil
 }
 
+func (c *authServiceClient) StoreGoogleToken(ctx context.Context, in *StoreGoogleTokenRequest, opts ...grpc.CallOption) (*StoreGoogleTokenResponse, error) {
+	out := new(StoreGoogleTokenResponse)
+	err := c.cc.Invoke(ctx, "/auth.AuthService/StoreGoogleToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetGoogleToken(ctx context.Context, in *GetGoogleTokenRequest, opts ...grpc.CallOption) (*GoogleTokenResponse, error) {
+	out := new(GoogleTokenResponse)
+	err := c.cc.Invoke(ctx, "/auth.AuthService/GetGoogleToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -78,6 +98,8 @@ type AuthServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*AuthResponse, error)
 	Login(context.Context, *LoginRequest) (*AuthResponse, error)
 	ValidateToken(context.Context, *TokenRequest) (*ValidateResponse, error)
+	StoreGoogleToken(context.Context, *StoreGoogleTokenRequest) (*StoreGoogleTokenResponse, error)
+	GetGoogleToken(context.Context, *GetGoogleTokenRequest) (*GoogleTokenResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -96,6 +118,12 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Au
 }
 func (UnimplementedAuthServiceServer) ValidateToken(context.Context, *TokenRequest) (*ValidateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ValidateToken not implemented")
+}
+func (UnimplementedAuthServiceServer) StoreGoogleToken(context.Context, *StoreGoogleTokenRequest) (*StoreGoogleTokenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StoreGoogleToken not implemented")
+}
+func (UnimplementedAuthServiceServer) GetGoogleToken(context.Context, *GetGoogleTokenRequest) (*GoogleTokenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetGoogleToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +200,36 @@ func _AuthService_ValidateToken_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_StoreGoogleToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StoreGoogleTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).StoreGoogleToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/auth.AuthService/StoreGoogleToken"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).StoreGoogleToken(ctx, req.(*StoreGoogleTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetGoogleToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGoogleTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetGoogleToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/auth.AuthService/GetGoogleToken"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetGoogleToken(ctx, req.(*GetGoogleTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +248,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateToken",
 			Handler:    _AuthService_ValidateToken_Handler,
+		},
+		{
+			MethodName: "StoreGoogleToken",
+			Handler:    _AuthService_StoreGoogleToken_Handler,
+		},
+		{
+			MethodName: "GetGoogleToken",
+			Handler:    _AuthService_GetGoogleToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

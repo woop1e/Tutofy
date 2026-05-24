@@ -40,6 +40,32 @@ func (h *PaymentHandler) CreatePayment(ctx context.Context, req *paymentpb.Creat
 	return toProto(p), nil
 }
 
+func (h *PaymentHandler) CreateLessonPayment(ctx context.Context, req *paymentpb.CreateLessonPaymentRequest) (*paymentpb.PaymentResponse, error) {
+	if req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "lesson_id is required")
+	}
+	if req.GetAmount() <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "amount must be greater than 0")
+	}
+	callerID := middleware.UserIDFromContext(ctx)
+	p, err := h.svc.CreateLessonPayment(ctx, callerID, req.GetLessonId(), req.GetAmount())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return toProto(p), nil
+}
+
+func (h *PaymentHandler) CheckLessonPayment(ctx context.Context, req *paymentpb.CheckLessonPaymentRequest) (*paymentpb.CheckLessonPaymentResponse, error) {
+	if req.GetUserId() == "" || req.GetLessonId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id and lesson_id are required")
+	}
+	hasPaid, err := h.svc.CheckLessonPayment(ctx, req.GetUserId(), req.GetLessonId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &paymentpb.CheckLessonPaymentResponse{HasPaid: hasPaid}, nil
+}
+
 func (h *PaymentHandler) GetPayment(ctx context.Context, req *paymentpb.GetPaymentRequest) (*paymentpb.PaymentResponse, error) {
 	if req.GetPaymentId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "payment_id is required")
@@ -110,6 +136,7 @@ func toProto(p *model.Payment) *paymentpb.PaymentResponse {
 		PaymentId: p.ID,
 		UserId:    p.UserID,
 		CourseId:  p.CourseID,
+		LessonId:  p.LessonID,
 		Amount:    p.Amount,
 		Status:    string(p.Status),
 		CreatedAt: p.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),

@@ -64,7 +64,7 @@ func main() {
 	ch  := handler.NewCourseHandler(coursepb.NewCourseServiceClient(courseConn))
 	tph := handler.NewTutorPublicProfileHandler(userpb.NewUserServiceClient(userConn), coursepb.NewCourseServiceClient(courseConn), reviewpb.NewReviewServiceClient(reviewConn))
 	eh  := handler.NewEnrollmentHandler(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
-	lh  := handler.NewLessonHandler(lessonpb.NewLessonServiceClient(lessonConn), notificationpb.NewNotificationServiceClient(notificationConn), enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
+	lh  := handler.NewLessonHandler(lessonpb.NewLessonServiceClient(lessonConn), notificationpb.NewNotificationServiceClient(notificationConn), enrollmentpb.NewEnrollmentServiceClient(enrollmentConn), paymentpb.NewPaymentServiceClient(paymentConn))
 	ash := handler.NewAssignmentHandler(assignmentpb.NewAssignmentServiceClient(assignmentConn))
 	gh  := handler.NewGradingHandler(gradingpb.NewGradingServiceClient(gradingConn))
 	nh  := handler.NewNotificationHandler(notificationpb.NewNotificationServiceClient(notificationConn))
@@ -82,6 +82,7 @@ func main() {
 	qzh := handler.NewQuizHandler(quizpb.NewQuizServiceClient(quizConn))
 	rvh := handler.NewReviewHandler(reviewpb.NewReviewServiceClient(reviewConn))
 	cfh := handler.NewCertificateHandler(certificatepb.NewCertificateServiceClient(certificateConn))
+	gah := handler.NewGoogleAuthHandler(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURI, authpb.NewAuthServiceClient(authConn))
 	sph := handler.NewStudentProfileHandler(
 		userpb.NewUserServiceClient(userConn),
 		coursepb.NewCourseServiceClient(courseConn),
@@ -95,8 +96,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Auth
-	mux.HandleFunc("POST /auth/register", ah.Register)
-	mux.HandleFunc("POST /auth/login",    ah.Login)
+	mux.HandleFunc("POST /auth/register",        ah.Register)
+	mux.HandleFunc("POST /auth/login",            ah.Login)
+	mux.HandleFunc("GET /auth/google/connect",    gah.Connect)
+	mux.HandleFunc("GET /auth/google/callback",   gah.Callback)
 
 	// Users
 	mux.HandleFunc("GET /users",                       uh.GetAllUsers)
@@ -124,13 +127,20 @@ func main() {
 	mux.HandleFunc("GET /tutors/{id}/booked-slots", lh.GetTutorBookedSlots)
 
 	// Enrollments
-	mux.HandleFunc("POST /enrollments",             eh.EnrollUser)
-	mux.HandleFunc("DELETE /enrollments",           eh.UnenrollUser)
-	mux.HandleFunc("GET /users/{id}/enrollments",   eh.GetUserEnrollments)
-	mux.HandleFunc("GET /courses/{id}/enrollments", eh.GetCourseEnrollments)
+	mux.HandleFunc("POST /enrollments",                              eh.EnrollUser)
+	mux.HandleFunc("DELETE /enrollments",                           eh.UnenrollUser)
+	mux.HandleFunc("GET /users/{id}/enrollments",                   eh.GetUserEnrollments)
+	mux.HandleFunc("GET /courses/{id}/enrollments",                 eh.GetCourseEnrollments)
+	mux.HandleFunc("POST /courses/{id}/enrollment-requests",        eh.RequestEnrollment)
+	mux.HandleFunc("GET /courses/{id}/enrollment-requests",         eh.GetCourseEnrollmentRequests)
+	mux.HandleFunc("PATCH /enrollment-requests/{id}/approve",       eh.ApproveEnrollmentRequest)
+	mux.HandleFunc("PATCH /enrollment-requests/{id}/reject",        eh.RejectEnrollmentRequest)
 
-	// Individual lesson booking (any authenticated user → tutor notified)
-	mux.HandleFunc("POST /book-lesson", lh.BookLesson)
+	// Individual lesson booking flow: request → tutor confirms/declines → student pays
+	mux.HandleFunc("POST /book-lesson",                   lh.BookLesson)
+	mux.HandleFunc("PATCH /lessons/{id}/confirm",         lh.ConfirmLesson)
+	mux.HandleFunc("PATCH /lessons/{id}/decline",         lh.DeclineLesson)
+	mux.HandleFunc("POST /lessons/{id}/pay",              lh.PayForLesson)
 	// Tutor: get all individual (non-course) lessons booked with them
 	mux.HandleFunc("GET /tutor/individual-lessons", lh.GetTutorIndividualLessons)
 

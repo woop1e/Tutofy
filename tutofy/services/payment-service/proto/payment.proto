@@ -9,6 +9,11 @@ message CreatePaymentRequest {
   double amount    = 2;
 }
 
+message CreateLessonPaymentRequest {
+  string lesson_id = 1;
+  double amount    = 2;
+}
+
 message GetPaymentRequest {
   string payment_id = 1;
 }
@@ -31,6 +36,7 @@ message PaymentResponse {
   double amount      = 4;
   string status      = 5;
   string created_at  = 6;
+  string lesson_id   = 7;
 }
 
 message PaymentsList {
@@ -46,11 +52,22 @@ message CheckCoursePaymentResponse {
   bool has_paid = 1;
 }
 
+message CheckLessonPaymentRequest {
+  string user_id    = 1;
+  string lesson_id  = 2;
+}
+
+message CheckLessonPaymentResponse {
+  bool has_paid = 1;
+}
+
 service PaymentService {
   rpc CreatePayment(CreatePaymentRequest)              returns (PaymentResponse);
+  rpc CreateLessonPayment(CreateLessonPaymentRequest)  returns (PaymentResponse);
   rpc GetPayment(GetPaymentRequest)                    returns (PaymentResponse);
   rpc GetUserPayments(GetUserPaymentsRequest)          returns (PaymentsList);
   rpc CompletePayment(UpdatePaymentStatusRequest)      returns (PaymentResponse);
   rpc FailPayment(UpdatePaymentStatusRequest)          returns (PaymentResponse);
   rpc CheckCoursePayment(CheckCoursePaymentRequest)    returns (CheckCoursePaymentResponse);
+  rpc CheckLessonPayment(CheckLessonPaymentRequest)    returns (CheckLessonPaymentResponse);
 }

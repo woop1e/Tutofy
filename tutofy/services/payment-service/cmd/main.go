@@ -45,11 +45,13 @@ func main() {
 		CREATE TABLE IF NOT EXISTS payments (
 			id         TEXT        PRIMARY KEY,
 			user_id    TEXT        NOT NULL,
-			course_id  TEXT        NOT NULL,
+			course_id  TEXT        NOT NULL DEFAULT '',
 			amount     DOUBLE PRECISION NOT NULL DEFAULT 0,
 			status     TEXT        NOT NULL DEFAULT 'pending',
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);
+		ALTER TABLE payments ADD COLUMN IF NOT EXISTS lesson_id TEXT NOT NULL DEFAULT '';
+		CREATE INDEX IF NOT EXISTS idx_payments_lesson_id ON payments (lesson_id);
 	`); err != nil {
 		log.Fatalf("schema migration: %v", err)
 	}

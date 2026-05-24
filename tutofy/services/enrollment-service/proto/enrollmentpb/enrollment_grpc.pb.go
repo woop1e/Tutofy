@@ -97,6 +97,62 @@ func (x *Empty) Reset()         { *x = Empty{} }
 func (x *Empty) String() string  { return "" }
 func (x *Empty) ProtoMessage()  {}
 
+type EnrollmentRequestResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Id        string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId    string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	CourseId  string `protobuf:"bytes,3,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+	Status    string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt string `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+}
+
+func (x *EnrollmentRequestResponse) Reset()              { *x = EnrollmentRequestResponse{} }
+func (x *EnrollmentRequestResponse) String() string       { return x.Id }
+func (x *EnrollmentRequestResponse) ProtoMessage()       {}
+func (x *EnrollmentRequestResponse) GetId() string        { return x.Id }
+func (x *EnrollmentRequestResponse) GetUserId() string    { return x.UserId }
+func (x *EnrollmentRequestResponse) GetCourseId() string  { return x.CourseId }
+func (x *EnrollmentRequestResponse) GetStatus() string    { return x.Status }
+func (x *EnrollmentRequestResponse) GetCreatedAt() string { return x.CreatedAt }
+
+type EnrollmentRequestsList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Requests []*EnrollmentRequestResponse `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
+}
+
+func (x *EnrollmentRequestsList) Reset()         { *x = EnrollmentRequestsList{} }
+func (x *EnrollmentRequestsList) String() string  { return "" }
+func (x *EnrollmentRequestsList) ProtoMessage()  {}
+func (x *EnrollmentRequestsList) GetRequests() []*EnrollmentRequestResponse { return x.Requests }
+
+type RequestEnrollmentRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	CourseId string `protobuf:"bytes,1,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+}
+
+func (x *RequestEnrollmentRequest) Reset()         { *x = RequestEnrollmentRequest{} }
+func (x *RequestEnrollmentRequest) String() string  { return x.CourseId }
+func (x *RequestEnrollmentRequest) ProtoMessage()  {}
+func (x *RequestEnrollmentRequest) GetCourseId() string { return x.CourseId }
+
+type EnrollmentRequestActionRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	RequestId string `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+}
+
+func (x *EnrollmentRequestActionRequest) Reset()         { *x = EnrollmentRequestActionRequest{} }
+func (x *EnrollmentRequestActionRequest) String() string  { return x.RequestId }
+func (x *EnrollmentRequestActionRequest) ProtoMessage()  {}
+func (x *EnrollmentRequestActionRequest) GetRequestId() string { return x.RequestId }
+
 // ── Server interface ──────────────────────────────────────────────────────────
 
 type EnrollmentServiceServer interface {
@@ -104,6 +160,10 @@ type EnrollmentServiceServer interface {
 	GetUserEnrollments(context.Context, *UserRequest) (*EnrollmentsList, error)
 	GetCourseEnrollments(context.Context, *CourseRequest) (*EnrollmentsList, error)
 	UnenrollUser(context.Context, *UnenrollRequest) (*Empty, error)
+	RequestEnrollment(context.Context, *RequestEnrollmentRequest) (*EnrollmentRequestResponse, error)
+	GetCourseEnrollmentRequests(context.Context, *CourseRequest) (*EnrollmentRequestsList, error)
+	ApproveEnrollmentRequest(context.Context, *EnrollmentRequestActionRequest) (*Empty, error)
+	RejectEnrollmentRequest(context.Context, *EnrollmentRequestActionRequest) (*Empty, error)
 	mustEmbedUnimplementedEnrollmentServiceServer()
 }
 
@@ -119,6 +179,18 @@ func (UnimplementedEnrollmentServiceServer) GetCourseEnrollments(context.Context
 	return nil, nil
 }
 func (UnimplementedEnrollmentServiceServer) UnenrollUser(context.Context, *UnenrollRequest) (*Empty, error) {
+	return nil, nil
+}
+func (UnimplementedEnrollmentServiceServer) RequestEnrollment(context.Context, *RequestEnrollmentRequest) (*EnrollmentRequestResponse, error) {
+	return nil, nil
+}
+func (UnimplementedEnrollmentServiceServer) GetCourseEnrollmentRequests(context.Context, *CourseRequest) (*EnrollmentRequestsList, error) {
+	return nil, nil
+}
+func (UnimplementedEnrollmentServiceServer) ApproveEnrollmentRequest(context.Context, *EnrollmentRequestActionRequest) (*Empty, error) {
+	return nil, nil
+}
+func (UnimplementedEnrollmentServiceServer) RejectEnrollmentRequest(context.Context, *EnrollmentRequestActionRequest) (*Empty, error) {
 	return nil, nil
 }
 func (UnimplementedEnrollmentServiceServer) mustEmbedUnimplementedEnrollmentServiceServer() {}
@@ -137,6 +209,10 @@ var EnrollmentService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "GetUserEnrollments", Handler: _EnrollmentService_GetUserEnrollments_Handler},
 		{MethodName: "GetCourseEnrollments", Handler: _EnrollmentService_GetCourseEnrollments_Handler},
 		{MethodName: "UnenrollUser", Handler: _EnrollmentService_UnenrollUser_Handler},
+		{MethodName: "RequestEnrollment", Handler: _EnrollmentService_RequestEnrollment_Handler},
+		{MethodName: "GetCourseEnrollmentRequests", Handler: _EnrollmentService_GetCourseEnrollmentRequests_Handler},
+		{MethodName: "ApproveEnrollmentRequest", Handler: _EnrollmentService_ApproveEnrollmentRequest_Handler},
+		{MethodName: "RejectEnrollmentRequest", Handler: _EnrollmentService_RejectEnrollmentRequest_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "enrollment.proto",
@@ -202,6 +278,66 @@ func _EnrollmentService_UnenrollUser_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnrollmentService_RequestEnrollment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestEnrollmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnrollmentServiceServer).RequestEnrollment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/enrollment.EnrollmentService/RequestEnrollment"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnrollmentServiceServer).RequestEnrollment(ctx, req.(*RequestEnrollmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EnrollmentService_GetCourseEnrollmentRequests_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CourseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnrollmentServiceServer).GetCourseEnrollmentRequests(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/enrollment.EnrollmentService/GetCourseEnrollmentRequests"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnrollmentServiceServer).GetCourseEnrollmentRequests(ctx, req.(*CourseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EnrollmentService_ApproveEnrollmentRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnrollmentRequestActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnrollmentServiceServer).ApproveEnrollmentRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/enrollment.EnrollmentService/ApproveEnrollmentRequest"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnrollmentServiceServer).ApproveEnrollmentRequest(ctx, req.(*EnrollmentRequestActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EnrollmentService_RejectEnrollmentRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnrollmentRequestActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnrollmentServiceServer).RejectEnrollmentRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/enrollment.EnrollmentService/RejectEnrollmentRequest"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnrollmentServiceServer).RejectEnrollmentRequest(ctx, req.(*EnrollmentRequestActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client interface ──────────────────────────────────────────────────────────
 
 type EnrollmentServiceClient interface {
@@ -209,6 +345,10 @@ type EnrollmentServiceClient interface {
 	GetUserEnrollments(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*EnrollmentsList, error)
 	GetCourseEnrollments(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentsList, error)
 	UnenrollUser(ctx context.Context, in *UnenrollRequest, opts ...grpc.CallOption) (*Empty, error)
+	RequestEnrollment(ctx context.Context, in *RequestEnrollmentRequest, opts ...grpc.CallOption) (*EnrollmentRequestResponse, error)
+	GetCourseEnrollmentRequests(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentRequestsList, error)
+	ApproveEnrollmentRequest(ctx context.Context, in *EnrollmentRequestActionRequest, opts ...grpc.CallOption) (*Empty, error)
+	RejectEnrollmentRequest(ctx context.Context, in *EnrollmentRequestActionRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type enrollmentServiceClient struct {
@@ -240,5 +380,29 @@ func (c *enrollmentServiceClient) GetCourseEnrollments(ctx context.Context, in *
 func (c *enrollmentServiceClient) UnenrollUser(ctx context.Context, in *UnenrollRequest, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/UnenrollUser", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) RequestEnrollment(ctx context.Context, in *RequestEnrollmentRequest, opts ...grpc.CallOption) (*EnrollmentRequestResponse, error) {
+	out := new(EnrollmentRequestResponse)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/RequestEnrollment", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) GetCourseEnrollmentRequests(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentRequestsList, error) {
+	out := new(EnrollmentRequestsList)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/GetCourseEnrollmentRequests", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) ApproveEnrollmentRequest(ctx context.Context, in *EnrollmentRequestActionRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/ApproveEnrollmentRequest", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) RejectEnrollmentRequest(ctx context.Context, in *EnrollmentRequestActionRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/RejectEnrollmentRequest", in, out, opts...)
 	return out, err
 }

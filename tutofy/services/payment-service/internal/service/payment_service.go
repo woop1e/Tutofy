@@ -19,11 +19,13 @@ var (
 
 type PaymentService interface {
 	CreatePayment(ctx context.Context, callerID, courseID string, amount float64) (*model.Payment, error)
+	CreateLessonPayment(ctx context.Context, callerID, lessonID string, amount float64) (*model.Payment, error)
 	GetPayment(ctx context.Context, callerID, callerRole, paymentID string) (*model.Payment, error)
 	GetUserPayments(ctx context.Context, callerID, callerRole, userID string, limit, offset int32) ([]*model.Payment, error)
 	CompletePayment(ctx context.Context, callerID, callerRole, paymentID string) (*model.Payment, error)
 	FailPayment(ctx context.Context, callerRole, paymentID string) (*model.Payment, error)
 	CheckCoursePayment(ctx context.Context, userID, courseID string) (bool, error)
+	CheckLessonPayment(ctx context.Context, userID, lessonID string) (bool, error)
 }
 
 type paymentService struct {
@@ -97,4 +99,24 @@ func (s *paymentService) FailPayment(ctx context.Context, callerRole, paymentID 
 
 func (s *paymentService) CheckCoursePayment(ctx context.Context, userID, courseID string) (bool, error) {
 	return s.repo.HasCompletedPayment(ctx, userID, courseID)
+}
+
+func (s *paymentService) CreateLessonPayment(ctx context.Context, callerID, lessonID string, amount float64) (*model.Payment, error) {
+	p := &model.Payment{
+		ID:        uuid.NewString(),
+		UserID:    callerID,
+		CourseID:  "",
+		LessonID:  lessonID,
+		Amount:    amount,
+		Status:    model.StatusPending,
+		CreatedAt: time.Now(),
+	}
+	if err := s.repo.CreatePayment(ctx, p); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (s *paymentService) CheckLessonPayment(ctx context.Context, userID, lessonID string) (bool, error) {
+	return s.repo.HasCompletedLessonPayment(ctx, userID, lessonID)
 }

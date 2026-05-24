@@ -82,6 +82,7 @@ func main() {
 			deleted_at       TIMESTAMPTZ
 		);
 		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS student_id TEXT NOT NULL DEFAULT '';
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS price NUMERIC(10,2) NOT NULL DEFAULT 0;
 		CREATE TABLE IF NOT EXISTS lesson_attendance (
 			lesson_id  TEXT    NOT NULL,
 			student_id TEXT    NOT NULL,
@@ -105,7 +106,7 @@ func main() {
 	repo := repository.NewPostgresRepo(db)
 	enrollmentClient := client.NewEnrollmentClient(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
 	courseClient := client.NewCourseClient(coursepb.NewCourseServiceClient(courseConn))
-	svc := service.NewLessonService(repo, enrollmentClient, courseClient, nc)
+	svc := service.NewLessonService(repo, enrollmentClient, courseClient, nc, authpb.NewAuthServiceClient(authConn))
 	h := handler.NewLessonHandler(svc)
 
 	// Start gRPC server.

@@ -6,10 +6,12 @@ import "time"
 type LessonStatus int32
 
 const (
-	LessonStatusUnspecified LessonStatus = 0
-	LessonStatusPlanned     LessonStatus = 1
-	LessonStatusCompleted   LessonStatus = 2
-	LessonStatusCancelled   LessonStatus = 3
+	LessonStatusUnspecified        LessonStatus = 0
+	LessonStatusPlanned            LessonStatus = 1
+	LessonStatusCompleted          LessonStatus = 2
+	LessonStatusCancelled          LessonStatus = 3
+	LessonStatusPendingConfirmation LessonStatus = 4 // waiting for tutor to accept
+	LessonStatusAwaitingPayment    LessonStatus = 5 // tutor accepted, waiting for student payment
 )
 
 // Lesson represents a single scheduled session within a course.
@@ -23,4 +25,5 @@ type Lesson struct {
 	DurationMinutes int32
 	VideoLink       string
 	Status          LessonStatus
+	Price           float64 // price for individual lessons; 0 for course lessons
 }
