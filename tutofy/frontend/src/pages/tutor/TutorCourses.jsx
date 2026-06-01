@@ -7,6 +7,7 @@ import { enrollmentsAPI } from '../../api/enrollments';
 import { lessonsAPI } from '../../api/lessons';
 import { assignmentsAPI } from '../../api/assignments';
 import { usersAPI } from '../../api/users';
+import NotificationBell from '../../components/ui/NotificationBell';
 
 // â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -275,13 +276,21 @@ const TutorCourses = () => {
             <p className="text-[#0c0d12] text-[20px] font-bold">My Courses</p>
             <p className="text-[#6b6f7d] text-[12px]">{courses.length} courses · {totalStudents} students total</p>
           </div>
-          <Link to="/tutor/courses/new"
-            className="bg-[#0d9488] text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-[0_4px_14px_rgba(76,110,255,0.3)]">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
-              <path d="M7 2v10M2 7h10" strokeLinecap="round"/>
-            </svg>
-            New Course
-          </Link>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">
+                {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
+              </span>
+            </div>
+            <Link to="/tutor/courses/new"
+              className="bg-[#0d9488] text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-[0_4px_14px_rgba(76,110,255,0.3)]">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5">
+                <path d="M7 2v10M2 7h10" strokeLinecap="round"/>
+              </svg>
+              New Course
+            </Link>
+          </div>
         </div>
 
         {/* Approval banner */}

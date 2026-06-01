@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"time"
 
 	"enrollment-service/internal/middleware"
 	"enrollment-service/internal/model"

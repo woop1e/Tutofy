@@ -18,7 +18,9 @@ type LessonRepository interface {
 	GetLessonByID(ctx context.Context, id string) (*model.Lesson, error)
 	GetCourseLessons(ctx context.Context, courseID string, limit, offset int32) ([]*model.Lesson, error)
 	UpdateLessonStatus(ctx context.Context, id string, status model.LessonStatus) (*model.Lesson, error)
+	UpdateLessonStatusAndDeadline(ctx context.Context, id string, status model.LessonStatus, deadline time.Time) (*model.Lesson, error)
 	UpdateVideoLink(ctx context.Context, lessonID, videoLink string) (*model.Lesson, error)
+	SetCalendarEventID(ctx context.Context, lessonID, calendarEventID string) error
 	DeleteLesson(ctx context.Context, id string) error
 	UpsertAttendance(ctx context.Context, lessonID, studentID, status string) error
 	GetAttendance(ctx context.Context, lessonID, callerID, callerRole string) ([]*AttendanceRow, error)
@@ -28,6 +30,7 @@ type LessonRepository interface {
 	GetStudentLessons(ctx context.Context, studentID string) ([]*model.Lesson, error)
 	GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error)
 	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
+	ExpireOverduePayments(ctx context.Context) (int64, error)
 }
 
 type postgresRepo struct {
@@ -51,14 +54,19 @@ func NewPostgresRepo(db *sql.DB) LessonRepository {
 	return &postgresRepo{db: db}
 }
 
-const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, COALESCE(price, 0)`
+const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, COALESCE(price, 0), payment_deadline, COALESCE(calendar_event_id, '')`
 
 func (r *postgresRepo) CreateLesson(ctx context.Context, lesson *model.Lesson) error {
+	var deadline *time.Time
+	if !lesson.PaymentDeadline.IsZero() {
+		deadline = &lesson.PaymentDeadline
+	}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO lessons (id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, price)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		`INSERT INTO lessons (id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, price, payment_deadline, calendar_event_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		lesson.ID, lesson.CourseID, lesson.TutorID, lesson.StudentID, lesson.Title,
 		lesson.ScheduledAt, lesson.DurationMinutes, lesson.VideoLink, int32(lesson.Status), lesson.Price,
+		deadline, lesson.CalendarEventID,
 	)
 	return err
 }
@@ -121,6 +129,45 @@ func (r *postgresRepo) UpdateVideoLink(ctx context.Context, lessonID, videoLink 
 	return l, nil
 }
 
+func (r *postgresRepo) UpdateLessonStatusAndDeadline(ctx context.Context, id string, status model.LessonStatus, deadline time.Time) (*model.Lesson, error) {
+	var d *time.Time
+	if !deadline.IsZero() {
+		d = &deadline
+	}
+	row := r.db.QueryRowContext(ctx,
+		`UPDATE lessons SET status = $1, payment_deadline = $2 WHERE id = $3 RETURNING `+lessonColumns,
+		int32(status), d, id,
+	)
+	l, err := scanLesson(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return l, nil
+}
+
+func (r *postgresRepo) SetCalendarEventID(ctx context.Context, lessonID, calendarEventID string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE lessons SET calendar_event_id = $1 WHERE id = $2 AND deleted_at IS NULL`,
+		calendarEventID, lessonID,
+	)
+	return err
+}
+
+func (r *postgresRepo) ExpireOverduePayments(ctx context.Context) (int64, error) {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE lessons SET status = $1
+		 WHERE status = $2 AND payment_deadline IS NOT NULL AND payment_deadline < NOW() AND deleted_at IS NULL`,
+		int32(model.LessonStatusPaymentExpired), int32(model.LessonStatusAwaitingPayment),
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 func (r *postgresRepo) DeleteLesson(ctx context.Context, id string) error {
 	res, err := r.db.ExecContext(ctx, `UPDATE lessons SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, id)
 	if err != nil {
@@ -145,9 +192,11 @@ type scanner interface {
 func scanLesson(s scanner) (*model.Lesson, error) {
 	l := &model.Lesson{}
 	var status int32
+	var deadline sql.NullTime
 	err := s.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
+		&deadline, &l.CalendarEventID,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -156,20 +205,28 @@ func scanLesson(s scanner) (*model.Lesson, error) {
 		return nil, err
 	}
 	l.Status = model.LessonStatus(status)
+	if deadline.Valid {
+		l.PaymentDeadline = deadline.Time
+	}
 	return l, nil
 }
 
 func scanLessonRow(rows *sql.Rows) (*model.Lesson, error) {
 	l := &model.Lesson{}
 	var status int32
+	var deadline sql.NullTime
 	err := rows.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
+		&deadline, &l.CalendarEventID,
 	)
 	if err != nil {
 		return nil, err
 	}
 	l.Status = model.LessonStatus(status)
+	if deadline.Valid {
+		l.PaymentDeadline = deadline.Time
+	}
 	return l, nil
 }
 

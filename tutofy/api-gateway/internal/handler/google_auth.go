@@ -33,6 +33,12 @@ func NewGoogleAuthHandler(clientID, clientSecret, redirectURI string, authClient
 func (h *GoogleAuthHandler) Connect(w http.ResponseWriter, r *http.Request) {
 	callerID := userIDFromToken(r)
 	if callerID == "" {
+		// Fallback: accept JWT as ?token= query param for browser-redirect flow.
+		if t := r.URL.Query().Get("token"); t != "" {
+			callerID = userIDFromQueryToken(t)
+		}
+	}
+	if callerID == "" {
 		jsonResp(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}

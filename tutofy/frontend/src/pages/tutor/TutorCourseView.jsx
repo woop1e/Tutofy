@@ -7,6 +7,7 @@ import { assignmentsAPI } from '../../api/assignments';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { quizzesAPI } from '../../api/quizzes';
+import { mediaAPI } from '../../api/media';
 
 // â"€â"€ date helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -120,6 +121,12 @@ const QuizIcon = () => (
     <path d="M10 18a8 8 0 100-16 8 8 0 000 16z"/>
     <path d="M7.5 8a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5" strokeLinecap="round"/>
     <circle cx="10" cy="14" r="0.5" fill="#935bf5"/>
+  </svg>
+);
+
+const FileIcon = () => (
+  <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" stroke="#935bf5" strokeWidth="1.5">
+    <path d="M11 2H5a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V8M11 2l6 6M11 2v6h6" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -265,8 +272,9 @@ function toRFC3339(val) {
 // â"€â"€ blank drafts â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const blankLesson = { title: '', description: '', video_link: '', scheduled_at: '', duration_minutes: '' };
-const blankAssignment = { title: '', description: '', due_date: '', max_score: '' };
+const blankAssignment = { title: '', description: '', due_date: '', max_score: '', attachmentId: '', attachmentName: '' };
 const blankNote = { title: '', description: '' };
+const blankFile = { title: '', file: null };
 
 // â"€â"€ shared input style â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -319,7 +327,7 @@ const LessonForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) =>
   </div>
 );
 
-const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave, onCancel }) => (
+const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave, onCancel, onAttachFile, fileUploading }) => (
   <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
     <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">
       {editingId ? 'Edit Assignment' : 'New Assignment'}
@@ -347,9 +355,33 @@ const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave,
         value={draft.description}
         onChange={e => setDraft(p => ({ ...p, description: e.target.value }))} />
     </div>
+    <div className="mb-3">
+      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Attachment (optional)</label>
+      {draft.attachmentName ? (
+        <div className="flex items-center gap-2 bg-white border border-[#e8eaef] rounded-[9px] px-3 py-2">
+          <svg viewBox="0 0 16 16" fill="none" stroke="#935bf5" strokeWidth="1.4" className="w-4 h-4 flex-shrink-0">
+            <path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="text-[12px] text-[#0c0d12] flex-1 truncate">{draft.attachmentName}</span>
+          <button type="button" onClick={() => setDraft(p => ({ ...p, attachmentId: '', attachmentName: '' }))}
+            className="text-[11px] text-[#6b6f7d] hover:text-[#f24545] transition-colors flex-shrink-0">Remove</button>
+        </div>
+      ) : (
+        <label className="flex items-center gap-2 text-[12px] text-[#935bf5] font-semibold cursor-pointer px-3 py-2 border border-dashed border-[#935bf5]/40 rounded-[9px] hover:border-[#935bf5] hover:bg-[rgba(147,91,245,0.04)] transition-all w-fit">
+          {fileUploading
+            ? <div className="w-3 h-3 border-2 border-[#935bf5] border-t-transparent rounded-full animate-spin"/>
+            : <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+                <path d="M10 9l-2-2-2 2M8 7v6M4 14H3a2 2 0 01-2-2V5a2 2 0 012-2h2l2-2h2l2 2h2a2 2 0 012 2v7a2 2 0 01-2 2h-1" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>}
+          <span>{fileUploading ? 'Uploading...' : 'Attach file'}</span>
+          <input type="file" className="sr-only" disabled={fileUploading}
+            onChange={e => { const f = e.target.files?.[0]; if (f) onAttachFile(f); e.target.value = ''; }} />
+        </label>
+      )}
+    </div>
     {saveError && <p className="text-[#f24545] text-[12px] mb-2">{saveError}</p>}
     <div className="flex items-center gap-2">
-      <button onClick={onSave} disabled={saving}
+      <button onClick={onSave} disabled={saving || fileUploading}
         className="bg-[#0d9488] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#0f766e] disabled:opacity-50 transition-colors flex items-center gap-1.5">
         {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
         Save
@@ -397,6 +429,48 @@ const NoteForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) => (
   </div>
 );
 
+const FileUploadForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) => (
+  <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
+    <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">Upload File</p>
+    <div className="mb-3">
+      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
+      <input className={inputCls} placeholder="File title" value={draft.title}
+        onChange={e => setDraft(p => ({ ...p, title: e.target.value }))} />
+    </div>
+    <div className="mb-3">
+      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">File <span className="text-[#f24545]">*</span></label>
+      {draft.file ? (
+        <div className="flex items-center gap-2 bg-white border border-[#e8eaef] rounded-[9px] px-3 py-2">
+          <FileIcon />
+          <span className="text-[12px] text-[#0c0d12] flex-1 truncate">{draft.file.name}</span>
+          <button type="button" onClick={() => setDraft(p => ({ ...p, file: null }))}
+            className="text-[11px] text-[#6b6f7d] hover:text-[#f24545] transition-colors flex-shrink-0">Remove</button>
+        </div>
+      ) : (
+        <label className="flex items-center gap-2 text-[12px] text-[#935bf5] font-semibold cursor-pointer px-3 py-2 border border-dashed border-[#935bf5]/40 rounded-[9px] hover:border-[#935bf5] hover:bg-[rgba(147,91,245,0.04)] transition-all w-fit">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+            <path d="M10 9l-2-2-2 2M8 7v6M4 14H3a2 2 0 01-2-2V5a2 2 0 012-2h2l2-2h2l2 2h2a2 2 0 012 2v7a2 2 0 01-2 2h-1" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>Choose file</span>
+          <input type="file" className="sr-only"
+            onChange={e => { const f = e.target.files?.[0]; if (f) setDraft(p => ({ ...p, file: f })); e.target.value = ''; }} />
+        </label>
+      )}
+    </div>
+    {saveError && <p className="text-[#f24545] text-[12px] mb-2">{saveError}</p>}
+    <div className="flex items-center gap-2">
+      <button onClick={onSave} disabled={saving || !draft.file}
+        className="bg-[#935bf5] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5">
+        {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+        Upload
+      </button>
+      <button onClick={onCancel} className="text-[#6b6f7d] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
+        Cancel
+      </button>
+    </div>
+  </div>
+);
+
 // â"€â"€ component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 const TutorCourseView = () => {
@@ -424,6 +498,8 @@ const TutorCourseView = () => {
   const [lessonDraft,     setLessonDraft]     = useState(blankLesson);
   const [assignmentDraft, setAssignmentDraft] = useState(blankAssignment);
   const [noteDraft,       setNoteDraft]       = useState(blankNote);
+  const [fileDraft,       setFileDraft]       = useState(blankFile);
+  const [fileUploading,   setFileUploading]   = useState(false);
 
   const [saving,     setSaving]     = useState(false);
   const [saveError,  setSaveError]  = useState('');
@@ -447,6 +523,8 @@ const TutorCourseView = () => {
       openAdd(targetIdx, 'assignment');
     } else if (type === 'text') {
       openAdd(targetIdx, 'note');
+    } else if (type === 'file') {
+      openAdd(targetIdx, 'file');
     }
   }, [pendingWeekIdx, courseId, navigate]);
 
@@ -515,6 +593,8 @@ const TutorCourseView = () => {
       setAssignmentDraft({ ...blankAssignment, due_date: monday ? toInputDate(monday) : '' });
     } else if (type === 'note') {
       setNoteDraft({ ...blankNote });
+    } else if (type === 'file') {
+      setFileDraft({ ...blankFile });
     }
     setAddingIn({ weekIdx, type });
     setSaveError('');
@@ -565,15 +645,19 @@ const TutorCourseView = () => {
     if (!assignmentDraft.title.trim()) { setSaveError('Title is required'); return; }
     setSaving(true); setSaveError('');
     try {
+      let description = assignmentDraft.description.trim();
+      if (assignmentDraft.attachmentId) {
+        description += `\n\n__file__:${assignmentDraft.attachmentId}:${assignmentDraft.attachmentName}`;
+      }
       const created = await assignmentsAPI.createAssignment({
         course_id:   courseId,
         title:       assignmentDraft.title.trim(),
-        description: assignmentDraft.description.trim(),
+        description,
         due_date:    assignmentDraft.due_date || undefined,
         max_score:   assignmentDraft.max_score ? parseFloat(assignmentDraft.max_score) : undefined,
       });
       const newA = created?.assignment || created;
-      if (newA?.id) setAssignments(prev => [...prev, newA]);
+      if (newA?.id) setAssignments(prev => [...prev, { ...newA, description }]);
       clearPendingWeek(addingIn?.weekIdx);
       setAddingIn(null);
     } catch (e) {
@@ -625,14 +709,79 @@ const TutorCourseView = () => {
     }
   };
 
+  const saveFile = async () => {
+    if (!fileDraft.title.trim()) { setSaveError('Title is required'); return; }
+    if (!fileDraft.file) { setSaveError('Please select a file'); return; }
+    setSaving(true); setSaveError('');
+    try {
+      const uploadRes = await mediaAPI.uploadFile(fileDraft.file, courseId, 'course_material');
+      const mediaId = uploadRes?.file_id || uploadRes;
+      const description = `FILE:${mediaId}:${fileDraft.file.name}`;
+
+      let scheduledAt = '2000-01-01T00:00:00Z';
+      const wi = addingIn?.weekIdx;
+      if (typeof wi === 'number' && wi > 0) {
+        const monday = weeks[wi]?.weekMonday;
+        scheduledAt = monday ? monday.toISOString() : new Date().toISOString();
+      } else if (typeof wi === 'string' && wi.startsWith('pw_')) {
+        const pw = pendingWeeks.find(w => w.id === wi);
+        scheduledAt = pw?.weekMonday ? pw.weekMonday.toISOString() : new Date().toISOString();
+      }
+
+      const created = await lessonsAPI.createLesson({
+        course_id:        courseId,
+        title:            fileDraft.title.trim(),
+        description,
+        video_link:       '',
+        scheduled_at:     scheduledAt,
+        duration_minutes: 1,
+        status:           'published',
+      });
+      const newLesson = created?.lesson || created;
+      if (newLesson?.id) {
+        setLessons(prev => [...prev, { ...newLesson, video_link: '', description }]);
+      }
+      clearPendingWeek(addingIn?.weekIdx);
+      setAddingIn(null);
+    } catch (e) {
+      setSaveError(e.response?.data?.error || 'Failed to upload file');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAttachFile = async (file) => {
+    setFileUploading(true);
+    try {
+      const uploadRes = await mediaAPI.uploadFile(file, courseId, 'course_material');
+      const mediaId = uploadRes?.file_id || uploadRes;
+      setAssignmentDraft(p => ({ ...p, attachmentId: mediaId, attachmentName: file.name }));
+    } catch {
+      setSaveError('Failed to upload attachment');
+    } finally {
+      setFileUploading(false);
+    }
+  };
+
   // â"€â"€ edit assignment â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   const openEdit = (assignment) => {
+    let description = assignment.description || '';
+    let attachmentId = '';
+    let attachmentName = '';
+    const fileMatch = description.match(/\n\n__file__:([^:]+):(.+)$/);
+    if (fileMatch) {
+      attachmentId = fileMatch[1];
+      attachmentName = fileMatch[2];
+      description = description.slice(0, fileMatch.index);
+    }
     setAssignmentDraft({
-      title:       assignment.title || '',
-      description: assignment.description || '',
-      due_date:    toInputDate(assignment.due_date),
-      max_score:   assignment.max_score != null ? String(assignment.max_score) : '',
+      title:         assignment.title || '',
+      description,
+      due_date:      toInputDate(assignment.due_date),
+      max_score:     assignment.max_score != null ? String(assignment.max_score) : '',
+      attachmentId,
+      attachmentName,
     });
     setEditingId(assignment.id);
     setSaveError('');
@@ -644,9 +793,13 @@ const TutorCourseView = () => {
     if (!assignmentDraft.title.trim()) { setSaveError('Title is required'); return; }
     setSaving(true); setSaveError('');
     try {
+      let description = assignmentDraft.description.trim();
+      if (assignmentDraft.attachmentId) {
+        description += `\n\n__file__:${assignmentDraft.attachmentId}:${assignmentDraft.attachmentName}`;
+      }
       await assignmentsAPI.updateAssignment(editingId, {
         title:       assignmentDraft.title.trim(),
-        description: assignmentDraft.description.trim(),
+        description,
         due_date:    assignmentDraft.due_date || undefined,
         max_score:   assignmentDraft.max_score ? parseFloat(assignmentDraft.max_score) : undefined,
       });
@@ -654,7 +807,7 @@ const TutorCourseView = () => {
         a.id === editingId
           ? { ...a,
               title:       assignmentDraft.title.trim(),
-              description: assignmentDraft.description.trim(),
+              description,
               due_date:    assignmentDraft.due_date || a.due_date,
               max_score:   assignmentDraft.max_score ? parseFloat(assignmentDraft.max_score) : a.max_score,
             }
@@ -878,21 +1031,56 @@ const TutorCourseView = () => {
                       const isLast       = ii === week.items.length - 1 && !isAddHere;
                       const isEditingThis = editingId === item.id;
 
+                      const isFileLesson = isLesson && (item.description || '').startsWith('FILE:');
+                      const fileMatch = isFileLesson ? (item.description || '').match(/^FILE:([^:]+):(.+)$/) : null;
+                      const fileMediaId = fileMatch?.[1];
+                      const fileOriginalName = fileMatch?.[2];
+
                       const lessonUrl = (item.video_link ?? '') || (item.video_url ?? '');
-                      const isLiveLesson = isLesson && /zoom|teams|meet/i.test(lessonUrl);
-                      const isVideoLesson = isLesson && !isLiveLesson && lessonUrl !== '';
-                      const isNoteLesson = isLesson && lessonUrl === '';
+                      const isLiveLesson = isLesson && !isFileLesson && /zoom|teams|meet/i.test(lessonUrl);
+                      const isVideoLesson = isLesson && !isFileLesson && !isLiveLesson && lessonUrl !== '';
+                      const isNoteLesson = isLesson && !isFileLesson && lessonUrl === '';
 
                       const iconBg = isLiveLesson  ? 'bg-[rgba(24,95,165,0.08)]'
                                    : isVideoLesson ? 'bg-[rgba(107,78,255,0.08)]'
                                    : isNoteLesson  ? 'bg-[#f3f4f7]'
+                                   : isFileLesson  ? 'bg-[rgba(147,91,245,0.08)]'
                                    : isQuiz        ? 'bg-[rgba(147,91,245,0.08)]'
                                    :                 'bg-[rgba(255,166,26,0.1)]';
 
                       return (
                         <div key={item.id} className={!isLast ? 'border-b border-[#f0f0f5]' : ''}>
-                          {/* Note items: full-width Moodle-style content block */}
-                          {isNoteLesson ? (
+                          {/* File items */}
+                          {isFileLesson ? (
+                            <div className="flex items-center gap-4 px-5 py-3.5 group">
+                              <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-[rgba(147,91,245,0.08)]">
+                                <FileIcon />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[#0c0d12] text-[13px] font-semibold truncate">{item.title}</p>
+                                {fileOriginalName && <p className="text-[#6b6f7d] text-[11px] mt-0.5 truncate">{fileOriginalName}</p>}
+                              </div>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const res = await mediaAPI.getDownloadURL(fileMediaId);
+                                      window.open(res.url, '_blank');
+                                    } catch {}
+                                  }}
+                                  className="flex items-center gap-1 text-[#935bf5] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(147,91,245,0.06)] transition-colors">
+                                  Download
+                                </button>
+                                <button
+                                  onClick={() => deleteLesson(item.id)}
+                                  disabled={deleting === item.id}
+                                  className="flex items-center gap-1 text-[#6b6f7d] hover:text-[#f24545] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(242,69,69,0.06)] transition-colors disabled:opacity-40">
+                                  <TrashIcon />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ) : isNoteLesson ? (
                             <div className="px-5 py-4 group">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
@@ -973,8 +1161,8 @@ const TutorCourseView = () => {
                           )}
 
                           {/* Inline edit form for assignment */}
-                          {!isNoteLesson && isEditingThis && (
-                            <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
+                          {!isNoteLesson && !isFileLesson && isEditingThis && (
+                            <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveEdit} onCancel={cancelEdit} onAttachFile={handleAttachFile} fileUploading={fileUploading} />
                           )}
                         </div>
                       );
@@ -997,10 +1185,13 @@ const TutorCourseView = () => {
                       <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} />
                     )}
                     {isAddHere && addingIn.type === 'assignment' && (
-                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} />
+                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} onAttachFile={handleAttachFile} fileUploading={fileUploading} />
                     )}
                     {isAddHere && addingIn.type === 'note' && (
                       <NoteForm draft={noteDraft} setDraft={setNoteDraft} saveError={saveError} saving={saving} onSave={saveNote} onCancel={cancelAdd} />
+                    )}
+                    {isAddHere && addingIn.type === 'file' && (
+                      <FileUploadForm draft={fileDraft} setDraft={setFileDraft} saveError={saveError} saving={saving} onSave={saveFile} onCancel={cancelAdd} />
                     )}
                   </div>
                 )}
@@ -1047,10 +1238,13 @@ const TutorCourseView = () => {
                       <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} />
                     )}
                     {isAddHere && addingIn.type === 'assignment' && (
-                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} />
+                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} onAttachFile={handleAttachFile} fileUploading={fileUploading} />
                     )}
                     {isAddHere && addingIn.type === 'note' && (
                       <NoteForm draft={noteDraft} setDraft={setNoteDraft} saveError={saveError} saving={saving} onSave={saveNote} onCancel={cancelAdd} />
+                    )}
+                    {isAddHere && addingIn.type === 'file' && (
+                      <FileUploadForm draft={fileDraft} setDraft={setFileDraft} saveError={saveError} saving={saving} onSave={saveFile} onCancel={cancelAdd} />
                     )}
                   </div>
                 )}

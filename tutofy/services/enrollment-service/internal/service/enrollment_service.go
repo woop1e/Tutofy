@@ -126,7 +126,7 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 		go s.notificationClient.NotifyUser(notifCtx, &notificationpb.NotifyUserRequest{
 			UserId:  callerID,
 			Type:    2, // NOTIFICATION_TYPE_ENROLLMENT
-			Message: "You have successfully enrolled in course " + courseID,
+			Message: "You have successfully enrolled in the course \"" + course.GetTitle() + "\"",
 		})
 	}
 
@@ -193,10 +193,16 @@ func (s *enrollmentService) ApproveEnrollmentRequest(ctx context.Context, caller
 	if s.notificationClient != nil {
 		md, _ := metadata.FromIncomingContext(ctx)
 		notifCtx := metadata.NewOutgoingContext(context.Background(), md)
+		courseTitle := req.CourseID
+		if s.courseClient != nil {
+			if cr, err2 := s.courseClient.GetCourse(notifCtx, &coursepb.GetCourseRequest{CourseId: req.CourseID}); err2 == nil {
+				courseTitle = cr.GetTitle()
+			}
+		}
 		go s.notificationClient.NotifyUser(notifCtx, &notificationpb.NotifyUserRequest{
 			UserId:  req.UserID,
 			Type:    11, // NOTIFICATION_TYPE_ENROLLMENT_APPROVED
-			Message: "Your enrollment request for course " + req.CourseID + " was approved! You can now proceed to payment.",
+			Message: "Your enrollment request for the course \"" + courseTitle + "\" was approved! You can now proceed to payment.",
 		})
 	}
 	return nil
@@ -216,10 +222,16 @@ func (s *enrollmentService) RejectEnrollmentRequest(ctx context.Context, callerI
 	if s.notificationClient != nil {
 		md, _ := metadata.FromIncomingContext(ctx)
 		notifCtx := metadata.NewOutgoingContext(context.Background(), md)
+		courseTitle := req.CourseID
+		if s.courseClient != nil {
+			if cr, err2 := s.courseClient.GetCourse(notifCtx, &coursepb.GetCourseRequest{CourseId: req.CourseID}); err2 == nil {
+				courseTitle = cr.GetTitle()
+			}
+		}
 		go s.notificationClient.NotifyUser(notifCtx, &notificationpb.NotifyUserRequest{
 			UserId:  req.UserID,
 			Type:    12, // NOTIFICATION_TYPE_ENROLLMENT_REJECTED
-			Message: "Your enrollment request for course " + req.CourseID + " was not approved.",
+			Message: "Your enrollment request for the course \"" + courseTitle + "\" was not approved.",
 		})
 	}
 	return nil

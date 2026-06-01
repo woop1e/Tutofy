@@ -22,6 +22,8 @@ message Lesson {
   int32                     duration_minutes = 6;
   string                    video_link = 7;
   LessonStatus              status     = 8;
+  string                    student_id = 9;
+  double                    price      = 10;
 }
 
 message CreateLessonRequest {

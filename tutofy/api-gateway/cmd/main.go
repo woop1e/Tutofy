@@ -111,6 +111,7 @@ func main() {
 	mux.HandleFunc("PATCH /users/{id}/approve",        uh.ApproveTutor)
 	mux.HandleFunc("PATCH /users/{id}/reject",         uh.RejectTutor)
 	mux.HandleFunc("GET /admin/pending-tutors",        uh.GetPendingTutors)
+	mux.HandleFunc("GET /admin/tutors",                uh.GetAllTutors)
 
 	// Courses
 	mux.HandleFunc("POST /courses",               ch.CreateCourse)

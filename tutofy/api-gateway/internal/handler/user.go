@@ -140,3 +140,13 @@ func (h *UserHandler) GetPendingTutors(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonResp(w, http.StatusOK, resp)
 }
+
+func (h *UserHandler) GetAllTutors(w http.ResponseWriter, r *http.Request) {
+	statusFilter := r.URL.Query().Get("status")
+	resp, err := h.client.GetTutorsByStatus(tokenCtx(r), &userpb.GetTutorsByStatusRequest{Status: statusFilter})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}

@@ -80,6 +80,21 @@ export const lessonsAPI = {
     return response.data;
   },
 
+  confirmLesson: async (id) => {
+    const response = await apiClient.patch(`/lessons/${id}/confirm`);
+    return response.data;
+  },
+
+  declineLesson: async (id) => {
+    const response = await apiClient.patch(`/lessons/${id}/decline`);
+    return response.data;
+  },
+
+  payForLesson: async (id, amount = 0) => {
+    const response = await apiClient.post(`/lessons/${id}/pay`, { amount });
+    return response.data;
+  },
+
   getAttendance: async (lessonId) => {
     const response = await apiClient.get(`/lessons/${lessonId}/attendance`);
     return response.data;

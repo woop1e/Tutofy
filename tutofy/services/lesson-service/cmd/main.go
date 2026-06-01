@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"lesson-service/internal/client"
 	"lesson-service/internal/config"
@@ -83,6 +85,8 @@ func main() {
 		);
 		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS student_id TEXT NOT NULL DEFAULT '';
 		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS price NUMERIC(10,2) NOT NULL DEFAULT 0;
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS payment_deadline TIMESTAMPTZ;
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS calendar_event_id TEXT NOT NULL DEFAULT '';
 		CREATE TABLE IF NOT EXISTS lesson_attendance (
 			lesson_id  TEXT    NOT NULL,
 			student_id TEXT    NOT NULL,
@@ -108,6 +112,20 @@ func main() {
 	courseClient := client.NewCourseClient(coursepb.NewCourseServiceClient(courseConn))
 	svc := service.NewLessonService(repo, enrollmentClient, courseClient, nc, authpb.NewAuthServiceClient(authConn))
 	h := handler.NewLessonHandler(svc)
+
+	// Background goroutine: expire AWAITING_PAYMENT lessons past their deadline.
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			n, err := svc.ExpireOverduePayments(context.Background())
+			if err != nil {
+				log.Printf("warn: expire overdue payments: %v", err)
+			} else if n > 0 {
+				log.Printf("info: expired %d overdue lesson payments", n)
+			}
+		}
+	}()
 
 	// Start gRPC server.
 	grpcServer := grpc.NewServer(

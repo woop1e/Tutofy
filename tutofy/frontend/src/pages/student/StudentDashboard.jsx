@@ -1,5 +1,6 @@
 ﻿﻿import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
@@ -73,6 +74,7 @@ const CircleIcon = ({ done, color }) => (
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const StudentDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userId = user?.user_id;
 
   const [enrolledCourses, setEnrolledCourses] = useState([]);
@@ -290,18 +292,7 @@ const StudentDashboard = () => {
             <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{todayStr}</p>
           </div>
           <div className="topbar-right">
-            <div style={{ position: 'relative' }}>
-              <button style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--surface-hover)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <svg viewBox="0 0 20 20" fill="none" stroke="var(--muted)" strokeWidth="1.6" width={18} height={18}>
-                  <path d="M10 2a6 6 0 016 6c0 3.5 1.5 5 1.5 5h-15S4 11.5 4 8a6 6 0 016-6zM8.5 17a1.5 1.5 0 003 0" />
-                </svg>
-              </button>
-              {unreadCount > 0 && (
-                <span style={{ position: 'absolute', top: 1, right: 1, width: 14, height: 14, background: 'var(--danger)', borderRadius: '50%', border: '2px solid var(--surface)', color: '#fff', fontSize: 8, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {unreadCount > 9 ? '9' : unreadCount}
-                </span>
-              )}
-            </div>
+            <NotificationBell />
             <div className="sidebar-avatar">{initials}</div>
           </div>
         </div>

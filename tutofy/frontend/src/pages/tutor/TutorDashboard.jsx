@@ -8,6 +8,10 @@ import { assignmentsAPI } from '../../api/assignments';
 import { submissionsAPI } from '../../api/submissions';
 import { lessonsAPI } from '../../api/lessons';
 import { usersAPI } from '../../api/users';
+import NotificationBell from '../../components/ui/NotificationBell';
+
+const STATUS_AWAITING_PAYMENT = 5;
+const STATUS_PAYMENT_EXPIRED = 6;
 
 const COLORS = ['#0d9488', '#7c3aed', '#0ea5e9', '#ff8032', '#22c55e', '#ef4444'];
 const avatarColor = (id) => COLORS[(id?.charCodeAt(0) || 0) % COLORS.length];
@@ -112,6 +116,10 @@ const TutorDashboard = () => {
   const [profileStatus, setProfileStatus] = useState(null);
   const [isFirstTime, setIsFirstTime]   = useState(false);
   const [modalLesson, setModalLesson]   = useState(null);
+  const [bookingRequests, setBookingRequests]   = useState([]);
+  const [awaitingPayment, setAwaitingPayment]   = useState([]);
+  const [reqLoading, setReqLoading]             = useState(false);
+  const [reqAction, setReqAction]               = useState({});   // { [id]: 'confirming'|'declining'|'done'|'error' }
 
   const handleLinkSaved = (lessonId, link) => {
     setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, video_link: link } : l));
@@ -127,9 +135,8 @@ const TutorDashboard = () => {
 
     (async () => {
       try {
-        const [coursesRes, usersRes, profileRes] = await Promise.all([
+        const [coursesRes, profileRes] = await Promise.all([
           coursesAPI.getAllCourses().catch(() => ({})),
-          usersAPI.getAllUsers().catch(() => ({})),
           usersAPI.getTutorProfile(uid).catch(() => null),
         ]);
         if (profileRes) {
@@ -138,10 +145,6 @@ const TutorDashboard = () => {
         }
         const tutorCourses = (coursesRes?.courses || []).filter((c) => c.tutor_id === uid);
         setCourses(tutorCourses);
-
-        const uMap = {};
-        (usersRes?.users || []).forEach((u) => { uMap[u.id] = u; });
-        setUsersMap(uMap);
 
         const courseData = await Promise.all(
           tutorCourses.slice(0, 10).map(async (course) => {
@@ -186,6 +189,15 @@ const TutorDashboard = () => {
           .sort((a, b) => parseTS(a.scheduled_at) - parseTS(b.scheduled_at));
         setLessons(allLessons);
 
+        // Fetch student info for individual lessons (tutor can't call getAllUsers — admin only)
+        const studentIds = [...new Set(allLessons.map(l => l.student_id).filter(Boolean))];
+        const studentResults = await Promise.all(
+          studentIds.map(id => usersAPI.getUserById(id).catch(() => null))
+        );
+        const uMap = {};
+        studentIds.forEach((id, i) => { if (studentResults[i]) uMap[id] = studentResults[i]; });
+        setUsersMap(uMap);
+
         const allAssignments = courseData.flatMap((d) =>
           d.assignments.map((a) => ({ ...a, courseTitle: d.course.title }))
         );
@@ -212,16 +224,51 @@ const TutorDashboard = () => {
     })();
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.user_id) return;
+    setReqLoading(true);
+    lessonsAPI.getTutorIndividualLessons()
+      .then((res) => {
+        const all = res?.lessons || (Array.isArray(res) ? res : []);
+        setBookingRequests(all.filter((l) => {
+          const s = (l.status || '').toString().toLowerCase();
+          return s === 'pending_confirmation' || s.includes('pending') || parseInt(l.status, 10) === 4;
+        }));
+        setAwaitingPayment(all.filter((l) => {
+          const n = parseInt(l.status, 10);
+          return n === STATUS_AWAITING_PAYMENT;
+        }));
+      })
+      .catch(() => {})
+      .finally(() => setReqLoading(false));
+  }, [user?.user_id]);
+
+  const handleConfirm = async (lessonId) => {
+    setReqAction((p) => ({ ...p, [lessonId]: 'confirming' }));
+    try {
+      await lessonsAPI.confirmLesson(lessonId);
+      setBookingRequests((p) => p.filter((l) => l.id !== lessonId));
+      setReqAction((p) => ({ ...p, [lessonId]: 'done' }));
+    } catch {
+      setReqAction((p) => ({ ...p, [lessonId]: 'error' }));
+    }
+  };
+
+  const handleDecline = async (lessonId) => {
+    setReqAction((p) => ({ ...p, [lessonId]: 'declining' }));
+    try {
+      await lessonsAPI.declineLesson(lessonId);
+      setBookingRequests((p) => p.filter((l) => l.id !== lessonId));
+    } catch {
+      setReqAction((p) => ({ ...p, [lessonId]: 'error' }));
+    }
+  };
+
   const filteredLessons = useMemo(() => {
     const cut = new Date();
     cut.setDate(cut.getDate() + dayFilter);
-    return lessons.filter((l) => (parseTS(l.scheduled_at) || 0) <= cut);
+    return lessons.filter((l) => !l.course_id && (parseTS(l.scheduled_at) || 0) <= cut);
   }, [lessons, dayFilter]);
-
-  const pendingLinks = useMemo(
-    () => lessons.filter((l) => !l.video_link).slice(0, 5),
-    [lessons]
-  );
 
   const today = new Date();
   const SCHEDULE_HOURS = Array.from({ length: 11 }, (_, i) => i + 9); // 9-19
@@ -267,9 +314,19 @@ const TutorDashboard = () => {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-[#ebebf0] px-8 py-6">
-          <h1 className="text-[#0c0d12] text-[24px] font-bold leading-none">Dashboard</h1>
-          <p className="text-[#6b6f7d] text-[14px] mt-1">Welcome back, {firstName}!</p>
+        <div className="bg-white border-b border-[#ebebf0] px-8 py-4 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Dashboard</h1>
+            <p className="text-[#6b6f7d] text-[13px] mt-1">Welcome back, {firstName}!</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">
+                {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Profile status banner */}
@@ -354,6 +411,143 @@ const TutorDashboard = () => {
               ))}
             </div>
 
+            {/* Booking Requests */}
+            {(reqLoading || bookingRequests.length > 0) && (
+              <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[#0c0d12] text-[16px] font-bold">Booking Requests</h2>
+                    {bookingRequests.length > 0 && (
+                      <span className="bg-[#ff8032] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                        {bookingRequests.length}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[#6b6f7d] text-[12px]">Awaiting your confirmation</span>
+                </div>
+
+                {reqLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="w-5 h-5 border-[3px] border-[#0d9488] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {bookingRequests.map((req) => {
+                      const start = parseTS(req.scheduled_at);
+                      const end   = start ? new Date(start.getTime() + (req.duration_minutes || 60) * 60000) : null;
+                      const action = reqAction[req.id];
+                      return (
+                        <div key={req.id} className="flex items-center gap-4 p-4 rounded-[12px] border border-[#ff8032]/30 bg-[#fff8f4]">
+                          <div className="w-10 h-10 rounded-full bg-[#ff8032]/15 flex items-center justify-center flex-shrink-0">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="#ff8032" strokeWidth="1.5" className="w-5 h-5">
+                              <circle cx="8" cy="6" r="3"/><path d="M2 18a6 6 0 0112 0"/>
+                              <path d="M15 8l2 2 3-3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{req.title || 'Individual lesson'}</p>
+                            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                              {start && (
+                                <span className="text-[#6b6f7d] text-[12px] flex items-center gap-1">
+                                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" className="w-3 h-3">
+                                    <rect x="1" y="2" width="12" height="11" rx="1.5"/><path d="M4 1.5v1M10 1.5v1M1 5.5h12"/>
+                                  </svg>
+                                  {fmtDayLabel(start)}, {fmtTime(start)} – {fmtTime(end)}
+                                </span>
+                              )}
+                              {req.duration_minutes > 0 && (
+                                <span className="text-[#6b6f7d] text-[12px]">{req.duration_minutes} min</span>
+                              )}
+                              {req.price > 0 && (
+                                <span className="text-[#0d9488] text-[12px] font-semibold">{req.price.toLocaleString()} ₸</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {action === 'error' && (
+                            <span className="text-[#f24545] text-[12px]">Error, try again</span>
+                          )}
+
+                          <div className="flex gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleDecline(req.id)}
+                              disabled={action === 'confirming' || action === 'declining'}
+                              className="px-3 py-2 rounded-[9px] border border-[#f24545]/40 text-[#f24545] text-[12px] font-semibold hover:bg-[#f24545]/8 disabled:opacity-50 transition-colors"
+                            >
+                              {action === 'declining' ? '...' : 'Decline'}
+                            </button>
+                            <button
+                              onClick={() => handleConfirm(req.id)}
+                              disabled={action === 'confirming' || action === 'declining'}
+                              className="px-4 py-2 rounded-[9px] bg-[#0d9488] text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                            >
+                              {action === 'confirming' ? '...' : 'Confirm'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Awaiting Payment */}
+            {!reqLoading && awaitingPayment.length > 0 && (
+              <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[#0c0d12] text-[16px] font-bold">Awaiting Student Payment</h2>
+                    <span className="bg-[#f59e0b] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                      {awaitingPayment.length}
+                    </span>
+                  </div>
+                  <span className="text-[#6b6f7d] text-[12px]">Students must pay before the deadline</span>
+                </div>
+                <div className="space-y-3">
+                  {awaitingPayment.map((lesson) => {
+                    const start = parseTS(lesson.scheduled_at);
+                    const end   = start ? new Date(start.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
+                    // Compute deadline client-side: scheduledAt − 3 hours
+                    const deadline = start ? new Date(start.getTime() - 3 * 60 * 60 * 1000) : null;
+                    const now = Date.now();
+                    const msLeft = deadline ? deadline.getTime() - now : null;
+                    const hoursLeft = msLeft !== null ? Math.floor(msLeft / 3600000) : null;
+                    const minsLeft  = msLeft !== null ? Math.floor((msLeft % 3600000) / 60000) : null;
+                    const deadlineStr = hoursLeft !== null
+                      ? (hoursLeft > 0 ? `${hoursLeft}h ${minsLeft}m left` : minsLeft > 0 ? `${minsLeft}m left` : 'Deadline passed')
+                      : '';
+                    return (
+                      <div key={lesson.id} className="flex items-center gap-4 p-4 rounded-[12px] border border-[#f59e0b]/30 bg-[#fffbeb]">
+                        <div className="w-10 h-10 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0">
+                          <svg viewBox="0 0 20 20" fill="none" stroke="#f59e0b" strokeWidth="1.5" className="w-5 h-5">
+                            <circle cx="10" cy="10" r="8"/><path d="M10 6v4l2 2" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{lesson.title || 'Individual lesson'}</p>
+                          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                            {start && (
+                              <span className="text-[#6b6f7d] text-[12px]">
+                                {fmtDayLabel(start)}, {fmtTime(start)} – {fmtTime(end)}
+                              </span>
+                            )}
+                            {lesson.price > 0 && (
+                              <span className="text-[#0d9488] text-[12px] font-semibold">{lesson.price.toLocaleString()} ₸</span>
+                            )}
+                            {deadlineStr && (
+                              <span className="text-[#f59e0b] text-[12px] font-semibold">{deadlineStr}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Upcoming Lessons */}
             <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6">
               <div className="flex items-center justify-between mb-4">
@@ -398,8 +592,10 @@ const TutorDashboard = () => {
 
                     const nowMs = Date.now();
                     const joinWindowStart = start ? start.getTime() - 5 * 60 * 1000 : null;
+                    const lessonStatusNum = parseInt(lesson.status, 10);
+                    const isPaid = lessonStatusNum !== STATUS_AWAITING_PAYMENT && lessonStatusNum !== STATUS_PAYMENT_EXPIRED;
                     const canJoin = isLessonToday && joinWindowStart !== null && end
-                      && nowMs >= joinWindowStart && nowMs <= end.getTime() && !!lesson.video_link;
+                      && nowMs >= joinWindowStart && nowMs <= end.getTime() && !!lesson.video_link && isPaid;
                     const isSoon = isLessonToday && joinWindowStart !== null && nowMs < joinWindowStart;
 
                     return (
@@ -407,17 +603,34 @@ const TutorDashboard = () => {
                         key={lesson.id}
                         className="flex items-center gap-4 p-4 rounded-[12px] border border-[#ebebf0] hover:border-[#0d9488]/30 transition-colors"
                       >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
-                          style={{ background: color }}
-                        >
-                          {(lesson.courseTitle || 'L').slice(0, 1).toUpperCase()}
-                        </div>
+                        {(() => {
+                          const rawName = usersMap[lesson.student_id]?.name
+                            || lesson.title?.replace(/^lesson with\s+/i, '')
+                            || 'Student';
+                          const initials = rawName.split(/\s+/).map(w => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
+                          return (
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
+                              style={{ background: color }}
+                            >
+                              {initials}
+                            </div>
+                          );
+                        })()}
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-[#0c0d12] text-[14px] font-semibold truncate">
-                            {lesson.title || lesson.courseTitle}
-                          </p>
+                          {(() => {
+                            const studentName = usersMap[lesson.student_id]?.name
+                              || lesson.title?.replace(/^lesson with\s+/i, '');
+                            return (
+                              <>
+                                <p className="text-[#0c0d12] text-[14px] font-semibold truncate">
+                                  {studentName || 'Individual lesson'}
+                                </p>
+                                <p className="text-[#6b6f7d] text-[11px] truncate">Individual lesson</p>
+                              </>
+                            );
+                          })()}
                           <p className="text-[#6b6f7d] text-[12px] flex items-center gap-1 mt-0.5">
                             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3 h-3">
                               <circle cx="7" cy="7" r="5.5" /><path d="M7 4v3l2 1.5" />
@@ -426,14 +639,8 @@ const TutorDashboard = () => {
                           </p>
                         </div>
 
-                        <span
-                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                            lesson.type === 'individual'
-                              ? 'bg-[#181b26] text-white'
-                              : 'bg-[#f0f0f5] text-[#383a44]'
-                          }`}
-                        >
-                          {lesson.type === 'individual' ? 'individual' : 'group'}
+                        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#0d9488]/10 text-[#0d9488]">
+                          individual
                         </span>
 
                         {canJoin ? (
@@ -460,57 +667,6 @@ const TutorDashboard = () => {
                 </div>
               )}
             </div>
-
-            {/* Pending Lesson Links */}
-            {!loading && pendingLinks.length > 0 && (
-              <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-[#0c0d12] text-[16px] font-bold">Pending Lesson Links</h2>
-                  <span className="text-[#6b6f7d] text-[12px]">Lessons without meeting links</span>
-                </div>
-                <div className="space-y-3">
-                  {pendingLinks.map((lesson) => {
-                    const start = parseTS(lesson.scheduled_at);
-                    const end = start ? new Date(start.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
-                    const color = avatarColor(lesson.courseTitle || lesson.id);
-                    return (
-                      <div
-                        key={lesson.id}
-                        className="flex items-center gap-4 p-4 rounded-[12px] border border-[#ebebf0]"
-                      >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
-                          style={{ background: color }}
-                        >
-                          {(lesson.courseTitle || 'L').slice(0, 1).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[#0c0d12] text-[14px] font-semibold truncate">
-                            {lesson.title || lesson.courseTitle}
-                          </p>
-                          <p className="text-[12px] flex items-center gap-2 mt-0.5">
-                            <span className="text-[#6b6f7d]">
-                              {fmtDayLabel(start)}, {fmtTime(start)} - {fmtTime(end)}
-                            </span>
-                            <span className="text-[#f24545] font-medium">Link not created</span>
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const s = parseTS(lesson.scheduled_at);
-                            const e = s ? new Date(s.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
-                            setModalLesson({ ...lesson, _timeLabel: s && e ? `${fmtDayLabel(s)}, ${fmtTime(s)} - ${fmtTime(e)}` : '' });
-                          }}
-                          className="bg-[#0d9488] text-white text-[13px] font-semibold px-4 py-2 rounded-[9px] hover:opacity-90 transition-opacity"
-                        >
-                          Create link
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             {/* Ungraded Assignments */}
             <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6">

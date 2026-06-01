@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { lessonsAPI } from '../../api/lessons';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { usersAPI } from '../../api/users';
 
 /* â"€â"€ Constants â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
@@ -70,8 +71,18 @@ function sameDay(a, b) {
     a.getDate() === b.getDate();
 }
 
+const STATUS_AWAITING_PAYMENT = 5;
+const STATUS_PAYMENT_EXPIRED = 6;
+
 function lessonColor(lesson) {
   const isGroup = lesson.course_id || (lesson.title || '').toLowerCase().includes('group');
+  const statusNum = parseInt(lesson.status, 10);
+  if (!isGroup && statusNum === STATUS_AWAITING_PAYMENT) {
+    return { bg: '#fffbeb', border: '#f59e0b', text: '#92400e', dot: '#f59e0b' };
+  }
+  if (!isGroup && statusNum === STATUS_PAYMENT_EXPIRED) {
+    return { bg: '#fef2f2', border: '#ef4444', text: '#991b1b', dot: '#ef4444' };
+  }
   if (isGroup) return { bg: '#fff7ed', border: '#ff8032', text: '#c05e1a', dot: '#ff8032' };
   return { bg: '#eff3ff', border: '#0d9488', text: '#2d4db8', dot: '#0d9488' };
 }
@@ -486,6 +497,24 @@ function LessonCard({ lesson, onClick }) {
   const isGroup   = lesson.course_id || (lesson.title || '').toLowerCase().includes('group');
   const typeLabel = isGroup ? 'Group' : 'Individual';
   const name      = extractStudentName(lesson);
+  const statusNum = parseInt(lesson.status, 10);
+
+  let statusBadge = null;
+  if (!isGroup) {
+    if (statusNum === STATUS_AWAITING_PAYMENT) {
+      statusBadge = <span className="text-[9px] font-bold" style={{ color: '#f59e0b' }}>Awaiting payment</span>;
+    } else if (statusNum === STATUS_PAYMENT_EXPIRED) {
+      statusBadge = <span className="text-[9px] font-bold" style={{ color: '#ef4444' }}>Payment expired</span>;
+    } else if (lesson.video_link) {
+      statusBadge = <span className="text-[9px] text-[#22be70] font-semibold">Link set</span>;
+    } else {
+      statusBadge = <span className="text-[9px] text-[#f24545] font-semibold">No link</span>;
+    }
+  } else if (lesson.video_link) {
+    statusBadge = <span className="text-[9px] text-[#22be70] font-semibold">Link set</span>;
+  } else {
+    statusBadge = <span className="text-[9px] text-[#f24545] font-semibold">No link</span>;
+  }
 
   return (
     <div
@@ -505,11 +534,7 @@ function LessonCard({ lesson, onClick }) {
         </span>
       </div>
       <p className="text-[11px] font-bold truncate" style={{ color: c.text }}>{name}</p>
-      {lesson.video_link ? (
-        <span className="text-[9px] text-[#22be70] font-semibold">Link set</span>
-      ) : (
-        <span className="text-[9px] text-[#f24545] font-semibold">No link</span>
-      )}
+      {statusBadge}
     </div>
   );
 }
@@ -543,6 +568,7 @@ function AvailBlock({ slot, startH, endH, onDelete }) {
 /* â"€â"€ Main Component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 const TutorSchedule = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const today    = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
 
   const [weekStart, setWeekStart]     = useState(() => startOfWeek(new Date()));
@@ -707,7 +733,7 @@ const TutorSchedule = () => {
             <h1 className="text-[22px] font-bold text-[#0c0d12] leading-none">Schedule</h1>
             <p className="text-[#6b6f7d] text-[13px] mt-1">Manage your availability and lessons.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowAvail(true)}
               className="flex items-center gap-2 border border-[#d2d4d9] text-[#383a44] text-[12px] font-semibold px-3 py-2 rounded-[8px] hover:border-[#22be70] hover:text-[#22be70] transition-colors"
@@ -726,6 +752,12 @@ const TutorSchedule = () => {
               </svg>
               Add lesson
             </Link>
+            <NotificationBell />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">
+                {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -875,6 +907,7 @@ const TutorSchedule = () => {
             <div className="bg-white border-t border-[#ebebf0] px-6 py-3 flex items-center gap-6 flex-shrink-0">
               {[
                 { dot: '#0d9488', label: 'Individual lesson' },
+                { dot: '#f59e0b', label: 'Awaiting payment' },
                 { dot: '#ff8032', label: 'Group lesson' },
                 { dot: '#22c55e', label: 'Available' },
               ].map(({ dot, label }) => (
@@ -925,16 +958,35 @@ const TutorSchedule = () => {
                             {start && end ? `, ${fmtTime(start)} - ${fmtTime(end)}` : ''}
                           </p>
                         </div>
-                        <button
-                          onClick={() => openModal(lesson)}
-                          className={`flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-[6px] ${
-                            lesson.video_link
-                              ? 'bg-[#0d9488] text-white hover:opacity-90'
-                              : 'border border-[#d2d4d9] text-[#383a44] hover:border-[#0d9488] hover:text-[#0d9488]'
-                          }`}
-                        >
-                          {lesson.video_link ? 'Join' : 'Link'}
-                        </button>
+                        {(() => {
+                          const sn = parseInt(lesson.status, 10);
+                          if (sn === STATUS_AWAITING_PAYMENT) {
+                            return (
+                              <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-[6px] bg-[#fef3c7] text-[#92400e]">
+                                Unpaid
+                              </span>
+                            );
+                          }
+                          if (sn === STATUS_PAYMENT_EXPIRED) {
+                            return (
+                              <span className="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded-[6px] bg-[#fee2e2] text-[#991b1b]">
+                                Expired
+                              </span>
+                            );
+                          }
+                          return (
+                            <button
+                              onClick={() => openModal(lesson)}
+                              className={`flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-[6px] ${
+                                lesson.video_link
+                                  ? 'bg-[#0d9488] text-white hover:opacity-90'
+                                  : 'border border-[#d2d4d9] text-[#383a44] hover:border-[#0d9488] hover:text-[#0d9488]'
+                              }`}
+                            >
+                              {lesson.video_link ? 'Join' : 'Link'}
+                            </button>
+                          );
+                        })()}
                       </div>
                     );
                   })}

@@ -275,3 +275,19 @@ func (h *UserHandler) GetPendingTutors(ctx context.Context, _ *userpb.Empty) (*u
 	}
 	return &userpb.PendingTutorsList{Tutors: list}, nil
 }
+
+func (h *UserHandler) GetTutorsByStatus(ctx context.Context, req *userpb.GetTutorsByStatusRequest) (*userpb.PendingTutorsList, error) {
+	callerRole := middleware.RoleFromContext(ctx)
+	tutors, err := h.svc.GetTutorsByStatus(ctx, callerRole, req.GetStatus())
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	list := make([]*userpb.TutorProfileResponse, 0, len(tutors))
+	for _, p := range tutors {
+		list = append(list, toTutorProto(p))
+	}
+	return &userpb.PendingTutorsList{Tutors: list}, nil
+}

@@ -437,6 +437,7 @@ services:
       REVIEW_SERVICE_ADDR: "review-service:50065"
       SUBMISSION_SERVICE_ADDR: "submission-service:50063"
       QUIZ_SERVICE_ADDR: "quiz-service:50064"
+      CERTIFICATE_SERVICE_ADDR: "certificate-service:50066"
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
       GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
       GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-http://localhost:8080/auth/google/callback}"

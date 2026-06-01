@@ -33,6 +33,7 @@ const PaymentPage = () => {
   const courseId           = params.get('course_id') || '';
   const amount             = parseFloat(params.get('amount') || '0');
   const tutorId            = params.get('tutor_id')  || '';
+  const lessonId           = params.get('lesson_id') || '';
   const courseName         = params.get('course_name') || 'Course';
   const lessonTitle        = params.get('title') || 'Individual lesson';
   const lessonScheduledAt  = params.get('scheduled_at') || '';
@@ -69,20 +70,17 @@ const PaymentPage = () => {
     setStep('processing');
     setErrMsg('');
     try {
-      if (lessonMode) {
+      if (lessonMode && lessonId) {
+        // New flow: lesson already exists at AWAITING_PAYMENT, just confirm payment
+        await lessonsAPI.payForLesson(lessonId, amount);
+      } else if (lessonMode && tutorId) {
+        // Legacy flow: book + pay in one step (free lessons from old UI)
         const payment = await paymentsAPI.createPayment({ course_id: tutorId, amount });
         await paymentsAPI.completePayment(payment.payment_id);
         await lessonsAPI.bookIndividualLesson({
-          tutor_id:         tutorId,
-          title:            lessonTitle,
-          scheduled_at:     lessonScheduledAt,
-          duration_minutes: lessonDuration,
-          price:            amount,
+          tutor_id: tutorId, title: lessonTitle,
+          scheduled_at: lessonScheduledAt, duration_minutes: lessonDuration, price: amount,
         });
-        messagingAPI.sendMessage({
-          receiver_id: tutorId,
-          content: `Hi! I've booked a lesson with you: "${lessonTitle}". Looking forward to our session!`,
-        }).catch(() => {});
       } else {
         const payment = await paymentsAPI.createPayment({ course_id: courseId, amount });
         await paymentsAPI.completePayment(payment.payment_id);
@@ -100,11 +98,59 @@ const PaymentPage = () => {
     }
   };
 
+  // Free lesson confirmation (no card needed)
+  const handleFreeConfirm = async () => {
+    setStep('processing');
+    setErrMsg('');
+    try {
+      await lessonsAPI.payForLesson(lessonId, 0);
+      setStep('success');
+    } catch (err) {
+      setErrMsg(err.response?.data?.error || err.response?.data?.message || 'Failed. Please try again.');
+      setStep('error');
+    }
+  };
+
   const maskedNum = cardNumber
     ? cardNumber.replace(/\s/g, '').padEnd(16, '•').replace(/(.{4})/g, '$1 ').trim()
     : '•••• •••• •••• ••••';
 
   const fmtAmount = (n) => `${Math.round(n).toLocaleString()} KZT`;
+
+  // Free lesson: skip card form entirely
+  if (lessonMode && lessonId && amount === 0 && step !== 'success') {
+    return (
+      <div className="min-h-screen bg-[#f5f6fa] flex flex-col items-center justify-center font-sans p-6">
+        <div className="bg-white rounded-[24px] border border-[#ebebf0] p-10 max-w-[420px] w-full text-center shadow-[0_8px_40px_rgba(76,110,255,0.10)]">
+          <div className="w-20 h-20 rounded-full bg-[#f0fff8] flex items-center justify-center mx-auto mb-5">
+            <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10 text-[#0d9488]">
+              <circle cx="20" cy="20" r="17" stroke="currentColor" strokeWidth="2.5"/>
+              <path d="M13 20l5 5 9-10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h1 className="text-[#0c0d12] text-[22px] font-bold mb-2">Confirm your lesson</h1>
+          <p className="text-[#6b6f7d] text-[14px] mb-1">You're about to confirm</p>
+          <p className="text-[#0d9488] text-[16px] font-semibold mb-1">"{lessonTitle}"</p>
+          <p className="text-[#22be70] text-[14px] font-bold mb-6">Free lesson · No payment required</p>
+          {step === 'error' && (
+            <p className="text-[#f24545] text-[13px] mb-4">{errMsg}</p>
+          )}
+          <button
+            onClick={handleFreeConfirm}
+            disabled={step === 'processing'}
+            className="w-full bg-[#0d9488] text-white text-[15px] font-semibold py-3.5 rounded-[14px] shadow-[0_4px_20px_rgba(13,148,136,0.35)] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mb-3"
+          >
+            {step === 'processing' ? (
+              <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Confirming...</>
+            ) : 'Confirm lesson'}
+          </button>
+          <button onClick={() => navigate(-1)} className="w-full text-[#6b6f7d] text-[13px] hover:text-[#0c0d12] transition-colors">
+            ← Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 'success') {
     return (
@@ -135,10 +181,10 @@ const PaymentPage = () => {
             </>
           )}
           <button
-            onClick={() => navigate('/student/dashboard')}
+            onClick={() => navigate(lessonMode ? '/student/schedule' : '/student/dashboard')}
             className="w-full bg-[#0d9488] text-white text-[14px] font-semibold py-3 rounded-[12px] hover:opacity-90 transition-opacity"
           >
-            Go to my dashboard &rarr;
+            {lessonMode ? 'Go to Schedule →' : 'Go to my dashboard →'}
           </button>
         </div>
       </div>

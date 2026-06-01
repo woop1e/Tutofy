@@ -34,6 +34,12 @@ const SECTIONS = [
     ],
   },
   {
+    label: 'Discover',
+    items: [
+      { path: '/student/marketplace',  label: 'Find Tutors',   icon: 'search' },
+    ],
+  },
+  {
     label: 'Insights',
     items: [
       { path: '/student/progress',     label: 'Progress',      icon: 'chart' },
@@ -86,9 +92,13 @@ const StudentSidebar = () => {
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'S';
 
-  const isActive = (path) =>
-    location.pathname === path ||
-    (path !== '/student/dashboard' && location.pathname.startsWith(path));
+  const isActive = (path) => {
+    if (path === '/student/marketplace') {
+      return location.pathname.startsWith('/student/marketplace') || location.pathname.startsWith('/student/tutors/');
+    }
+    return location.pathname === path ||
+      (path !== '/student/dashboard' && location.pathname.startsWith(path));
+  };
 
   return (
     <div className="app-sidebar">
@@ -180,16 +190,6 @@ const StudentSidebar = () => {
             <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Student</p>
           </div>
         </div>
-
-        <Link
-          to="/marketplace"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--muted)', textDecoration: 'none', transition: 'background var(--t-fast)', marginBottom: 2 }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <Icon name="search" />
-          Find tutors
-        </Link>
 
         <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }}>
           <Icon name="logout" />

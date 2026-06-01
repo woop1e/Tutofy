@@ -399,27 +399,11 @@ const TutorProfile = () => {
     if (!isAuthenticated) { navigate(`/register?redirect=${encodeURIComponent('/tutors/' + id)}`); return; }
     if (!selectedSlot) return;
 
-    const price = tutorProfile?.hourly_rate || tutorExtras(id).hourlyRate;
-    const tutorName = tutorProfile?.name || tutor?.name || 'Tutor';
-    const title = `Lesson with ${tutorName}`;
+    const price = tutorProfile?.hourly_price || 0;
+    const studentName = user?.name || 'Student';
+    const title = `Lesson with ${studentName}`;
     const scheduled_at = toISOLocal(selectedSlot.day, selectedSlot.hour);
 
-    // Paid lesson go to payment page; after payment it calls /book-lesson.
-    if (price > 0) {
-      const params = new URLSearchParams({
-        lesson_mode:      'true',
-        tutor_id:         id,
-        amount:           String(price),
-        title,
-        scheduled_at,
-        duration_minutes: '60',
-        tutor_name:       tutorName,
-      });
-      navigate(`/payment?${params.toString()}`);
-      return;
-    }
-
-    // Free lesson book directly.
     setBooking(true); setBookingError('');
     try {
       await lessonsAPI.bookIndividualLesson({
@@ -427,7 +411,7 @@ const TutorProfile = () => {
         title,
         scheduled_at,
         duration_minutes: 60,
-        price:           0,
+        price,
       });
       setBookingOk(true);
       setSelectedSlot(null);
@@ -468,7 +452,7 @@ const TutorProfile = () => {
   const initials = tutor.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   const bio      = tutorProfile?.bio || courses[0]?.description || 'Expert tutor with personalized sessions tailored to your learning goals and schedule. I help students of all levels achieve tangible progress.';
   const slots    = filterBookedSlots(generateSlotsFromProfile(tutorProfile), bookedSlots);
-  const hourlyPrice  = tutorProfile?.hourly_rate || extras.hourlyRate;
+  const hourlyPrice  = tutorProfile?.hourly_price || 0;
   const parsedSlots  = parseProfileSlots(tutorProfile);
   const hasAvailability = parsedSlots.length > 0;
   const isOwnProfile = role === 'tutor' && user?.user_id === id;
@@ -739,8 +723,14 @@ const TutorProfile = () => {
               <p className="text-[#6b6f7d] text-[12px] mb-4">1-on-1 · 60 min · Zoom link sent after booking</p>
 
               <div className="flex items-baseline gap-1 mb-4">
-                <p className="text-[#0c0d12] text-[30px] font-bold leading-none">{hourlyPrice.toLocaleString()}</p>
-                <span className="text-[#6b6f7d] text-[15px]">KZT / hour</span>
+                {hourlyPrice > 0 ? (
+                  <>
+                    <p className="text-[#0c0d12] text-[30px] font-bold leading-none">{hourlyPrice.toLocaleString()}</p>
+                    <span className="text-[#6b6f7d] text-[15px]">KZT / hour</span>
+                  </>
+                ) : (
+                  <p className="text-[#6b6f7d] text-[15px] font-medium">Free lesson</p>
+                )}
               </div>
 
               {hasAvailability && (
@@ -815,7 +805,7 @@ const TutorProfile = () => {
                   {selectedSlot && (
                     <div className="mt-3 pt-3 border-t border-[#ebebf0]">
                       <p className="text-[#6b6f7d] text-[12px] mb-2">
-                        {fmtDay(selectedSlot.day)} at {selectedSlot.hour}:00 · 60 min · {hourlyPrice.toLocaleString()} KZT
+                        {fmtDay(selectedSlot.day)} at {selectedSlot.hour}:00 · 60 min · {hourlyPrice > 0 ? `${hourlyPrice.toLocaleString()} KZT` : 'Free'}
                       </p>
                       <button
                         onClick={handleBookLesson}

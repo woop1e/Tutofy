@@ -31,14 +31,16 @@ var statusName = map[model.LessonStatus]string{
 	model.LessonStatusCancelled:           "CANCELLED",
 	model.LessonStatusPendingConfirmation: "PENDING_CONFIRMATION",
 	model.LessonStatusAwaitingPayment:     "AWAITING_PAYMENT",
+	model.LessonStatusPaymentExpired:      "PAYMENT_EXPIRED",
 }
 
 var (
-	ErrForbidden               = errors.New("forbidden")
-	ErrNotTutorOrAdmin         = errors.New("only tutors and admins can perform this action")
-	ErrNotEnrolled             = errors.New("student is not enrolled in this course")
-	ErrWrongStatus             = errors.New("lesson is not in the expected status")
-	ErrApprovalRequired        = errors.New("enrollment requires tutor approval first")
+	ErrForbidden        = errors.New("forbidden")
+	ErrNotTutorOrAdmin  = errors.New("only tutors and admins can perform this action")
+	ErrNotEnrolled      = errors.New("student is not enrolled in this course")
+	ErrWrongStatus      = errors.New("lesson is not in the expected status")
+	ErrApprovalRequired = errors.New("enrollment requires tutor approval first")
+	ErrPaymentExpired   = errors.New("payment deadline has passed")
 )
 
 // AttendanceEntry is one per-student attendance record with status.
@@ -71,6 +73,7 @@ type LessonService interface {
 	GetStudentLessons(ctx context.Context, studentID string) ([]*model.Lesson, error)
 	GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error)
 	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
+	ExpireOverduePayments(ctx context.Context) (int64, error)
 }
 
 type lessonService struct {
@@ -173,32 +176,49 @@ func (s *lessonService) ConfirmLesson(ctx context.Context, callerID, callerRole,
 		return nil, ErrWrongStatus
 	}
 
-	// Try to auto-generate a Google Meet link if the tutor has connected their Google account.
-	if s.authClient != nil {
-		go s.tryCreateMeetLink(ctx, lesson)
+	// Payment deadline: 2 hours from now OR 3 hours before scheduled time, whichever is sooner.
+	now := time.Now()
+	deadline := now.Add(2 * time.Hour)
+	late := lesson.ScheduledAt.Add(-3 * time.Hour)
+	if late.Before(deadline) {
+		deadline = late
+	}
+	if deadline.Before(now) {
+		deadline = now.Add(30 * time.Minute)
 	}
 
-	updated, err := s.repo.UpdateLessonStatus(ctx, lessonID, model.LessonStatusAwaitingPayment)
+	updated, err := s.repo.UpdateLessonStatusAndDeadline(ctx, lessonID, model.LessonStatusAwaitingPayment, deadline)
 	if err != nil {
 		return nil, err
 	}
-	// Publish event so notification-service can email the student and schedule a reminder.
+
+	// Try to auto-generate a Google Meet link with "[Pending Payment]" prefix.
+	if s.authClient != nil {
+		go s.tryCreateMeetLink(context.Background(), lesson)
+	}
+
 	go s.publishConfirmed(lesson)
 	return updated, nil
 }
 
 func (s *lessonService) tryCreateMeetLink(ctx context.Context, lesson *model.Lesson) {
-	tokResp, err := s.authClient.GetGoogleToken(context.Background(), &authpb.GetGoogleTokenRequest{UserId: lesson.TutorID})
+	tokResp, err := s.authClient.GetGoogleToken(ctx, &authpb.GetGoogleTokenRequest{UserId: lesson.TutorID})
 	if err != nil {
 		return // tutor hasn't connected Google account — silently skip
 	}
-	meetURL, err := gcal.CreateMeetLink(tokResp.GetAccessToken(), lesson.Title, lesson.ScheduledAt, lesson.DurationMinutes)
+	calendarTitle := "[Pending Payment] " + lesson.Title
+	meetURL, eventID, err := gcal.CreateMeetLink(tokResp.GetAccessToken(), calendarTitle, lesson.ScheduledAt, lesson.DurationMinutes)
 	if err != nil {
 		log.Printf("gcal: could not create Meet link for lesson %s: %v", lesson.ID, err)
 		return
 	}
 	if _, err := s.repo.UpdateVideoLink(ctx, lesson.ID, meetURL); err != nil {
 		log.Printf("gcal: could not save Meet link for lesson %s: %v", lesson.ID, err)
+	}
+	if eventID != "" {
+		if err := s.repo.SetCalendarEventID(ctx, lesson.ID, eventID); err != nil {
+			log.Printf("gcal: could not save calendar event ID for lesson %s: %v", lesson.ID, err)
+		}
 	}
 }
 
@@ -230,12 +250,28 @@ func (s *lessonService) ActivateLesson(ctx context.Context, callerID, callerRole
 	if callerRole != "admin" && lesson.StudentID != callerID {
 		return nil, ErrForbidden
 	}
+	if lesson.Status == model.LessonStatusPaymentExpired {
+		return nil, ErrPaymentExpired
+	}
 	if lesson.Status != model.LessonStatusAwaitingPayment {
 		return nil, ErrWrongStatus
 	}
 	updated, err := s.repo.UpdateLessonStatus(ctx, lessonID, model.LessonStatusPlanned)
 	if err != nil {
 		return nil, err
+	}
+	// Update calendar event title to [Confirmed] asynchronously.
+	if s.authClient != nil && lesson.CalendarEventID != "" {
+		go func() {
+			tokResp, err := s.authClient.GetGoogleToken(context.Background(), &authpb.GetGoogleTokenRequest{UserId: lesson.TutorID})
+			if err != nil {
+				return
+			}
+			confirmedTitle := "[Confirmed] " + lesson.Title
+			if err := gcal.UpdateEventSummary(tokResp.GetAccessToken(), lesson.CalendarEventID, confirmedTitle); err != nil {
+				log.Printf("gcal: could not update event title for lesson %s: %v", lesson.ID, err)
+			}
+		}()
 	}
 	return updated, nil
 }
@@ -495,4 +531,8 @@ func (s *lessonService) GetTutorBookedSlots(ctx context.Context, tutorID string)
 
 func (s *lessonService) GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error) {
 	return s.repo.GetTutorIndividualLessons(ctx, tutorID)
+}
+
+func (s *lessonService) ExpireOverduePayments(ctx context.Context) (int64, error) {
+	return s.repo.ExpireOverduePayments(ctx)
 }

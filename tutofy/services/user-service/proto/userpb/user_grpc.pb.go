@@ -317,6 +317,18 @@ func (x *PendingTutorsList) String() string   { return "" }
 func (x *PendingTutorsList) ProtoMessage()   {}
 func (x *PendingTutorsList) GetTutors() []*TutorProfileResponse { return x.Tutors }
 
+type GetTutorsByStatusRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *GetTutorsByStatusRequest) Reset()         { *x = GetTutorsByStatusRequest{} }
+func (x *GetTutorsByStatusRequest) String() string  { return x.Status }
+func (x *GetTutorsByStatusRequest) ProtoMessage()  {}
+func (x *GetTutorsByStatusRequest) GetStatus() string { return x.Status }
+
 // ── Server interface ──────────────────────────────────────────────────────────
 
 type UserServiceServer interface {
@@ -331,6 +343,7 @@ type UserServiceServer interface {
 	ApproveTutor(context.Context, *ApproveTutorRequest) (*Empty, error)
 	RejectTutor(context.Context, *RejectTutorRequest) (*Empty, error)
 	GetPendingTutors(context.Context, *Empty) (*PendingTutorsList, error)
+	GetTutorsByStatus(context.Context, *GetTutorsByStatusRequest) (*PendingTutorsList, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -369,6 +382,9 @@ func (UnimplementedUserServiceServer) RejectTutor(context.Context, *RejectTutorR
 func (UnimplementedUserServiceServer) GetPendingTutors(context.Context, *Empty) (*PendingTutorsList, error) {
 	return nil, nil
 }
+func (UnimplementedUserServiceServer) GetTutorsByStatus(context.Context, *GetTutorsByStatusRequest) (*PendingTutorsList, error) {
+	return nil, nil
+}
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -392,6 +408,7 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "ApproveTutor", Handler: _UserService_ApproveTutor_Handler},
 		{MethodName: "RejectTutor", Handler: _UserService_RejectTutor_Handler},
 		{MethodName: "GetPendingTutors", Handler: _UserService_GetPendingTutors_Handler},
+		{MethodName: "GetTutorsByStatus", Handler: _UserService_GetTutorsByStatus_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "user.proto",
@@ -562,6 +579,21 @@ func _UserService_GetPendingTutors_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_GetTutorsByStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTutorsByStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetTutorsByStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/GetTutorsByStatus"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetTutorsByStatus(ctx, req.(*GetTutorsByStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client interface ──────────────────────────────────────────────────────────
 
 type UserServiceClient interface {
@@ -576,6 +608,7 @@ type UserServiceClient interface {
 	ApproveTutor(ctx context.Context, in *ApproveTutorRequest, opts ...grpc.CallOption) (*Empty, error)
 	RejectTutor(ctx context.Context, in *RejectTutorRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetPendingTutors(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*PendingTutorsList, error)
+	GetTutorsByStatus(ctx context.Context, in *GetTutorsByStatusRequest, opts ...grpc.CallOption) (*PendingTutorsList, error)
 }
 
 type userServiceClient struct{ cc grpc.ClientConnInterface }
@@ -641,6 +674,12 @@ func (c *userServiceClient) RejectTutor(ctx context.Context, in *RejectTutorRequ
 func (c *userServiceClient) GetPendingTutors(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*PendingTutorsList, error) {
 	out := new(PendingTutorsList)
 	err := c.cc.Invoke(ctx, "/user.UserService/GetPendingTutors", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) GetTutorsByStatus(ctx context.Context, in *GetTutorsByStatusRequest, opts ...grpc.CallOption) (*PendingTutorsList, error) {
+	out := new(PendingTutorsList)
+	err := c.cc.Invoke(ctx, "/user.UserService/GetTutorsByStatus", in, out, opts...)
 	return out, err
 }
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { lessonsAPI } from '../../api/lessons';
 import { messagingAPI } from '../../api/messaging';
@@ -133,6 +134,14 @@ const TutorStudents = () => {
           <div>
             <p className="text-dark text-[20px] font-bold">My Students</p>
             <p className="text-muted text-[13px]">Course enrollments & private lessons</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">
+                {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
+              </span>
+            </div>
           </div>
         </div>
 

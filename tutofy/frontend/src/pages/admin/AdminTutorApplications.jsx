@@ -1,29 +1,45 @@
-﻿﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { usersAPI } from '../../api/users';
 
+const STATUS_TABS = [
+  { key: 'all',      label: 'All' },
+  { key: 'pending',  label: 'Pending' },
+  { key: 'approved', label: 'Approved' },
+  { key: 'rejected', label: 'Rejected' },
+];
+
+const STATUS_BADGE = {
+  pending:  { bg: '#fff8e1', color: '#b45309', label: 'Pending' },
+  approved: { bg: '#e6f9f0', color: '#15803d', label: 'Approved' },
+  rejected: { bg: '#fef2f2', color: '#b91c1c', label: 'Rejected' },
+};
+
 const AdminTutorApplications = () => {
   const { isAuthenticated, role } = useAuth();
   const navigate = useNavigate();
 
-  const [tutors, setTutors]     = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
-  const [acting, setActing]     = useState(null);
-  const [selected, setSelected] = useState(null); // tutor detail panel
+  const [tutors, setTutors]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [acting, setActing]       = useState(null);
+  const [selected, setSelected]   = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
 
   useEffect(() => {
     if (!isAuthenticated || role !== 'admin') navigate('/login', { replace: true });
   }, [isAuthenticated, role, navigate]);
 
   useEffect(() => {
-    usersAPI.getPendingTutors()
+    setLoading(true);
+    usersAPI.getAllTutors(activeTab)
       .then((d) => setTutors(d?.tutors || []))
       .catch(() => setTutors([]))
       .finally(() => setLoading(false));
-  }, []);
+    setSelected(null);
+  }, [activeTab]);
 
   const filtered = useMemo(() => {
     if (!search) return tutors;
@@ -35,12 +51,17 @@ const AdminTutorApplications = () => {
     );
   }, [tutors, search]);
 
+  const updateTutorStatus = (id, newStatus) => {
+    setTutors((prev) => prev.map((t) => t.id === id ? { ...t, status: newStatus } : t));
+    if (selected?.id === id) setSelected((s) => s ? { ...s, status: newStatus } : null);
+  };
+
   const handleApprove = async (tutor) => {
     setActing(tutor.id);
     try {
       await usersAPI.approveTutor(tutor.id);
-      setTutors((prev) => prev.filter((t) => t.id !== tutor.id));
-      if (selected?.id === tutor.id) setSelected(null);
+      updateTutorStatus(tutor.id, 'approved');
+      if (activeTab === 'rejected') updateTutorStatus(tutor.id, 'approved');
     } catch {}
     finally { setActing(null); }
   };
@@ -49,11 +70,12 @@ const AdminTutorApplications = () => {
     setActing(tutor.id);
     try {
       await usersAPI.rejectTutor(tutor.id);
-      setTutors((prev) => prev.filter((t) => t.id !== tutor.id));
-      if (selected?.id === tutor.id) setSelected(null);
+      updateTutorStatus(tutor.id, 'rejected');
     } catch {}
     finally { setActing(null); }
   };
+
+  const pendingCount = tutors.filter((t) => (t.status || 'pending') === 'pending').length;
 
   return (
     <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
@@ -65,12 +87,36 @@ const AdminTutorApplications = () => {
           <div>
             <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Tutor Applications</h1>
             <p className="text-[#6b6f7d] text-[13px] mt-1">
-              {tutors.length} pending application{tutors.length !== 1 ? 's' : ''} awaiting review
+              {activeTab === 'all'
+                ? `${tutors.length} tutor${tutors.length !== 1 ? 's' : ''} total`
+                : activeTab === 'pending'
+                ? `${tutors.length} pending application${tutors.length !== 1 ? 's' : ''} awaiting review`
+                : `${tutors.length} ${activeTab} tutor${tutors.length !== 1 ? 's' : ''}`}
             </p>
           </div>
         </div>
 
-        {/* Filter bar */}
+        {/* Status filter tabs */}
+        <div className="bg-white border-b border-[#ebebf0] px-8 flex items-center gap-1 flex-shrink-0">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-3 text-[13px] font-semibold border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? 'border-[#0d9488] text-[#0d9488]'
+                  : 'border-transparent text-[#6b6f7d] hover:text-[#0c0d12]'
+              }`}
+            >
+              {tab.label}
+              {tab.key === 'pending' && pendingCount > 0 && activeTab !== 'pending' && (
+                <span className="ml-1.5 text-[10px] bg-[#f24545] text-white font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Search bar */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-3 flex items-center gap-3 flex-shrink-0">
           <div className="relative flex-1 max-w-xs">
             <svg viewBox="0 0 16 16" fill="none" stroke="#8a90a1" strokeWidth="1.4" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2">
@@ -98,79 +144,92 @@ const AdminTutorApplications = () => {
                 <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-12 h-12 mb-3 opacity-30">
                   <circle cx="24" cy="18" r="8"/><path d="M8 44a16 16 0 0132 0"/>
                 </svg>
-                <p className="text-[14px] font-medium">No pending applications</p>
-                <p className="text-[12px] mt-1">All tutor applications have been reviewed</p>
+                <p className="text-[14px] font-medium">No tutors found</p>
+                <p className="text-[12px] mt-1">Try a different filter or search term</p>
               </div>
             ) : (
               <div className="grid gap-3">
-                {filtered.map((tutor) => (
-                  <div
-                    key={tutor.id}
-                    onClick={() => setSelected(selected?.id === tutor.id ? null : tutor)}
-                    className={`bg-white rounded-2xl border p-5 cursor-pointer transition-all ${
-                      selected?.id === tutor.id
-                        ? 'border-[#0d9488] shadow-md'
-                        : 'border-[#ebebf0] hover:border-[#c8ccdd]'
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Avatar */}
-                      <div className="w-12 h-12 rounded-full bg-[#0d9488]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {tutor.photo_url ? (
-                          <img src={tutor.photo_url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                        ) : (
-                          <span className="text-[#0d9488] text-[15px] font-bold">
-                            {(tutor.name || '?').charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-[14px] font-bold text-[#0c0d12]">{tutor.name || '-'}</p>
-                          {tutor.location && (
-                            <span className="text-[11px] text-[#6b6f7d]">· {tutor.location}</span>
+                {filtered.map((tutor) => {
+                  const tutorStatus = tutor.status || 'pending';
+                  const badge = STATUS_BADGE[tutorStatus] || STATUS_BADGE.pending;
+                  const isPending = tutorStatus === 'pending';
+                  return (
+                    <div
+                      key={tutor.id}
+                      onClick={() => setSelected(selected?.id === tutor.id ? null : tutor)}
+                      className={`bg-white rounded-2xl border p-5 cursor-pointer transition-all ${
+                        selected?.id === tutor.id
+                          ? 'border-[#0d9488] shadow-md'
+                          : 'border-[#ebebf0] hover:border-[#c8ccdd]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Avatar */}
+                        <div className="w-12 h-12 rounded-full bg-[#0d9488]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {tutor.photo_url ? (
+                            <img src={tutor.photo_url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                          ) : (
+                            <span className="text-[#0d9488] text-[15px] font-bold">
+                              {(tutor.name || '?').charAt(0).toUpperCase()}
+                            </span>
                           )}
                         </div>
-                        <p className="text-[12px] text-[#6b6f7d] mt-0.5">{tutor.email}</p>
-                        {(tutor.subjects || []).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {tutor.subjects.slice(0, 4).map((s) => (
-                              <span key={s} className="text-[10px] bg-[#0d9488]/8 text-[#0d9488] font-medium px-2 py-0.5 rounded-full">{s}</span>
-                            ))}
-                            {tutor.subjects.length > 4 && (
-                              <span className="text-[10px] text-[#6b6f7d]">+{tutor.subjects.length - 4} more</span>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-[14px] font-bold text-[#0c0d12]">{tutor.name || '-'}</p>
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{ background: badge.bg, color: badge.color }}
+                            >
+                              {badge.label}
+                            </span>
+                            {tutor.location && (
+                              <span className="text-[11px] text-[#6b6f7d]">· {tutor.location}</span>
                             )}
                           </div>
-                        )}
-                        <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-[#6b6f7d]">
-                          {tutor.experience_years > 0 && <span>{tutor.experience_years} yr exp</span>}
-                          {tutor.lesson_type && <span>· {tutor.lesson_type}</span>}
-                          {tutor.hourly_price > 0 && <span>· {tutor.hourly_price.toLocaleString()} KZT/hr</span>}
+                          <p className="text-[12px] text-[#6b6f7d] mt-0.5">{tutor.email}</p>
+                          {(tutor.subjects || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {tutor.subjects.slice(0, 4).map((s) => (
+                                <span key={s} className="text-[10px] bg-[#0d9488]/8 text-[#0d9488] font-medium px-2 py-0.5 rounded-full">{s}</span>
+                              ))}
+                              {tutor.subjects.length > 4 && (
+                                <span className="text-[10px] text-[#6b6f7d]">+{tutor.subjects.length - 4} more</span>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-[#6b6f7d]">
+                            {tutor.experience_years > 0 && <span>{tutor.experience_years} yr exp</span>}
+                            {tutor.lesson_type && <span>· {tutor.lesson_type}</span>}
+                            {tutor.hourly_price > 0 && <span>· {tutor.hourly_price.toLocaleString()} KZT/hr</span>}
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleApprove(tutor)}
-                          disabled={acting === tutor.id}
-                          className="px-4 py-1.5 bg-[#22be70] text-white text-[12px] font-bold rounded-[8px] hover:opacity-90 disabled:opacity-40 transition-opacity"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(tutor)}
-                          disabled={acting === tutor.id}
-                          className="px-4 py-1.5 border border-[#f24545] text-[#f24545] text-[12px] font-bold rounded-[8px] hover:bg-[#f24545]/5 disabled:opacity-40 transition-colors"
-                        >
-                          Reject
-                        </button>
+                        {/* Action buttons — only for pending */}
+                        {isPending && (
+                          <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleApprove(tutor)}
+                              disabled={acting === tutor.id}
+                              className="px-4 py-1.5 bg-[#22be70] text-white text-[12px] font-bold rounded-[8px] hover:opacity-90 disabled:opacity-40 transition-opacity"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleReject(tutor)}
+                              disabled={acting === tutor.id}
+                              className="px-4 py-1.5 border border-[#f24545] text-[#f24545] text-[12px] font-bold rounded-[8px] hover:bg-[#f24545]/5 disabled:opacity-40 transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -202,6 +261,15 @@ const AdminTutorApplications = () => {
                 <p className="text-[12px] text-[#6b6f7d]">{selected.email}</p>
                 {selected.phone && <p className="text-[12px] text-[#6b6f7d]">{selected.phone}</p>}
                 {selected.location && <p className="text-[12px] text-[#6b6f7d] mt-0.5">{selected.location}</p>}
+                {(() => {
+                  const s = selected.status || 'pending';
+                  const badge = STATUS_BADGE[s] || STATUS_BADGE.pending;
+                  return (
+                    <span className="mt-2 text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: badge.bg, color: badge.color }}>
+                      {badge.label}
+                    </span>
+                  );
+                })()}
               </div>
 
               <DetailSection title="Bio">
@@ -244,23 +312,25 @@ const AdminTutorApplications = () => {
                 <Row label="Timezone">{selected.timezone || '-'}</Row>
               </DetailSection>
 
-              {/* Bottom actions */}
-              <div className="flex gap-3 mt-6 sticky bottom-0 bg-white pt-4 border-t border-[#ebebf0]">
-                <button
-                  onClick={() => handleApprove(selected)}
-                  disabled={acting === selected.id}
-                  className="flex-1 bg-[#22be70] text-white text-[13px] font-bold py-2.5 rounded-[10px] hover:opacity-90 disabled:opacity-40"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleReject(selected)}
-                  disabled={acting === selected.id}
-                  className="flex-1 border border-[#f24545] text-[#f24545] text-[13px] font-bold py-2.5 rounded-[10px] hover:bg-[#f24545]/5 disabled:opacity-40"
-                >
-                  Reject
-                </button>
-              </div>
+              {/* Bottom actions — only for pending */}
+              {(selected.status || 'pending') === 'pending' && (
+                <div className="flex gap-3 mt-6 sticky bottom-0 bg-white pt-4 border-t border-[#ebebf0]">
+                  <button
+                    onClick={() => handleApprove(selected)}
+                    disabled={acting === selected.id}
+                    className="flex-1 bg-[#22be70] text-white text-[13px] font-bold py-2.5 rounded-[10px] hover:opacity-90 disabled:opacity-40"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReject(selected)}
+                    disabled={acting === selected.id}
+                    className="flex-1 border border-[#f24545] text-[#f24545] text-[13px] font-bold py-2.5 rounded-[10px] hover:bg-[#f24545]/5 disabled:opacity-40"
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

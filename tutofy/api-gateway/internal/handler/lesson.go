@@ -10,7 +10,6 @@ import (
 	"lesson-service/proto/lessonpb"
 	"notification-service/proto/notificationpb"
 	"payment-service/proto/paymentpb"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -233,19 +232,35 @@ func (h *LessonHandler) PayForLesson(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Amount float64 `json:"amount"`
 	}
-	if err := decode(r, &body); err != nil {
-		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
-		return
+	// Ignore decode error — body is optional; amount may come from lesson's stored price.
+	_ = decode(r, &body)
+
+	// If amount not supplied by client, look it up from the lesson itself.
+	amount := body.Amount
+	if amount <= 0 {
+		lessonResp, err := h.client.GetLesson(tokenCtx(r), &lessonpb.GetLessonRequest{LessonId: lessonID})
+		if err != nil {
+			errResp(w, err)
+			return
+		}
+		amount = lessonResp.GetPrice()
 	}
-	if body.Amount <= 0 {
-		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "amount must be greater than 0"})
+
+	// Free lesson: skip payment, just activate.
+	if amount <= 0 {
+		lesson, err := h.client.ActivateLesson(tokenCtx(r), &lessonpb.ActivateLessonRequest{LessonId: lessonID})
+		if err != nil {
+			errResp(w, err)
+			return
+		}
+		jsonResp(w, http.StatusOK, lesson)
 		return
 	}
 
 	// Create pending payment.
 	payResp, err := h.paymentClient.CreateLessonPayment(tokenCtx(r), &paymentpb.CreateLessonPaymentRequest{
 		LessonId: lessonID,
-		Amount:   body.Amount,
+		Amount:   amount,
 	})
 	if err != nil {
 		errResp(w, err)

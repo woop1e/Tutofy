@@ -40,6 +40,8 @@ import TutorPublicProfile from '../pages/tutor/TutorPublicProfile';
 import PaymentPage from '../pages/student/PaymentPage';
 import QuizAttempt from '../pages/student/QuizAttempt';
 import Certificates from '../pages/student/Certificates';
+import StudentMarketplace from '../pages/student/StudentMarketplace';
+import StudentTutorProfile from '../pages/student/StudentTutorProfile';
 
 const s = (el) => <ProtectedRoute role="student">{el}</ProtectedRoute>;
 const t = (el) => <ProtectedRoute role="tutor">{el}</ProtectedRoute>;
@@ -62,7 +64,9 @@ const router = createBrowserRouter([
   { path: '/student/courses/:id/lessons/:lessonId',  element: s(<LessonView />) },
   { path: '/student/courses/:id/quizzes/:quizId',    element: s(<QuizAttempt />) },
   { path: '/student/assignments',                    element: s(<Assignments />) },
-  { path: '/student/schedule',                       element: s(<StudentDashboard />) },
+  { path: '/student/schedule',                       element: s(<Schedule />) },
+  { path: '/student/marketplace',                    element: s(<StudentMarketplace />) },
+  { path: '/student/tutors/:id',                     element: s(<StudentTutorProfile />) },
   { path: '/student/messages',                       element: s(<Messages />) },
   { path: '/student/progress',                       element: s(<Progress />) },
   { path: '/student/certificates',                   element: s(<Certificates />) },

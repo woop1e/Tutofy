@@ -1,8 +1,9 @@
 ﻿﻿import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
 
@@ -55,6 +56,7 @@ const TabBtn = ({ active, onClick, children, count }) => (
 
 const MyCourses = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userId = user?.user_id;
 
   const [enrolledCourses, setEnrolledCourses] = useState([]);
@@ -171,10 +173,13 @@ const MyCourses = () => {
             <p className="text-[#0c0d12] text-[17px] font-bold leading-tight">Learning</p>
             <p className="text-[#6b6f7d] text-[12px]">Manage your courses and private lessons</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
-            <span className="text-[#0d9488] text-[12px] font-bold">
-              {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
-            </span>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">
+                {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
+              </span>
+            </div>
           </div>
         </div>
 

@@ -1,7 +1,9 @@
 ﻿﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { coursesAPI } from '../../api/courses';
 import { assignmentsAPI } from '../../api/assignments';
 import { submissionsAPI } from '../../api/submissions';
@@ -24,6 +26,7 @@ const COLORS = ['#0d9488', '#935bf5', '#00beb7', '#ff8032', '#22c55e'];
 
 const Assignments = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userId = user?.user_id;
 
   const [assignments, setAssignments]   = useState([]);
@@ -163,10 +166,13 @@ const Assignments = () => {
             <p className="text-[#0c0d12] text-[17px] font-bold leading-tight">Homework</p>
             <p className="text-[#6b6f7d] text-[12px]">Assignments from your tutors</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
-            <span className="text-[#0d9488] text-[12px] font-bold">
-              {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
-            </span>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">
+                {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
+              </span>
+            </div>
           </div>
         </div>
 

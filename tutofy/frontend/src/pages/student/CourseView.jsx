@@ -3,12 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { lessonsAPI } from '../../api/lessons';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { assignmentsAPI } from '../../api/assignments';
 import { coursesAPI } from '../../api/courses';
 import { submissionsAPI } from '../../api/submissions';
 import { mediaAPI } from '../../api/media';
 import { quizzesAPI } from '../../api/quizzes';
 import { reviewsAPI } from '../../api/reviews';
+import { progressAPI } from '../../api/progress';
+import { certificatesAPI } from '../../api/certificates';
 
 // â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -140,6 +143,11 @@ const CourseView = () => {
   const [uploadProgress, setUploadProgress] = useState({});
   const [submitError,    setSubmitError]    = useState({});
 
+  const [completionPct,    setCompletionPct]    = useState(0);
+  const [certificate,      setCertificate]      = useState(null);
+  const [certIssuing,      setCertIssuing]      = useState(false);
+  const [certError,        setCertError]        = useState('');
+
   const [reviews,          setReviews]          = useState([]);
   const [courseRating,     setCourseRating]     = useState(null);
   const [reviewText,       setReviewText]       = useState('');
@@ -200,6 +208,31 @@ const CourseView = () => {
       else setReviewError('Could not submit review. Please try again.');
     } finally {
       setReviewSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!courseId || !user?.user_id) return;
+    progressAPI.getStudentCourseProgress(user.user_id, courseId)
+      .then(res => setCompletionPct(res?.completion_pct ?? res?.completionPct ?? 0))
+      .catch(() => {});
+    certificatesAPI.getCertificate(user.user_id, courseId)
+      .then(res => { if (res?.id) setCertificate(res); })
+      .catch(() => {});
+  }, [courseId, user?.user_id]);
+
+  const handleGetCertificate = async () => {
+    setCertIssuing(true);
+    setCertError('');
+    try {
+      const res = await certificatesAPI.issueCertificate(user.user_id, courseId);
+      setCertificate(res);
+    } catch (e) {
+      const msg = e?.response?.data?.error || e?.message || '';
+      if (msg.toLowerCase().includes('not complet')) setCertError('Complete all lessons first.');
+      else setCertError('Could not issue certificate. Try again later.');
+    } finally {
+      setCertIssuing(false);
     }
   };
 
@@ -309,7 +342,8 @@ const CourseView = () => {
             <div className="w-px h-4 bg-[#e8eaef] flex-shrink-0" />
             <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{course?.title || 'Course'}</p>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <NotificationBell />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">{initials}</span>
             </div>
@@ -364,6 +398,66 @@ const CourseView = () => {
               )}
             </div>
           </div>
+
+          {/* Certificate banner — shown when course is 100% complete */}
+          {completionPct >= 100 && (
+            <div className={`rounded-[20px] overflow-hidden ${certificate ? 'bg-gradient-to-br from-[#0d9488] to-[#059669]' : 'bg-gradient-to-br from-[#0d9488] to-[#935bf5]'}`}>
+              {/* Decorative rings */}
+              <div className="relative px-6 py-5 flex items-center gap-4">
+                <div className="absolute w-[200px] h-[200px] rounded-full border border-white/10 top-[-80px] right-[-40px] pointer-events-none" />
+                <div className="absolute w-[140px] h-[140px] rounded-full border border-white/10 bottom-[-60px] right-[60px] pointer-events-none" />
+
+                {/* Medal */}
+                <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">
+                  <svg viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+                    <circle cx="16" cy="20" r="10" fill="rgba(255,255,255,0.25)" stroke="white" strokeWidth="1.5"/>
+                    <path d="M12 8l4-6 4 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 8h12" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M13 20l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                  {certificate ? (
+                    <>
+                      <p className="text-white text-[15px] font-bold leading-tight">Certificate Earned!</p>
+                      <p className="text-white/70 text-[12px] mt-0.5">
+                        Issued {new Date(certificate.issued_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        {' '}· #{(certificate.id || '').slice(-8).toUpperCase()}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-white text-[15px] font-bold leading-tight">Course Complete — 100%</p>
+                      <p className="text-white/70 text-[12px] mt-0.5">You've finished all lessons. Claim your certificate!</p>
+                    </>
+                  )}
+                  {certError && <p className="text-red-200 text-[11px] mt-1">{certError}</p>}
+                </div>
+
+                {/* Action */}
+                {certificate ? (
+                  <Link
+                    to="/student/certificates"
+                    className="flex-shrink-0 bg-white text-[#0d9488] text-[13px] font-bold px-4 py-2 rounded-[10px] hover:bg-white/90 transition-colors whitespace-nowrap"
+                  >
+                    View Certificate
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleGetCertificate}
+                    disabled={certIssuing}
+                    className="flex-shrink-0 bg-white text-[#0d9488] text-[13px] font-bold px-4 py-2 rounded-[10px] hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors whitespace-nowrap flex items-center gap-2"
+                  >
+                    {certIssuing ? (
+                      <><div className="w-3.5 h-3.5 border-2 border-[#0d9488] border-t-transparent rounded-full animate-spin" />Issuing...</>
+                    ) : 'Get Certificate'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Empty state */}
           {weeks.length === 0 && !loading && (

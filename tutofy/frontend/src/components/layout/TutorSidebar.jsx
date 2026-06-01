@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import NotificationBell from '../ui/NotificationBell';
 
 const Icon = ({ name, size = 16, active }) => {
   const s = active ? 'var(--accent)' : 'var(--muted)';
@@ -62,12 +61,11 @@ const TutorSidebar = () => {
   return (
     <div className="app-sidebar">
       {/* Logo */}
-      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center' }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
           <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%' }} />
           <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
         </Link>
-        <NotificationBell dark={false} />
       </div>
 
       {/* Nav */}

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"assignment-service/proto/assignmentpb"
@@ -95,10 +96,16 @@ func (s *gradingService) SubmitGrade(ctx context.Context, callerRole, assignment
 		md, _ := metadata.FromIncomingContext(ctx)
 		notifCtx := metadata.NewOutgoingContext(context.Background(), md)
 		go func() {
-			_, err := s.notificationClient.NotifyGrade(notifCtx, &notificationpb.NotifyGradeRequest{
-				AssignmentId: assignmentID,
-				StudentId:    studentID,
-				Grade:        grade,
+			title := "your assignment"
+			if s.assignmentClient != nil {
+				if ar, err2 := s.assignmentClient.GetAssignment(notifCtx, &assignmentpb.GetAssignmentRequest{AssignmentId: assignmentID}); err2 == nil && ar.GetTitle() != "" {
+					title = "\"" + ar.GetTitle() + "\""
+				}
+			}
+			_, err := s.notificationClient.NotifyUser(notifCtx, &notificationpb.NotifyUserRequest{
+				UserId:  studentID,
+				Type:    1, // NOTIFICATION_TYPE_GRADE
+				Message: fmt.Sprintf("Your assignment %s has been graded: %.2f", title, grade),
 			})
 			if err != nil {
 				log.Printf("warn: grade notification failed for student %s: %v", studentID, err)

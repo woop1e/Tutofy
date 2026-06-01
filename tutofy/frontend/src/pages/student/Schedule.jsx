@@ -4,6 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { coursesAPI } from '../../api/courses';
+import { lessonsAPI } from '../../api/lessons';
+import { usersAPI } from '../../api/users';
+import NotificationBell from '../../components/ui/NotificationBell';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const ACCENT_COLORS = [
@@ -30,9 +33,12 @@ const Schedule = () => {
   const { isAuthenticated, role, user } = useAuth();
   const navigate = useNavigate();
 
-  const [enrollments, setEnrollments] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [enrollments, setEnrollments]       = useState([]);
+  const [courses, setCourses]               = useState([]);
+  const [myLessons, setMyLessons]           = useState([]);
+  const [usersMap, setUsersMap]             = useState({});
+  const [tutorProfileMap, setTutorProfileMap] = useState({});
+  const [loading, setLoading]               = useState(true);
   const [view, setView] = useState('Week');
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -48,9 +54,25 @@ const Schedule = () => {
     Promise.all([
       enrollmentsAPI.getUserEnrollments(userId).catch(() => ({})),
       coursesAPI.getAllCourses().catch(() => ({})),
-    ]).then(([enrRes, coursesRes]) => {
+      lessonsAPI.getStudentLessons(userId).catch(() => ({})),
+      usersAPI.getAllUsers().catch(() => ({})),
+    ]).then(async ([enrRes, coursesRes, lessonsRes, usersRes]) => {
       setEnrollments(enrRes?.enrollments || []);
       setCourses(coursesRes?.courses   || []);
+      const lessons = lessonsRes?.lessons || (Array.isArray(lessonsRes) ? lessonsRes : []);
+      setMyLessons(lessons);
+      const uMap = {};
+      (usersRes?.users || []).forEach(u => { uMap[u.id] = u; });
+      setUsersMap(uMap);
+
+      // Fetch tutor profiles for individual lessons so we have hourly_price
+      const tutorIds = [...new Set(lessons.map(l => l.tutor_id).filter(Boolean))];
+      const profiles = await Promise.all(
+        tutorIds.map(id => usersAPI.getTutorProfile(id).catch(() => null))
+      );
+      const tpMap = {};
+      tutorIds.forEach((id, i) => { if (profiles[i]) tpMap[id] = profiles[i]; });
+      setTutorProfileMap(tpMap);
     }).finally(() => setLoading(false));
   }, [user]);
 
@@ -62,11 +84,15 @@ const Schedule = () => {
 
   const sessions = enrollments.map((enr, i) => {
     const course = courses.find((c) => c.id === enr.course_id) || {};
+    const tutorName = usersMap[course.tutor_id]?.name || course.tutor_name || '';
+    const tutorInitials = tutorName
+      ? tutorName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+      : 'TU';
     return {
       id: enr.id || i,
       course_id: enr.course_id,
-      tutorName: course.tutor_name || 'Tutor',
-      tutorInitials: (course.tutor_name || 'TU').slice(0, 2).toUpperCase(),
+      tutorName,
+      tutorInitials,
       courseName: course.title || `Course ${i + 1}`,
       topic: course.description || 'Session',
       colorIdx: i % ACCENT_COLORS.length,
@@ -84,7 +110,8 @@ const Schedule = () => {
             <p className="text-dark text-[20px] font-bold">Schedule</p>
             <p className="text-muted text-[13px]">Manage your upcoming sessions</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <NotificationBell />
             <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-primary text-[12px] font-semibold">
                 {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
@@ -154,6 +181,113 @@ const Schedule = () => {
               );
             })}
           </div>
+
+          {/* Individual Lessons */}
+          {!loading && myLessons.length > 0 && (
+            <div className="mb-5">
+              <h2 className="text-dark text-[16px] font-bold mb-3">Individual Lessons</h2>
+              <div className="space-y-3">
+                {myLessons.map((lesson) => {
+                  const start = lesson.scheduled_at ? new Date(
+                    typeof lesson.scheduled_at === 'object' && lesson.scheduled_at.seconds
+                      ? lesson.scheduled_at.seconds * 1000
+                      : lesson.scheduled_at
+                  ) : null;
+                  const end = start ? new Date(start.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
+                  const statusRaw = (lesson.status || '').toString().toLowerCase();
+                  const statusNum = parseInt(lesson.status, 10);
+                  const isPending       = statusRaw.includes('pending')  || statusNum === 4;
+                  const isAwaitPay      = statusRaw.includes('awaiting') || statusNum === 5;
+                  const isPlanned       = statusRaw.includes('planned')  || statusNum === 1;
+                  const isExpired       = statusNum === 6;
+
+                  // Compute payment deadline client-side: scheduledAt − 3 hours
+                  const payDeadline = start ? new Date(start.getTime() - 3 * 60 * 60 * 1000) : null;
+                  const msLeft = payDeadline ? payDeadline.getTime() - Date.now() : null;
+                  const hoursLeft = msLeft !== null ? Math.floor(msLeft / 3600000) : null;
+                  const minsLeft  = msLeft !== null ? Math.floor((msLeft % 3600000) / 60000) : null;
+                  const deadlineCountdown = (isAwaitPay && msLeft !== null && msLeft > 0)
+                    ? (hoursLeft > 0 ? `Pay within ${hoursLeft}h ${minsLeft}m` : `Pay within ${minsLeft}m`)
+                    : null;
+
+                  // Join button: only for confirmed (status 1) + video_link + starts within 15 min
+                  const nowMs = Date.now();
+                  const joinWindowStart = start ? start.getTime() - 15 * 60 * 1000 : null;
+                  const canJoin = isPlanned && !!lesson.video_link && joinWindowStart !== null
+                    && nowMs >= joinWindowStart && end && nowMs <= end.getTime();
+
+                  const statusLabel = isPending  ? 'Awaiting confirmation'
+                    : isAwaitPay ? 'Payment required'
+                    : isExpired  ? 'Payment expired'
+                    : isPlanned  ? 'Confirmed'
+                    : lesson.status_name || lesson.status || 'Booked';
+
+                  const borderColor = isExpired ? '#ef4444' : isAwaitPay ? '#f59e0b' : '#0d9488';
+                  const iconColor   = borderColor;
+                  const statusColor = isPending  ? 'bg-[#ff8032]/10 text-[#ff8032]'
+                    : isAwaitPay ? 'bg-[#f59e0b]/10 text-[#92400e]'
+                    : isExpired  ? 'bg-[#ef4444]/10 text-[#ef4444]'
+                    : 'bg-[#22be70]/10 text-[#22be70]';
+
+                  return (
+                    <div key={lesson.id} className="bg-white rounded-[16px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.07)] p-5 flex items-center gap-4 border-l-4" style={{ borderColor }}>
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: iconColor + '20' }}>
+                        <svg viewBox="0 0 20 20" fill="none" stroke={iconColor} strokeWidth="1.5" className="w-6 h-6">
+                          <rect x="1" y="4" width="10" height="8" rx="1.5"/><path d="M11 7l4-2v6l-4-2"/>
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-dark text-[15px] font-semibold truncate">{lesson.title || 'Individual lesson'}</p>
+                        {start && (
+                          <p className="text-muted text-[13px] mt-0.5">
+                            {start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })},&nbsp;
+                            {start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            {end && ` – ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <span className={`inline-block text-[11px] font-semibold px-3 py-1 rounded-full ${statusColor}`}>
+                            {statusLabel}
+                          </span>
+                          {deadlineCountdown && (
+                            <span className="inline-block text-[11px] font-semibold px-3 py-1 rounded-full bg-[#f59e0b]/10 text-[#92400e]">
+                              {deadlineCountdown}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        {isExpired ? (
+                          <span className="text-[13px] font-semibold px-5 py-2.5 rounded-[10px] bg-[#ef4444]/10 text-[#ef4444]">
+                            Expired
+                          </span>
+                        ) : canJoin ? (
+                          <a
+                            href={lesson.video_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-[#22be70] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
+                          >
+                            Join
+                          </a>
+                        ) : isAwaitPay ? (
+                          <Link
+                            to={(() => {
+                              const lessonPrice = lesson.price || tutorProfileMap[lesson.tutor_id]?.hourly_price || 0;
+                              return `/payment?lesson_mode=true&lesson_id=${lesson.id}&amount=${lessonPrice}&title=${encodeURIComponent(lesson.title || '')}`;
+                            })()}
+                            className="bg-[#f59e0b] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
+                          >
+                            Pay
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Sessions List */}
           {loading ? (

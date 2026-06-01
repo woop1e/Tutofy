@@ -93,6 +93,7 @@ type Lesson struct {
 	VideoLink       string                 `protobuf:"bytes,7,opt,name=video_link,json=videoLink,proto3" json:"video_link,omitempty"`
 	Status          LessonStatus           `protobuf:"varint,8,opt,name=status,proto3,enum=lesson.LessonStatus" json:"status,omitempty"`
 	StudentId       string                 `protobuf:"bytes,9,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
+	Price           float64                `protobuf:"fixed64,10,opt,name=price,proto3" json:"price,omitempty"`
 }
 
 func (x *Lesson) Reset() {
@@ -181,6 +182,13 @@ func (x *Lesson) GetStudentId() string {
 		return x.StudentId
 	}
 	return ""
+}
+
+func (x *Lesson) GetPrice() float64 {
+	if x != nil {
+		return x.Price
+	}
+	return 0
 }
 
 func (x *Lesson) GetStatus() LessonStatus {

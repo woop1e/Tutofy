@@ -57,7 +57,7 @@ func (s *messageService) SendMessage(ctx context.Context, senderID, receiverID, 
 		go s.notificationClient.NotifyUser(notifCtx, &notificationpb.NotifyUserRequest{
 			UserId:  receiverID,
 			Type:    4, // NOTIFICATION_TYPE_NEW_MESSAGE
-			Message: fmt.Sprintf("New message from %s", senderID),
+			Message: fmt.Sprintf("New message: %.80s", content),
 		})
 	}
 

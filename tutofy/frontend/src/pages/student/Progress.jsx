@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { coursesAPI } from '../../api/courses';
 import { progressAPI } from '../../api/progress';
 import { lessonsAPI } from '../../api/lessons';
@@ -123,10 +124,13 @@ const Progress = () => {
             <p className="text-[#0c0d12] text-[17px] font-bold">My Progress</p>
             <p className="text-[#6b6f7d] text-[12px]">Track your overall learning journey</p>
           </div>
-          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
-            <span className="text-[#0d9488] text-[12px] font-bold">
-              {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
-            </span>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">
+                {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
+              </span>
+            </div>
           </div>
         </div>
 

@@ -50,11 +50,7 @@ const Login = () => {
       }}>
         {/* Logo */}
         <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <span style={{
-            width: 32, height: 32, borderRadius: 9, background: 'var(--accent)',
-            color: '#fff', fontSize: 15, fontWeight: 800,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>T</span>
+          <img src="/logo.svg" alt="tutofy" style={{ width: 32, height: 32, borderRadius: '50%' }} />
           <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 17 }}>tutofy</span>
         </Link>
 

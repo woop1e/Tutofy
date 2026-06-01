@@ -41,6 +41,11 @@ export const usersAPI = {
     return response.data;
   },
 
+  getAllTutors: async (status = 'all') => {
+    const response = await apiClient.get('/admin/tutors', { params: { status } });
+    return response.data;
+  },
+
   approveTutor: async (id) => {
     const response = await apiClient.patch(`/users/${id}/approve`);
     return response.data;

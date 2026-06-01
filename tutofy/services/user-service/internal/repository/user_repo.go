@@ -18,11 +18,12 @@ type UserRepository interface {
 	GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error)
-	UpdateTutorProfile(ctx context.Context, tutorID string, p model.TutorProfile) (*model.TutorProfile, error)
+	UpdateTutorProfile(ctx context.Context, tutorID string, p model.TutorProfile, resetStatus bool) (*model.TutorProfile, error)
 	SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error)
 	ApproveTutor(ctx context.Context, tutorID string) error
 	RejectTutor(ctx context.Context, tutorID string) error
 	GetPendingTutors(ctx context.Context) ([]*model.TutorProfile, error)
+	GetTutorsByStatus(ctx context.Context, statusFilter string) ([]*model.TutorProfile, error)
 }
 
 type postgresRepo struct {
@@ -131,14 +132,18 @@ func (r *postgresRepo) GetTutorProfile(ctx context.Context, tutorID string) (*mo
 	return p, err
 }
 
-func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID string, in model.TutorProfile) (*model.TutorProfile, error) {
+func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID string, in model.TutorProfile, resetStatus bool) (*model.TutorProfile, error) {
+	statusClause := ""
+	if resetStatus {
+		statusClause = ", status = 'pending'"
+	}
 	row := r.db.QueryRowContext(ctx,
 		`UPDATE users
 		 SET bio = $1, age = $2, location = $3, photo_url = $4, subjects = $5, experience_years = $6, certificates = $7,
 		     phone = $8, teaching_language = $9, student_level = $10, lesson_type = $11,
 		     hourly_price = $12, education = $13, available_days = $14,
 		     available_time_start = $15, available_time_end = $16, timezone = $17,
-		     updated_at = NOW()
+		     updated_at = NOW()`+statusClause+`
 		 WHERE id = $18 AND role = 'tutor' AND deleted_at IS NULL
 		 RETURNING `+tutorSelectCols,
 		in.Bio, in.Age, in.Location, in.PhotoURL, in.Subjects, in.ExperienceYears, in.Certificates,
@@ -203,6 +208,36 @@ func (r *postgresRepo) GetPendingTutors(ctx context.Context) ([]*model.TutorProf
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT `+tutorSelectCols+` FROM users WHERE role = 'tutor' AND deleted_at IS NULL AND COALESCE(status,'pending') = 'pending' ORDER BY name`,
 	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []*model.TutorProfile
+	for rows.Next() {
+		p, err := scanTutorProfile(rows)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, rows.Err()
+}
+
+func (r *postgresRepo) GetTutorsByStatus(ctx context.Context, statusFilter string) ([]*model.TutorProfile, error) {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	if statusFilter == "" || statusFilter == "all" {
+		rows, err = r.db.QueryContext(ctx,
+			`SELECT `+tutorSelectCols+` FROM users WHERE role = 'tutor' AND deleted_at IS NULL ORDER BY name`,
+		)
+	} else {
+		rows, err = r.db.QueryContext(ctx,
+			`SELECT `+tutorSelectCols+` FROM users WHERE role = 'tutor' AND deleted_at IS NULL AND COALESCE(status,'pending') = $1 ORDER BY name`,
+			statusFilter,
+		)
+	}
 	if err != nil {
 		return nil, err
 	}

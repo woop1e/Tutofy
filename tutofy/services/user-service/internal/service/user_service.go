@@ -26,6 +26,7 @@ type UserService interface {
 	ApproveTutor(ctx context.Context, callerRole, tutorID string) error
 	RejectTutor(ctx context.Context, callerRole, tutorID string) error
 	GetPendingTutors(ctx context.Context, callerRole string) ([]*model.TutorProfile, error)
+	GetTutorsByStatus(ctx context.Context, callerRole, statusFilter string) ([]*model.TutorProfile, error)
 }
 
 type userService struct {
@@ -102,7 +103,7 @@ func (s *userService) UpdateTutorProfile(ctx context.Context, callerID, callerRo
 	in.Certificates = string(certsJSON)
 	in.AvailableDays = string(daysJSON)
 
-	p, err := s.repo.UpdateTutorProfile(ctx, tutorID, in)
+	p, err := s.repo.UpdateTutorProfile(ctx, tutorID, in, callerRole != "admin")
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "tutor:"+tutorID).Err()
 	}
@@ -164,6 +165,13 @@ func (s *userService) GetPendingTutors(ctx context.Context, callerRole string) (
 		return nil, ErrForbidden
 	}
 	return s.repo.GetPendingTutors(ctx)
+}
+
+func (s *userService) GetTutorsByStatus(ctx context.Context, callerRole, statusFilter string) ([]*model.TutorProfile, error) {
+	if callerRole != "admin" {
+		return nil, ErrForbidden
+	}
+	return s.repo.GetTutorsByStatus(ctx, statusFilter)
 }
 
 // mustParseStringSlice parses a JSON string slice or returns the raw value as a slice if it's already parsed.

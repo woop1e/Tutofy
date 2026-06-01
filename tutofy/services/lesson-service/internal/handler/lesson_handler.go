@@ -137,6 +137,7 @@ func toProto(l *model.Lesson) *lessonpb.Lesson {
 		DurationMinutes: l.DurationMinutes,
 		VideoLink:       l.VideoLink,
 		Status:          modelStatusToProto(l.Status),
+		Price:           l.Price,
 	}
 }
 
@@ -169,6 +170,8 @@ func modelStatusToProto(s model.LessonStatus) lessonpb.LessonStatus {
 		return lessonpb.LessonStatus_LESSON_STATUS_PENDING_CONFIRMATION
 	case model.LessonStatusAwaitingPayment:
 		return lessonpb.LessonStatus_LESSON_STATUS_AWAITING_PAYMENT
+	case model.LessonStatusPaymentExpired:
+		return lessonpb.LessonStatus(6) // PaymentExpired — not in proto enum, passed as raw int
 	default:
 		return lessonpb.LessonStatus_LESSON_STATUS_UNSPECIFIED
 	}
@@ -180,7 +183,7 @@ func mapError(err error) error {
 		return status.Error(codes.PermissionDenied, err.Error())
 	case errors.Is(err, service.ErrNotEnrolled):
 		return status.Error(codes.PermissionDenied, err.Error())
-	case errors.Is(err, service.ErrWrongStatus):
+	case errors.Is(err, service.ErrWrongStatus), errors.Is(err, service.ErrPaymentExpired):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return status.Error(codes.NotFound, "lesson not found")
