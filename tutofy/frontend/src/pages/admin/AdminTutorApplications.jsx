@@ -292,15 +292,93 @@ const AdminTutorApplications = () => {
                 <p className="text-[12px] text-[#383a44] leading-relaxed">{selected.education || '-'}</p>
               </DetailSection>
 
-              {(selected.certificates || []).length > 0 && (
-                <DetailSection title="Certificates">
-                  <div className="flex flex-wrap gap-1">
-                    {selected.certificates.map((c) => (
-                      <span key={c} className="text-[10px] bg-[#935bf5]/8 text-[#935bf5] font-medium px-2 py-0.5 rounded-full">{c}</span>
-                    ))}
-                  </div>
-                </DetailSection>
-              )}
+              {(() => {
+                const all = selected.certificates || [];
+                const textCerts = all.filter(c => !c.startsWith('http') && !c.startsWith('idoc:'));
+                const fileCerts = all.filter(c => c.startsWith('http'));
+                const idDocs    = all.filter(c => c.startsWith('idoc:')).map(c => {
+                  const rest = c.slice(5);
+                  const sep  = rest.indexOf(':');
+                  const type = rest.slice(0, sep);
+                  const url  = rest.slice(sep + 1);
+                  const labels = { passport: 'Passport', id_card: 'National ID Card', driver_license: "Driver's License", diploma: 'Diploma / Degree', other: 'Other Document' };
+                  return { label: labels[type] || type, url };
+                });
+                const hasAnything = textCerts.length > 0 || fileCerts.length > 0 || idDocs.length > 0;
+                if (!hasAnything) return null;
+                return (
+                  <>
+                    {textCerts.length > 0 && (
+                      <DetailSection title="Certificates">
+                        <div className="flex flex-wrap gap-1">
+                          {textCerts.map(c => (
+                            <span key={c} className="text-[10px] bg-[#935bf5]/8 text-[#935bf5] font-medium px-2 py-0.5 rounded-full">{c}</span>
+                          ))}
+                        </div>
+                      </DetailSection>
+                    )}
+                    {fileCerts.length > 0 && (
+                      <DetailSection title="Certificate Files">
+                        <div className="flex flex-col gap-2">
+                          {fileCerts.map((url, i) => {
+                            const name = decodeURIComponent(url.split('/').pop().split('?')[0]);
+                            const isImg = /\.(png|jpe?g|webp|gif)$/i.test(name);
+                            return (
+                              <div key={i} className="border border-[#ebebf0] rounded-[10px] overflow-hidden">
+                                {isImg && (
+                                  <img src={url} alt={name} className="w-full max-h-48 object-contain bg-[#f8f8fb]" onError={e => { e.target.style.display = 'none'; }} />
+                                )}
+                                <a href={url} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-3 py-2 text-[11px] text-[#935bf5] font-medium hover:bg-[#f8f8fb] transition-colors">
+                                  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                    <path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6L9 2z"/>
+                                    <path d="M9 2v4h4"/>
+                                  </svg>
+                                  {name || `Certificate ${i + 1}`}
+                                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.5" className="ml-auto opacity-50">
+                                    <path d="M3 8h10M9 4l4 4-4 4"/>
+                                  </svg>
+                                </a>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </DetailSection>
+                    )}
+                    {idDocs.length > 0 && (
+                      <DetailSection title="Identity Documents">
+                        <div className="flex flex-col gap-2">
+                          {idDocs.map((doc, i) => {
+                            const name = decodeURIComponent(doc.url.split('/').pop().split('?')[0]);
+                            const isImg = /\.(png|jpe?g|webp|gif)$/i.test(name);
+                            return (
+                              <div key={i} className="border border-[#ebebf0] rounded-[10px] overflow-hidden">
+                                {isImg && (
+                                  <img src={doc.url} alt={doc.label} className="w-full max-h-48 object-contain bg-[#f8f8fb]" onError={e => { e.target.style.display = 'none'; }} />
+                                )}
+                                <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-3 py-2 hover:bg-[#f8f8fb] transition-colors">
+                                  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="#22be70" strokeWidth="1.5">
+                                    <rect x="2" y="2" width="12" height="12" rx="2"/>
+                                    <path d="M5 8h6M5 5.5h6M5 10.5h4"/>
+                                  </svg>
+                                  <div>
+                                    <p className="text-[11px] font-semibold text-[#383a44]">{doc.label}</p>
+                                    <p className="text-[10px] text-[#888] truncate max-w-[180px]">{name}</p>
+                                  </div>
+                                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.5" className="ml-auto opacity-50">
+                                    <path d="M3 8h10M9 4l4 4-4 4"/>
+                                  </svg>
+                                </a>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </DetailSection>
+                    )}
+                  </>
+                );
+              })()}
 
               <DetailSection title="Availability">
                 <Row label="Days">{(selected.available_days || []).join(', ') || '-'}</Row>

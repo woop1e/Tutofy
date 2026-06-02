@@ -752,7 +752,7 @@ const TutorProfile = () => {
 
               {bookingOk && (
                 <div className="bg-[#edfbf4] text-[#22be70] rounded-[10px] px-4 py-3 text-[13px] mb-3 font-medium">
-                  Lesson booked! Check your dashboard.
+                  Lesson booked! Check your <Link to="/student/dashboard" style={{ color: '#22be70', textDecoration: 'underline' }}>dashboard</Link>.
                 </div>
               )}
               {bookingError && (

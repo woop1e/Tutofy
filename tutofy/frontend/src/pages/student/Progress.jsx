@@ -203,7 +203,7 @@ const Progress = () => {
                   <div className="col-span-2 bg-white rounded-[16px] border border-[#f0f0f5] p-5">
                     <div className="flex items-center justify-between mb-5">
                       <h2 className="text-[#0c0d12] text-[15px] font-semibold">Course breakdown</h2>
-                      <Link to="/student/courses" className="text-[#0d9488] text-[12px] font-medium hover:underline">View courses ←'</Link>
+                      <Link to="/student/courses" className="text-[#0d9488] text-[12px] font-medium hover:underline">View courses →</Link>
                     </div>
                     <div className="space-y-4">
                       {enriched.map(enr => {
@@ -286,7 +286,7 @@ const Progress = () => {
                 <div className="bg-white rounded-[16px] border border-[#f0f0f5] p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-[#0c0d12] text-[15px] font-semibold">Private lessons</h2>
-                    <Link to="/student/courses" className="text-[#0d9488] text-[12px] font-medium hover:underline">View all ←'</Link>
+                    <Link to="/student/courses" className="text-[#0d9488] text-[12px] font-medium hover:underline">View all →</Link>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="px-4 py-3 rounded-[10px] border border-[#f0f0f5] bg-[var(--bg)]">

@@ -15,6 +15,7 @@ import (
 var publicMethods = map[string]bool{
 	"/user.UserService/SearchTutors":    true,
 	"/user.UserService/GetTutorProfile": true,
+	"/user.UserService/GetUser":         true,
 }
 
 func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterceptor {

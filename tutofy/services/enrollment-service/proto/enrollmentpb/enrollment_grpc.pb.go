@@ -153,6 +153,18 @@ func (x *EnrollmentRequestActionRequest) String() string  { return x.RequestId }
 func (x *EnrollmentRequestActionRequest) ProtoMessage()  {}
 func (x *EnrollmentRequestActionRequest) GetRequestId() string { return x.RequestId }
 
+type CountResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Count int64 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+}
+
+func (x *CountResponse) Reset()        { *x = CountResponse{} }
+func (x *CountResponse) String() string { return "" }
+func (x *CountResponse) ProtoMessage() {}
+func (x *CountResponse) GetCount() int64 { return x.Count }
+
 // ── Server interface ──────────────────────────────────────────────────────────
 
 type EnrollmentServiceServer interface {
@@ -164,6 +176,7 @@ type EnrollmentServiceServer interface {
 	GetCourseEnrollmentRequests(context.Context, *CourseRequest) (*EnrollmentRequestsList, error)
 	ApproveEnrollmentRequest(context.Context, *EnrollmentRequestActionRequest) (*Empty, error)
 	RejectEnrollmentRequest(context.Context, *EnrollmentRequestActionRequest) (*Empty, error)
+	CountEnrollments(context.Context, *CourseRequest) (*CountResponse, error)
 	mustEmbedUnimplementedEnrollmentServiceServer()
 }
 
@@ -193,6 +206,9 @@ func (UnimplementedEnrollmentServiceServer) ApproveEnrollmentRequest(context.Con
 func (UnimplementedEnrollmentServiceServer) RejectEnrollmentRequest(context.Context, *EnrollmentRequestActionRequest) (*Empty, error) {
 	return nil, nil
 }
+func (UnimplementedEnrollmentServiceServer) CountEnrollments(context.Context, *CourseRequest) (*CountResponse, error) {
+	return &CountResponse{}, nil
+}
 func (UnimplementedEnrollmentServiceServer) mustEmbedUnimplementedEnrollmentServiceServer() {}
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -213,6 +229,7 @@ var EnrollmentService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "GetCourseEnrollmentRequests", Handler: _EnrollmentService_GetCourseEnrollmentRequests_Handler},
 		{MethodName: "ApproveEnrollmentRequest", Handler: _EnrollmentService_ApproveEnrollmentRequest_Handler},
 		{MethodName: "RejectEnrollmentRequest", Handler: _EnrollmentService_RejectEnrollmentRequest_Handler},
+		{MethodName: "CountEnrollments", Handler: _EnrollmentService_CountEnrollments_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "enrollment.proto",
@@ -338,6 +355,21 @@ func _EnrollmentService_RejectEnrollmentRequest_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnrollmentService_CountEnrollments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CourseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnrollmentServiceServer).CountEnrollments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/enrollment.EnrollmentService/CountEnrollments"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnrollmentServiceServer).CountEnrollments(ctx, req.(*CourseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ── Client interface ──────────────────────────────────────────────────────────
 
 type EnrollmentServiceClient interface {
@@ -349,6 +381,7 @@ type EnrollmentServiceClient interface {
 	GetCourseEnrollmentRequests(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*EnrollmentRequestsList, error)
 	ApproveEnrollmentRequest(ctx context.Context, in *EnrollmentRequestActionRequest, opts ...grpc.CallOption) (*Empty, error)
 	RejectEnrollmentRequest(ctx context.Context, in *EnrollmentRequestActionRequest, opts ...grpc.CallOption) (*Empty, error)
+	CountEnrollments(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*CountResponse, error)
 }
 
 type enrollmentServiceClient struct {
@@ -404,5 +437,11 @@ func (c *enrollmentServiceClient) ApproveEnrollmentRequest(ctx context.Context, 
 func (c *enrollmentServiceClient) RejectEnrollmentRequest(ctx context.Context, in *EnrollmentRequestActionRequest, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/RejectEnrollmentRequest", in, out, opts...)
+	return out, err
+}
+
+func (c *enrollmentServiceClient) CountEnrollments(ctx context.Context, in *CourseRequest, opts ...grpc.CallOption) (*CountResponse, error) {
+	out := new(CountResponse)
+	err := c.cc.Invoke(ctx, "/enrollment.EnrollmentService/CountEnrollments", in, out, opts...)
 	return out, err
 }

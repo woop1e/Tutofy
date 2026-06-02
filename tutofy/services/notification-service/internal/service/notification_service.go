@@ -23,10 +23,13 @@ var ErrForbidden = errors.New("forbidden")
 var emailSubjects = map[model.NotificationType]string{
 	model.NotificationTypeEnrollment:         "Course Enrollment Confirmed",
 	model.NotificationTypeLessonReminder:     "Upcoming Lesson Reminder",
+	model.NotificationTypeBookingRequest:     "New Lesson Booking Request",
 	model.NotificationTypeBookingConfirmed:   "Lesson Booking Confirmed",
 	model.NotificationTypeBookingDeclined:    "Lesson Booking Declined",
 	model.NotificationTypeEnrollmentApproved: "Enrollment Request Approved",
 	model.NotificationTypeEnrollmentRejected: "Enrollment Request Update",
+	model.NotificationTypeTutorApproved:      "Your Tutor Profile Has Been Approved",
+	model.NotificationTypeTutorRejected:      "Update on Your Tutor Profile Application",
 }
 
 // NotificationService is the business-logic contract.

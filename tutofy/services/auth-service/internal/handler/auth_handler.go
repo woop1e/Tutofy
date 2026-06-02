@@ -40,12 +40,18 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 		return nil, status.Error(codes.InvalidArgument, "role is required")
 	}
 
-	token, err := h.svc.Register(req.Email, req.Password, req.Name, req.Role)
+	setupToken, err := h.svc.Register(req.Email, req.Password, req.Name, req.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &authpb.AuthResponse{Token: token, Message: "registered successfully"}, nil
+	// Token is returned for api-gateway internal use (user-service profile creation).
+	// The api-gateway must NOT forward this token to the client.
+	return &authpb.AuthResponse{
+		Token:             setupToken,
+		Message:           "verification email sent",
+		NeedsVerification: true,
+	}, nil
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.AuthResponse, error) {
@@ -60,6 +66,9 @@ func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 
 	token, err := h.svc.Login(req.Email, req.Password)
 	if err != nil {
+		if err.Error() == "email not verified" {
+			return nil, status.Error(codes.PermissionDenied, "email not verified")
+		}
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
@@ -77,6 +86,60 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *authpb.TokenReques
 	}
 
 	return &authpb.ValidateResponse{UserId: userID, Role: role}, nil
+}
+
+func (h *AuthHandler) VerifyEmail(ctx context.Context, req *authpb.VerifyEmailRequest) (*authpb.AuthResponse, error) {
+	if req.Token == "" {
+		return nil, status.Error(codes.InvalidArgument, "token is required")
+	}
+
+	jwt, err := h.svc.VerifyEmail(req.Token)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+
+	return &authpb.AuthResponse{Token: jwt, Message: "email verified"}, nil
+}
+
+func (h *AuthHandler) ResendVerification(ctx context.Context, req *authpb.ResendVerificationRequest) (*authpb.AuthResponse, error) {
+	if req.Email == "" {
+		return nil, status.Error(codes.InvalidArgument, "email is required")
+	}
+
+	if err := h.svc.ResendVerification(req.Email); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &authpb.AuthResponse{Message: "verification email sent"}, nil
+}
+
+func (h *AuthHandler) DeleteUser(ctx context.Context, req *authpb.DeleteUserRequest) (*authpb.DeleteUserResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if err := h.svc.DeleteUser(req.UserId); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &authpb.DeleteUserResponse{}, nil
+}
+
+func (h *AuthHandler) GetUserInfo(ctx context.Context, req *authpb.GetUserInfoRequest) (*authpb.UserInfoResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	user, err := h.repo.GetUserByID(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	if user == nil {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
+	return &authpb.UserInfoResponse{
+		UserId: user.ID,
+		Email:  user.Email,
+		Name:   user.Name,
+		Role:   user.Role,
+	}, nil
 }
 
 func (h *AuthHandler) StoreGoogleToken(ctx context.Context, req *authpb.StoreGoogleTokenRequest) (*authpb.StoreGoogleTokenResponse, error) {

@@ -534,5 +534,22 @@ func (s *lessonService) GetTutorIndividualLessons(ctx context.Context, tutorID s
 }
 
 func (s *lessonService) ExpireOverduePayments(ctx context.Context) (int64, error) {
-	return s.repo.ExpireOverduePayments(ctx)
+	expired, err := s.repo.ExpireOverduePayments(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, lesson := range expired {
+		if s.authClient != nil && lesson.CalendarEventID != "" {
+			go func(l *model.Lesson) {
+				tokResp, err := s.authClient.GetGoogleToken(context.Background(), &authpb.GetGoogleTokenRequest{UserId: l.TutorID})
+				if err != nil {
+					return
+				}
+				if err := gcal.DeleteEvent(tokResp.GetAccessToken(), l.CalendarEventID); err != nil {
+					log.Printf("gcal: could not delete event %s for expired lesson %s: %v", l.CalendarEventID, l.ID, err)
+				}
+			}(lesson)
+		}
+	}
+	return int64(len(expired)), nil
 }

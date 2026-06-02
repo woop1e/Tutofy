@@ -60,7 +60,7 @@ func main() {
 
 	// Build handlers.
 	ah  := handler.NewAuthHandler(authpb.NewAuthServiceClient(authConn), userpb.NewUserServiceClient(userConn))
-	uh  := handler.NewUserHandler(userpb.NewUserServiceClient(userConn))
+	uh  := handler.NewUserHandler(userpb.NewUserServiceClient(userConn), authpb.NewAuthServiceClient(authConn), notificationpb.NewNotificationServiceClient(notificationConn))
 	ch  := handler.NewCourseHandler(coursepb.NewCourseServiceClient(courseConn))
 	tph := handler.NewTutorPublicProfileHandler(userpb.NewUserServiceClient(userConn), coursepb.NewCourseServiceClient(courseConn), reviewpb.NewReviewServiceClient(reviewConn))
 	eh  := handler.NewEnrollmentHandler(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
@@ -96,10 +96,13 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Auth
-	mux.HandleFunc("POST /auth/register",        ah.Register)
-	mux.HandleFunc("POST /auth/login",            ah.Login)
-	mux.HandleFunc("GET /auth/google/connect",    gah.Connect)
-	mux.HandleFunc("GET /auth/google/callback",   gah.Callback)
+	mux.HandleFunc("POST /auth/register",              ah.Register)
+	mux.HandleFunc("POST /auth/login",                 ah.Login)
+	mux.HandleFunc("POST /auth/verify-email",          ah.VerifyEmail)
+	mux.HandleFunc("POST /auth/resend-verification",   ah.ResendVerification)
+	mux.HandleFunc("GET /auth/google/connect",         gah.Connect)
+	mux.HandleFunc("GET /auth/google/callback",        gah.Callback)
+	mux.HandleFunc("GET /auth/google/status",          gah.Status)
 
 	// Users
 	mux.HandleFunc("GET /users",                       uh.GetAllUsers)
@@ -132,6 +135,7 @@ func main() {
 	mux.HandleFunc("DELETE /enrollments",                           eh.UnenrollUser)
 	mux.HandleFunc("GET /users/{id}/enrollments",                   eh.GetUserEnrollments)
 	mux.HandleFunc("GET /courses/{id}/enrollments",                 eh.GetCourseEnrollments)
+	mux.HandleFunc("GET /courses/{id}/enrollment-count",            eh.CountEnrollments)
 	mux.HandleFunc("POST /courses/{id}/enrollment-requests",        eh.RequestEnrollment)
 	mux.HandleFunc("GET /courses/{id}/enrollment-requests",         eh.GetCourseEnrollmentRequests)
 	mux.HandleFunc("PATCH /enrollment-requests/{id}/approve",       eh.ApproveEnrollmentRequest)

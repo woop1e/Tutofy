@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { usersAPI } from '../../api/users';
 import { mediaAPI } from '../../api/media';
+import { authAPI } from '../../api/auth';
 
 /* ── Constants ────────────────────────────────────────────── */
 const SUBJECT_OPTIONS = [
@@ -17,6 +18,15 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const ID_DOC_TYPES = [
+  { value: 'passport',       label: 'Passport' },
+  { value: 'id_card',        label: 'National ID Card (Удостоверение)' },
+  { value: 'driver_license', label: "Driver's License" },
+  { value: 'diploma',        label: 'Diploma / Degree' },
+  { value: 'other',          label: 'Other Document' },
+];
+const ID_DOC_LABEL = Object.fromEntries(ID_DOC_TYPES.map(t => [t.value, t.label]));
 
 /* ── ChipSelect ───────────────────────────────────────────── */
 function ChipSelect({ label, required, hint, options, value, onChange, placeholder, allowCustom = true, error }) {
@@ -198,9 +208,14 @@ const TutorProfileSetup = () => {
   const [isFirstTime,   setIsFirstTime]   = useState(false);
   const [fieldErrors,   setFieldErrors]   = useState({});
 
-  const [photoUploading, setPhotoUploading] = useState(false);
-  const [certUploading,  setCertUploading]  = useState(false);
-  const [certDocs,       setCertDocs]       = useState([]);
+  const [photoUploading,  setPhotoUploading]  = useState(false);
+  const [photoError,      setPhotoError]      = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(null);
+  const [certUploading,   setCertUploading]   = useState(false);
+  const [certDocs,        setCertDocs]        = useState([]);
+  const [idDocs,          setIdDocs]          = useState([]);
+  const [idDocUploading,  setIdDocUploading]  = useState(false);
+  const [idDocType,       setIdDocType]       = useState('passport');
 
   const [subjects,  setSubjects]  = useState([]);
   const [languages, setLanguages] = useState([]);
@@ -219,6 +234,7 @@ const TutorProfileSetup = () => {
   }, [isLoading, isAuthenticated, role, navigate]);
 
   useEffect(() => {
+    if (isLoading) return; // wait for auth context to finish loading from localStorage
     const uid = user?.user_id;
     if (!uid) { setLoading(false); return; }
     usersAPI.getTutorProfile(uid)
@@ -226,7 +242,17 @@ const TutorProfileSetup = () => {
         setProfileStatus(data.status || 'pending');
 
         const allCerts  = data.certificates || [];
-        const textCerts = allCerts.filter(c => !c.startsWith('http'));
+        const idDocItems = allCerts
+          .filter(c => c.startsWith('idoc:'))
+          .map(c => {
+            const rest = c.slice(5);
+            const sep  = rest.indexOf(':');
+            const type = rest.slice(0, sep);
+            const url  = rest.slice(sep + 1);
+            return { type, url, name: decodeURIComponent(url.split('/').pop().split('?')[0]) };
+          });
+        setIdDocs(idDocItems);
+        const textCerts = allCerts.filter(c => !c.startsWith('http') && !c.startsWith('idoc:'));
         const urlCerts  = allCerts
           .filter(c => c.startsWith('http'))
           .map(url => ({ url, name: decodeURIComponent(url.split('/').pop().split('?')[0]) }));
@@ -241,16 +267,22 @@ const TutorProfileSetup = () => {
         // phone/student_level are required in the profile form but not collected during /become-tutor registration
         setIsFirstTime(!data.phone || !data.student_level);
 
+        // Fall back to registration draft for fields not yet saved
+        const draft = (() => {
+          try { return JSON.parse(localStorage.getItem('pendingVerify') || 'null'); }
+          catch { return null; }
+        })();
+
         setForm({
-          name:                 data.name || '',
+          name:                 data.name || user?.name || '',
           phone:                data.phone || '',
           location:             data.location || '',
           photo_url:            data.photo_url || '',
-          bio:                  data.bio || '',
+          bio:                  data.bio || draft?.bio || '',
           student_level:        data.student_level || '',
           lesson_type:          data.lesson_type || '',
-          experience_years:     data.experience_years ? String(data.experience_years) : '',
-          hourly_price:         data.hourly_price ? String(data.hourly_price) : '',
+          experience_years:     data.experience_years ? String(data.experience_years) : (draft?.experience ? String(draft.experience) : ''),
+          hourly_price:         data.hourly_price ? String(data.hourly_price) : (draft?.hourlyRate ? String(draft.hourlyRate) : ''),
           education:            data.education || '',
           certificates:         textCerts.join(', '),
           available_days:       data.available_days || [],
@@ -258,9 +290,26 @@ const TutorProfileSetup = () => {
           available_time_end:   data.available_time_end || '18:00',
           timezone:             data.timezone || 'UTC+5',
         });
+        if (!subs.length && draft?.subjects?.length) setSubjects(draft.subjects);
       })
-      .catch(() => setIsFirstTime(true))
+      .catch(() => {
+        setIsFirstTime(true);
+        setForm(f => ({ ...f, name: user?.name || '' }));
+      })
       .finally(() => setLoading(false));
+  }, [user, isLoading]);
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    const check = () => {
+      authAPI.getGoogleStatus()
+        .then(d => setGoogleConnected(d.connected))
+        .catch(() => setGoogleConnected(false));
+    };
+    check();
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [user]);
 
   const handleChange = e => {
@@ -286,6 +335,7 @@ const TutorProfileSetup = () => {
       const dl  = await mediaAPI.getDownloadURL(up.file_id);
       if (!dl?.url) throw new Error('No URL');
       setForm(f => ({ ...f, photo_url: dl.url }));
+      setPhotoError(false);
     } catch (err) {
       setError(`Photo upload failed: ${err?.message || 'Unknown error'}`);
     } finally { setPhotoUploading(false); }
@@ -305,6 +355,21 @@ const TutorProfileSetup = () => {
   };
 
   const removeCertDoc = i => setCertDocs(prev => prev.filter((_, idx) => idx !== i));
+
+  const handleIdDocUpload = async file => {
+    setIdDocUploading(true); setError('');
+    try {
+      const up = await mediaAPI.uploadFile(file, null, 'user_document');
+      if (!up?.file_id) throw new Error('No file ID');
+      const dl = await mediaAPI.getDownloadURL(up.file_id);
+      if (!dl?.url) throw new Error('No URL');
+      setIdDocs(prev => [...prev, { type: idDocType, url: dl.url, name: file.name }]);
+    } catch (err) {
+      setError(`Document upload failed: ${err?.message || 'Unknown error'}`);
+    } finally { setIdDocUploading(false); }
+  };
+
+  const removeIdDoc = i => setIdDocs(prev => prev.filter((_, idx) => idx !== i));
 
   const validate = () => {
     const e = {};
@@ -338,7 +403,11 @@ const TutorProfileSetup = () => {
     try {
       const uid       = user?.user_id;
       const textCerts = form.certificates.split(',').map(s => s.trim()).filter(Boolean);
-      const allCerts  = [...textCerts, ...certDocs.map(d => d.url)];
+      const allCerts  = [
+        ...textCerts,
+        ...certDocs.map(d => d.url),
+        ...idDocs.map(d => `idoc:${d.type}:${d.url}`),
+      ];
 
       await usersAPI.updateTutorProfile(uid, {
         bio:                  form.bio,
@@ -359,6 +428,7 @@ const TutorProfileSetup = () => {
         available_time_end:   form.available_time_end,
         timezone:             form.timezone,
       });
+      localStorage.removeItem('pendingVerify');
       setSaved(true);
       setIsFirstTime(false);
       setProfileStatus('pending');
@@ -428,6 +498,7 @@ const TutorProfileSetup = () => {
                     'Select the subjects you teach and your teaching languages',
                     'Fill in your bio, experience, and hourly rate',
                     'Add your education background and upload certificates',
+                    'Upload a government-issued identity document (passport or ID card)',
                     'Click "Submit for Review" at the bottom',
                   ].map((step, i) => (
                     <li key={i} style={{ fontSize: 13, color: 'var(--text-2)' }}>{step}</li>
@@ -494,8 +565,8 @@ const TutorProfileSetup = () => {
                 <Field label="Profile Photo">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ width: 80, height: 80, borderRadius: '50%', border: '2px solid var(--border)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', flexShrink: 0 }}>
-                      {form.photo_url ? (
-                        <img src={form.photo_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                      {form.photo_url && !photoError ? (
+                        <img src={form.photo_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setPhotoError(true)} />
                       ) : (
                         <svg viewBox="0 0 32 32" fill="none" stroke="var(--muted)" strokeWidth="1.5" width={28} height={28}>
                           <circle cx="16" cy="12" r="5"/><path d="M4 28a12 12 0 0124 0"/>
@@ -596,6 +667,7 @@ const TutorProfileSetup = () => {
                   <Field label="Years of Experience" required error={fieldErrors.experience_years} style={{ marginBottom: 0 }}>
                     <input type="number" name="experience_years" value={form.experience_years} onChange={handleChange}
                       placeholder="5" min="0" style={getInputStyle(!!fieldErrors.experience_years)}
+                      onWheel={e => e.target.blur()}
                       onFocus={e => { e.target.style.borderColor = 'var(--accent)'; }}
                       onBlur={e => { e.target.style.borderColor = fieldErrors.experience_years ? 'var(--danger)' : 'var(--border)'; }}
                     />
@@ -604,6 +676,7 @@ const TutorProfileSetup = () => {
                     <div style={{ position: 'relative' }}>
                       <input type="number" name="hourly_price" value={form.hourly_price} onChange={handleChange}
                         placeholder="5000" min="1" style={{ ...getInputStyle(!!fieldErrors.hourly_price), paddingRight: 48 }}
+                        onWheel={e => e.target.blur()}
                         onFocus={e => { e.target.style.borderColor = 'var(--accent)'; }}
                         onBlur={e => { e.target.style.borderColor = fieldErrors.hourly_price ? 'var(--danger)' : 'var(--border)'; }}
                       />
@@ -704,51 +777,152 @@ const TutorProfileSetup = () => {
                 </Field>
               </Section>
 
+              {/* Identity Documents */}
+              <Section title="Identity Documents">
+                <p style={{ margin: '-8px 0 16px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.55 }}>
+                  Upload a government-issued identity document to verify your identity. This information is reviewed by admins only and is not shown publicly.
+                </p>
+
+                <Field label="Document Type" style={{ marginBottom: 12 }}>
+                  <select value={idDocType} onChange={e => setIdDocType(e.target.value)} style={getInputStyle(false)}>
+                    {ID_DOC_TYPES.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                {idDocs.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                    {idDocs.map((doc, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.15)', borderRadius: 9, padding: '9px 12px' }}>
+                        <svg viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.4" width={15} height={15} style={{ flexShrink: 0 }}>
+                          <rect x="1" y="3" width="14" height="10" rx="1.5"/>
+                          <circle cx="4.5" cy="8" r="1.5"/>
+                          <path d="M8 6h4M8 8h4M8 10h3" strokeLinecap="round"/>
+                        </svg>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: '0 0 1px', fontSize: 10, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            {ID_DOC_LABEL[doc.type] || doc.type}
+                          </p>
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none', display: 'block' }}>
+                            {doc.name}
+                          </a>
+                        </div>
+                        <button type="button" onClick={() => removeIdDoc(i)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 0, display: 'flex', alignItems: 'center' }}>
+                          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width={13} height={13}>
+                            <path d="M3 3l8 8M11 3l-8 8" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Field label="" style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <UploadButton
+                      label="Upload document"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      uploading={idDocUploading}
+                      onFile={handleIdDocUpload}
+                    />
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>
+                      PDF, JPG or PNG. Max 50 MB. Visible to admins only.
+                    </p>
+                  </div>
+                </Field>
+              </Section>
+
               {/* Google Meet Integration */}
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 16 }}>
+              <div style={{
+                background: 'var(--surface)',
+                border: `1px solid ${googleConnected ? '#bbf7d0' : 'var(--border)'}`,
+                borderRadius: 14, padding: '20px 22px', marginBottom: 16,
+                transition: 'border-color 200ms',
+              }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: googleConnected ? '#dcfce7' : '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 200ms' }}>
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
                       <rect x="1" y="6" width="14" height="12" rx="2" fill="#0d9488"/>
                       <path d="M15 10l5-3v10l-5-3V10z" fill="#22be70"/>
                     </svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Google Meet Integration</p>
-                    <p style={{ margin: '3px 0 12px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                      Connect your Google account to automatically generate Meet links when you confirm a lesson booking.
-                      Without it, you'll need to add a link manually.
-                    </p>
-                    <a
-                      href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/google/connect?token=${localStorage.getItem('token') || ''}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 7,
-                        background: 'white', border: '1.5px solid #dadce0',
-                        borderRadius: 8, padding: '8px 16px',
-                        fontSize: 13, fontWeight: 600, color: '#3c4043',
-                        textDecoration: 'none', cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                        transition: 'box-shadow 120ms',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
-                    >
-                      <svg viewBox="0 0 24 24" width="16" height="16">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                      </svg>
-                      Connect Google account
-                    </a>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Google Meet Integration</p>
+                      {googleConnected && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: '#dcfce7', color: '#15803d',
+                          fontSize: 11, fontWeight: 700, padding: '2px 8px',
+                          borderRadius: 20, border: '1px solid #bbf7d0',
+                        }}>
+                          <svg viewBox="0 0 16 16" width="11" height="11" fill="none">
+                            <circle cx="8" cy="8" r="7" fill="#22c55e"/>
+                            <path d="M5 8l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          Connected
+                        </span>
+                      )}
+                    </div>
+                    {googleConnected ? (
+                      <>
+                        <p style={{ margin: '3px 0 12px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                          Your Google account is linked. Meet links will be generated automatically when you confirm lesson bookings.
+                        </p>
+                        <a
+                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/google/connect?token=${localStorage.getItem('token') || ''}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            fontSize: 12, color: 'var(--muted)',
+                            textDecoration: 'underline', cursor: 'pointer',
+                          }}
+                        >
+                          Reconnect with a different account
+                        </a>
+                      </>
+                    ) : (
+                      <>
+                        <p style={{ margin: '3px 0 12px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                          Connect your Google account to automatically generate Meet links when you confirm a lesson booking.
+                          Without it, you'll need to add a link manually.
+                        </p>
+                        <a
+                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/google/connect?token=${localStorage.getItem('token') || ''}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 7,
+                            background: 'white', border: '1.5px solid #dadce0',
+                            borderRadius: 8, padding: '8px 16px',
+                            fontSize: 13, fontWeight: 600, color: '#3c4043',
+                            textDecoration: 'none', cursor: 'pointer',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                            transition: 'box-shadow 120ms',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'}
+                          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'}
+                        >
+                          <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                          </svg>
+                          Connect Google account
+                        </a>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Submit */}
-              <button type="submit" disabled={saving || photoUploading || certUploading}
+              <button type="submit" disabled={saving || photoUploading || certUploading || idDocUploading}
                 style={{
                   width: '100%', background: saving ? 'var(--muted)' : 'var(--accent)',
                   color: 'white', border: 'none', borderRadius: 12,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../api/auth';
+import CheckEmailScreen from './CheckEmailScreen';
 
 /* ─── helpers ─────────────────────────────────────────── */
 function pwStrength(pw) {
@@ -79,8 +80,9 @@ const RegisterStudent = () => {
   const [errors,  setErrors]  = useState({});
   const [touched, setTouched] = useState({});
   const [stepErr, setStepErr] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [apiErr,  setApiErr]  = useState('');
+  const [loading,      setLoading]      = useState(false);
+  const [apiErr,       setApiErr]       = useState('');
+  const [verifyEmail,  setVerifyEmail]  = useState('');
 
   const { login } = useAuth();
   const navigate  = useNavigate();
@@ -133,8 +135,13 @@ const RegisterStudent = () => {
           password: form.password,
           role:     finalRole,
         });
+        if (res.needs_verification) {
+          localStorage.setItem('pendingVerify', JSON.stringify({ name: form.name.trim(), email: form.email, role: finalRole }));
+          setVerifyEmail(form.email);
+          return;
+        }
         login(res.token, form.name.trim());
-        const dest = redirectTo || (finalRole === 'tutor' ? '/tutor/dashboard' : '/student/dashboard');
+        const dest = redirectTo || (finalRole === 'tutor' ? '/tutor/dashboard' : '/tutors');
         navigate(dest, { replace: true });
       } catch (err) {
         setApiErr(err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please try again.');
@@ -340,6 +347,10 @@ const RegisterStudent = () => {
   ];
   const { title, sub } = headings[step] || {};
   const progress = ((step + 1) / TOTAL_STEPS) * 100;
+
+  if (verifyEmail) {
+    return <CheckEmailScreen email={verifyEmail} />;
+  }
 
   return (
     <div className="page-fade" style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'Inter, system-ui, sans-serif' }}>

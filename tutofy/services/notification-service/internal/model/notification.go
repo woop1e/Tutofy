@@ -19,6 +19,8 @@ const (
 	NotificationTypeBookingDeclined   NotificationType = 10
 	NotificationTypeEnrollmentApproved NotificationType = 11
 	NotificationTypeEnrollmentRejected NotificationType = 12
+	NotificationTypeTutorApproved      NotificationType = 13
+	NotificationTypeTutorRejected      NotificationType = 14
 )
 
 // Notification is a single in-app notification stored for a user.

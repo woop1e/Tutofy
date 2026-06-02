@@ -2,6 +2,7 @@ package main
 
 import (
 	"auth-service/internal/config"
+	"auth-service/internal/email"
 	"auth-service/internal/handler"
 	"auth-service/internal/middleware"
 	"auth-service/internal/repository"
@@ -41,12 +42,14 @@ func main() {
 
 	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
-			id         TEXT PRIMARY KEY,
-			email      TEXT NOT NULL UNIQUE,
-			password   TEXT NOT NULL,
-			name       TEXT NOT NULL DEFAULT '',
-			role       TEXT NOT NULL DEFAULT 'student'
+			id             TEXT PRIMARY KEY,
+			email          TEXT NOT NULL UNIQUE,
+			password       TEXT NOT NULL,
+			name           TEXT NOT NULL DEFAULT '',
+			role           TEXT NOT NULL DEFAULT 'student',
+			email_verified BOOLEAN NOT NULL DEFAULT FALSE
 		);
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
 		CREATE TABLE IF NOT EXISTS google_tokens (
 			user_id       TEXT PRIMARY KEY,
 			access_token  TEXT NOT NULL,
@@ -57,8 +60,10 @@ func main() {
 		log.Fatalf("schema migration: %v", err)
 	}
 
+	mailer := email.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
+
 	repo := repository.NewUserRepository(db)
-	svc := service.NewAuthService(repo, cfg.JWTSecret, rdb)
+	svc := service.NewAuthService(repo, cfg.JWTSecret, rdb, mailer, cfg.AppURL)
 	h := handler.NewAuthHandler(svc, repo)
 
 	lis, err := net.Listen("tcp", ":"+cfg.Port)

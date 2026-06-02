@@ -509,15 +509,6 @@ const TutorDashboard = () => {
                   {awaitingPayment.map((lesson) => {
                     const start = parseTS(lesson.scheduled_at);
                     const end   = start ? new Date(start.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
-                    // Compute deadline client-side: scheduledAt − 3 hours
-                    const deadline = start ? new Date(start.getTime() - 3 * 60 * 60 * 1000) : null;
-                    const now = Date.now();
-                    const msLeft = deadline ? deadline.getTime() - now : null;
-                    const hoursLeft = msLeft !== null ? Math.floor(msLeft / 3600000) : null;
-                    const minsLeft  = msLeft !== null ? Math.floor((msLeft % 3600000) / 60000) : null;
-                    const deadlineStr = hoursLeft !== null
-                      ? (hoursLeft > 0 ? `${hoursLeft}h ${minsLeft}m left` : minsLeft > 0 ? `${minsLeft}m left` : 'Deadline passed')
-                      : '';
                     return (
                       <div key={lesson.id} className="flex items-center gap-4 p-4 rounded-[12px] border border-[#f59e0b]/30 bg-[#fffbeb]">
                         <div className="w-10 h-10 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0">
@@ -536,9 +527,7 @@ const TutorDashboard = () => {
                             {lesson.price > 0 && (
                               <span className="text-[#0d9488] text-[12px] font-semibold">{lesson.price.toLocaleString()} ₸</span>
                             )}
-                            {deadlineStr && (
-                              <span className="text-[#f59e0b] text-[12px] font-semibold">{deadlineStr}</span>
-                            )}
+                            <span className="text-[#f59e0b] text-[12px] font-semibold">Awaiting payment</span>
                           </div>
                         </div>
                       </div>

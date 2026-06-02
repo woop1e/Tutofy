@@ -100,9 +100,17 @@ const EditCourse = () => {
     if (activeTab !== 'students' || enrollments.length > 0) return;
     setEnrollLoading(true);
     enrollmentsAPI.getCourseEnrollments(courseId)
-      .then(res => {
+      .then(async res => {
         const es = Array.isArray(res) ? res : res?.enrollments || [];
-        setEnrollments(es);
+        const withNames = await Promise.all(es.map(async (e) => {
+          try {
+            const userData = await usersAPI.getUserById(e.user_id);
+            return { ...e, user_name: userData?.name || userData?.full_name || e.user_id };
+          } catch {
+            return e;
+          }
+        }));
+        setEnrollments(withNames);
       })
       .catch(() => setEnrollments([]))
       .finally(() => setEnrollLoading(false));

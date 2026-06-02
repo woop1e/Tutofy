@@ -66,8 +66,9 @@ type UpdateCourseRequest struct {
 	TotalLessons       int32  `protobuf:"varint,7,opt,name=total_lessons,json=totalLessons,proto3" json:"total_lessons,omitempty"`
 	TotalWeeks         int32  `protobuf:"varint,8,opt,name=total_weeks,json=totalWeeks,proto3" json:"total_weeks,omitempty"`
 	ReleaseType        string `protobuf:"bytes,9,opt,name=release_type,json=releaseType,proto3" json:"release_type,omitempty"`
-	StartDate          string `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	EndDate            string `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	StartDate          string  `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate            string  `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	Price              float64 `protobuf:"fixed64,12,opt,name=price,proto3" json:"price,omitempty"`
 }
 
 func (x *UpdateCourseRequest) Reset()         { *x = UpdateCourseRequest{} }
@@ -84,6 +85,7 @@ func (x *UpdateCourseRequest) GetTotalWeeks() int32          { return x.TotalWee
 func (x *UpdateCourseRequest) GetReleaseType() string        { return x.ReleaseType }
 func (x *UpdateCourseRequest) GetStartDate() string          { return x.StartDate }
 func (x *UpdateCourseRequest) GetEndDate() string            { return x.EndDate }
+func (x *UpdateCourseRequest) GetPrice() float64             { return x.Price }
 
 type PublishCourseRequest struct {
 	state         protoimpl.MessageState

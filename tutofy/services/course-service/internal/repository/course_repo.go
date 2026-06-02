@@ -19,7 +19,7 @@ type CourseRepository interface {
 	CreateCourse(ctx context.Context, course *model.Course) error
 	GetCourseByID(ctx context.Context, id string) (*model.Course, error)
 	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
-	UpdateCourse(ctx context.Context, id, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
+	UpdateCourse(ctx context.Context, id, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
 	PublishCourse(ctx context.Context, id, tutorID, callerRole string) (*model.Course, error)
 	SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error)
 	DeleteCourse(ctx context.Context, id string) error
@@ -86,17 +86,17 @@ func (r *postgresRepo) GetAllCourses(ctx context.Context, limit, offset int32) (
 	return scanCourses(rows)
 }
 
-func (r *postgresRepo) UpdateCourse(ctx context.Context, id, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error) {
+func (r *postgresRepo) UpdateCourse(ctx context.Context, id, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error) {
 	deadline  := sql.NullString{String: enrollmentDeadline, Valid: enrollmentDeadline != ""}
 	startNull := sql.NullString{String: startDate, Valid: startDate != ""}
 	endNull   := sql.NullString{String: endDate,   Valid: endDate != ""}
 	return scanCourse(r.db.QueryRowContext(ctx,
 		`UPDATE courses SET title=$1, description=$2, course_type=$3, max_students=$4, enrollment_deadline=$5,
-		 total_lessons=$6, total_weeks=$7, release_type=$8, start_date=$9, end_date=$10
-		 WHERE id=$11 AND deleted_at IS NULL
+		 total_lessons=$6, total_weeks=$7, release_type=$8, start_date=$9, end_date=$10, price=$11
+		 WHERE id=$12 AND deleted_at IS NULL
 		 RETURNING `+cols,
 		title, description, courseType, maxStudents, deadline, totalLessons, totalWeeks, releaseType,
-		startNull, endNull, id,
+		startNull, endNull, price, id,
 	))
 }
 

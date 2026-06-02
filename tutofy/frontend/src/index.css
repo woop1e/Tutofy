@@ -107,11 +107,22 @@ body {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  overflow: hidden;
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.app-sidebar.collapsed { width: 60px; }
+
 .sidebar-logo {
-  padding: 24px 20px 20px;
+  padding: 20px 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-shrink: 0;
 }
+
+.app-sidebar.collapsed .sidebar-logo { justify-content: center; padding: 20px 0 16px; }
 
 .sidebar-logo a {
   font-size: 18px;
@@ -122,6 +133,8 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar-logo-mark {
@@ -137,7 +150,44 @@ body {
   justify-content: center;
 }
 
-.sidebar-nav { flex: 1; padding: 4px 12px; overflow-y: auto; }
+/* Toggle button */
+.sidebar-toggle {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.sidebar-toggle:hover { background: var(--surface-hover); border-color: var(--border-strong); color: var(--text); }
+.app-sidebar.collapsed .sidebar-toggle { display: none; }
+
+/* Collapsed-mode expand button pinned at top of nav */
+.sidebar-expand-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  transition: background 120ms, color 120ms;
+}
+.sidebar-expand-btn:hover { background: var(--surface-hover); color: var(--text); }
+.app-sidebar.collapsed .sidebar-expand-btn { display: flex; }
+
+.sidebar-nav { flex: 1; padding: 4px 8px; overflow-y: auto; overflow-x: hidden; }
+.app-sidebar.collapsed .sidebar-nav { padding: 4px 6px; }
 
 .sidebar-group-label {
   font-size: 10px;
@@ -145,14 +195,17 @@ body {
   color: var(--muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 16px 12px 6px;
+  padding: 14px 8px 5px;
+  white-space: nowrap;
+  overflow: hidden;
 }
+.app-sidebar.collapsed .sidebar-group-label { visibility: hidden; height: 0; padding: 6px 0 0; }
 
 .sidebar-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: var(--r-md);
   font-size: 13px;
   font-weight: 500;
@@ -160,6 +213,14 @@ body {
   text-decoration: none;
   transition: background var(--t-fast), color var(--t-fast);
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.app-sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 9px;
+  gap: 0;
 }
 
 .sidebar-link:hover { background: var(--surface-hover); color: var(--text); }
@@ -172,9 +233,14 @@ body {
 
 .sidebar-link.active svg { stroke: var(--accent) !important; }
 
+/* Text elements that disappear when collapsed */
+.sidebar-text { overflow: hidden; white-space: nowrap; }
+.app-sidebar.collapsed .sidebar-text { display: none; }
+
 .sidebar-user {
-  padding: 12px 16px 16px;
+  padding: 10px 10px 14px;
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .sidebar-user-row {
@@ -183,6 +249,7 @@ body {
   gap: 10px;
   margin-bottom: 8px;
 }
+.app-sidebar.collapsed .sidebar-user-row { justify-content: center; margin-bottom: 4px; }
 
 .sidebar-avatar {
   width: 34px;
@@ -212,7 +279,10 @@ body {
   cursor: pointer;
   transition: background var(--t-fast), color var(--t-fast);
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
 }
+.app-sidebar.collapsed .sidebar-logout { justify-content: center; padding: 7px; gap: 0; }
 
 .sidebar-logout:hover { background: var(--danger-soft); color: var(--danger); }
 

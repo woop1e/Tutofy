@@ -44,15 +44,96 @@ type AuthResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Token   string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Token             string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Message           string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	NeedsVerification bool   `protobuf:"varint,3,opt,name=needs_verification,json=needsVerification,proto3" json:"needs_verification,omitempty"`
 }
 
-func (x *AuthResponse) Reset()          {}
-func (x *AuthResponse) String() string  { return x.Token }
-func (x *AuthResponse) ProtoMessage()   {}
-func (x *AuthResponse) GetToken() string   { return x.Token }
-func (x *AuthResponse) GetMessage() string { return x.Message }
+func (x *AuthResponse) Reset()                    {}
+func (x *AuthResponse) String() string            { return x.Token }
+func (x *AuthResponse) ProtoMessage()             {}
+func (x *AuthResponse) GetToken() string          { return x.Token }
+func (x *AuthResponse) GetMessage() string        { return x.Message }
+func (x *AuthResponse) GetNeedsVerification() bool { return x.NeedsVerification }
+
+type DeleteUserRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+}
+
+func (x *DeleteUserRequest) Reset()            {}
+func (x *DeleteUserRequest) String() string    { return x.UserId }
+func (x *DeleteUserRequest) ProtoMessage()     {}
+func (x *DeleteUserRequest) GetUserId() string { return x.UserId }
+
+type DeleteUserResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *DeleteUserResponse) Reset()        {}
+func (x *DeleteUserResponse) String() string { return "" }
+func (x *DeleteUserResponse) ProtoMessage() {}
+
+type VerifyEmailRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+}
+
+func (x *VerifyEmailRequest) Reset()           {}
+func (x *VerifyEmailRequest) String() string   { return x.Token }
+func (x *VerifyEmailRequest) ProtoMessage()    {}
+func (x *VerifyEmailRequest) GetToken() string { return x.Token }
+
+type GetUserInfoRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+}
+
+func (x *GetUserInfoRequest) Reset()            {}
+func (x *GetUserInfoRequest) String() string    { return x.UserId }
+func (x *GetUserInfoRequest) ProtoMessage()     {}
+func (x *GetUserInfoRequest) GetUserId() string { return x.UserId }
+
+type UserInfoResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Email  string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Name   string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Role   string `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
+}
+
+func (x *UserInfoResponse) Reset()           {}
+func (x *UserInfoResponse) String() string   { return x.UserId }
+func (x *UserInfoResponse) ProtoMessage()    {}
+func (x *UserInfoResponse) GetUserId() string { return x.UserId }
+func (x *UserInfoResponse) GetEmail() string  { return x.Email }
+func (x *UserInfoResponse) GetName() string   { return x.Name }
+func (x *UserInfoResponse) GetRole() string   { return x.Role }
+
+type ResendVerificationRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Email string `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+}
+
+func (x *ResendVerificationRequest) Reset()           {}
+func (x *ResendVerificationRequest) String() string   { return x.Email }
+func (x *ResendVerificationRequest) ProtoMessage()    {}
+func (x *ResendVerificationRequest) GetEmail() string { return x.Email }
 
 type TokenRequest struct {
 	state         protoimpl.MessageState

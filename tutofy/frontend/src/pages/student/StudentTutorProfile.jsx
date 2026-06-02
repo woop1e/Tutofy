@@ -128,6 +128,7 @@ const StudentTutorProfile = () => {
   const [courses, setCourses]           = useState([]);
   const [loading, setLoading]           = useState(true);
   const [bookedSlots, setBookedSlots]   = useState([]);
+  const [enrollCounts, setEnrollCounts] = useState({});
 
   const [enrolling, setEnrolling]   = useState(false);
   const [enrolledId, setEnrolledId] = useState(null);
@@ -145,11 +146,18 @@ const StudentTutorProfile = () => {
       coursesAPI.searchCourses({ tutor_id: id }).catch(() => ({ courses: [] })),
       usersAPI.getTutorProfile(id).catch(() => null),
       lessonsAPI.getTutorBookedSlots(id).catch(() => ({ scheduled_ats: [] })),
-    ]).then(([userData, coursesRes, profileData, bookedRes]) => {
+    ]).then(async ([userData, coursesRes, profileData, bookedRes]) => {
       setTutor(userData);
       setTutorProfile(profileData);
-      setCourses(coursesRes?.courses || []);
+      const loadedCourses = coursesRes?.courses || [];
+      setCourses(loadedCourses);
       setBookedSlots(bookedRes?.scheduled_ats || []);
+      const counts = {};
+      await Promise.all(loadedCourses.map(async (c) => {
+        try { counts[c.id] = await enrollmentsAPI.getEnrollmentCount(c.id); }
+        catch { counts[c.id] = 0; }
+      }));
+      setEnrollCounts(counts);
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -173,7 +181,7 @@ const StudentTutorProfile = () => {
 
   const handleBookLesson = async () => {
     if (!selectedSlot) return;
-    const price        = tutorProfile?.hourly_rate || tutorExtras(id).hourlyRate;
+    const price        = tutorProfile?.hourly_price || tutorExtras(id).hourlyRate;
     const tutorName    = tutor?.name || 'Tutor';
     const title        = `Lesson with ${tutorName}`;
     const scheduled_at = toISOLocal(selectedSlot.day, selectedSlot.hour);
@@ -219,7 +227,7 @@ const StudentTutorProfile = () => {
   const tutorInitials = tutor.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   const bio         = tutorProfile?.bio || courses[0]?.description || 'Expert tutor with personalised sessions tailored to your goals.';
   const slots       = filterBookedSlots(generateSlotsFromProfile(tutorProfile), bookedSlots);
-  const hourlyPrice = tutorProfile?.hourly_rate || extras.hourlyRate;
+  const hourlyPrice = tutorProfile?.hourly_price || extras.hourlyRate;
   const parsedSlots = parseProfileSlots(tutorProfile);
   const hasAvailability = parsedSlots.length > 0;
 
@@ -314,9 +322,9 @@ const StudentTutorProfile = () => {
                       {courses.map((c, i) => {
                         const isEnrolled = enrolledId === c.id;
                         const cColor = COLORS[i % COLORS.length];
-                        const seed = c.id ? c.id.charCodeAt(c.id.length - 1) : 0;
-                        const maxStudents = c.max_students || 5;
-                        const spotsLeft = maxStudents - (seed % maxStudents);
+                        const maxStudents = c.max_students || 0;
+                        const enrolled = enrollCounts[c.id] ?? 0;
+                        const spotsLeft = maxStudents > 0 ? Math.max(0, maxStudents - enrolled) : null;
                         return (
                           <div key={c.id} className="flex items-start gap-4 p-4 border border-[#ebebf0] rounded-[14px] hover:border-[#0d9488]/30 transition-colors">
                             <div className="w-11 h-11 rounded-[12px] flex items-center justify-center text-white text-[15px] font-bold flex-shrink-0"
@@ -330,9 +338,11 @@ const StudentTutorProfile = () => {
                                 <span className="text-[#0d9488] text-[13px] font-bold">
                                   {c.price ? `${c.price.toLocaleString()} KZT total` : 'Free'}
                                 </span>
-                                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${spotsLeft > 0 ? 'bg-[#f0f9f4] text-[#22be70]' : 'bg-[#fef2f2] text-[#f24545]'}`}>
-                                  {spotsLeft > 0 ? `${spotsLeft}/${maxStudents} spots left` : 'Full'}
-                                </span>
+                                {spotsLeft !== null && (
+                                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${spotsLeft > 0 ? 'bg-[#f0f9f4] text-[#22be70]' : 'bg-[#fef2f2] text-[#f24545]'}`}>
+                                    {spotsLeft > 0 ? `${spotsLeft}/${maxStudents} spots left` : 'Full'}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             {isEnrolled ? (

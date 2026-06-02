@@ -155,6 +155,14 @@ func (h *EnrollmentHandler) RejectEnrollmentRequest(ctx context.Context, req *en
 	return &enrollmentpb.Empty{}, nil
 }
 
+func (h *EnrollmentHandler) CountEnrollments(ctx context.Context, req *enrollmentpb.CourseRequest) (*enrollmentpb.CountResponse, error) {
+	count, err := h.svc.CountEnrollments(ctx, req.GetCourseId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &enrollmentpb.CountResponse{Count: count}, nil
+}
+
 func toProto(e *model.Enrollment) *enrollmentpb.EnrollmentResponse {
 	return &enrollmentpb.EnrollmentResponse{
 		Id:       e.ID,

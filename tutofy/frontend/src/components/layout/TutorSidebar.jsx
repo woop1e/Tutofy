@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -19,6 +19,18 @@ const Icon = ({ name, size = 16, active }) => {
   };
   return icons[name] || null;
 };
+
+const ChevronLeft = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" width={13} height={13}>
+    <path d="M10 3L5 8l5 5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ChevronRight = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" width={13} height={13}>
+    <path d="M6 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 const SECTIONS = [
   {
@@ -50,6 +62,16 @@ const TutorSidebar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('sidebar_collapsed') === 'true'
+  );
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem('sidebar_collapsed', String(next));
+  };
+
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : 'T';
@@ -59,17 +81,25 @@ const TutorSidebar = () => {
     (path !== '/tutor/dashboard' && location.pathname.startsWith(path));
 
   return (
-    <div className="app-sidebar">
-      {/* Logo */}
-      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+    <div className={collapsed ? 'app-sidebar collapsed' : 'app-sidebar'}>
+      {/* Logo row */}
+      <div className="sidebar-logo">
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-          <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%' }} />
-          <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
+          <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }} />
+          <span className="sidebar-text" style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
         </Link>
+        <button className="sidebar-toggle" onClick={toggleCollapsed} title="Collapse sidebar">
+          <ChevronLeft />
+        </button>
       </div>
 
       {/* Nav */}
       <nav className="sidebar-nav">
+        {/* Expand button — only visible when collapsed */}
+        <button className="sidebar-expand-btn" onClick={toggleCollapsed} title="Expand sidebar">
+          <ChevronRight />
+        </button>
+
         {SECTIONS.map((section) => (
           <div key={section.label}>
             <div className="sidebar-group-label">{section.label}</div>
@@ -80,9 +110,10 @@ const TutorSidebar = () => {
                   key={item.path}
                   to={item.path}
                   className={`sidebar-link${active ? ' active' : ''}`}
+                  title={collapsed ? item.label : undefined}
                 >
                   <Icon name={item.icon} active={active} />
-                  {item.label}
+                  <span className="sidebar-text">{item.label}</span>
                 </Link>
               );
             })}
@@ -93,36 +124,40 @@ const TutorSidebar = () => {
       {/* User */}
       <div className="sidebar-user">
         <div className="sidebar-user-row">
-          <div className="sidebar-avatar">{initials}</div>
-          <div style={{ minWidth: 0 }}>
+          <div className="sidebar-avatar" title={collapsed ? (user?.name || 'Tutor') : undefined}>{initials}</div>
+          <div className="sidebar-text" style={{ minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Tutor'}</p>
             <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Tutor</p>
           </div>
         </div>
 
-        <Link
-          to="/tutor/public-profile"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--muted)', textDecoration: 'none', transition: 'background var(--t-fast)', marginBottom: 2 }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <Icon name="link" />
-          Public profile
-        </Link>
+        {!collapsed && (
+          <>
+            <Link
+              to="/tutor/public-profile"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--muted)', textDecoration: 'none', transition: 'background var(--t-fast)', marginBottom: 2 }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Icon name="link" />
+              Public profile
+            </Link>
 
-        <Link
-          to="/tutor/courses/new"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', background: 'var(--accent-soft)', marginBottom: 6, transition: 'background var(--t-fast)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.15)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'var(--accent-soft)'}
-        >
-          <Icon name="plus" />
-          New course
-        </Link>
+            <Link
+              to="/tutor/courses/new"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', background: 'var(--accent-soft)', marginBottom: 6, transition: 'background var(--t-fast)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--accent-soft)'}
+            >
+              <Icon name="plus" />
+              New course
+            </Link>
+          </>
+        )}
 
-        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }}>
+        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }} title={collapsed ? 'Log out' : undefined}>
           <Icon name="logout" />
-          Log out
+          <span className="sidebar-text">Log out</span>
         </button>
       </div>
     </div>

@@ -137,7 +137,7 @@ func (s *mediaService) GetDownloadURL(ctx context.Context, callerID, callerRole,
 		return "", "", ErrForbidden
 	}
 
-	url, err := s.storage.PresignDownload(ctx, f.S3Key, time.Hour)
+	url, err := s.storage.PresignDownload(ctx, f.S3Key, 7*24*time.Hour)
 	if err != nil {
 		return "", "", err
 	}

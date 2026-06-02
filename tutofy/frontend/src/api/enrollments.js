@@ -22,4 +22,9 @@ export const enrollmentsAPI = {
     const response = await apiClient.get(`/courses/${courseId}/enrollments`);
     return response.data;
   },
+
+  getEnrollmentCount: async (courseId) => {
+    const response = await apiClient.get(`/courses/${courseId}/enrollment-count`);
+    return response.data.count || 0;
+  },
 };

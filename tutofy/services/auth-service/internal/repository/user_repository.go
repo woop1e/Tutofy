@@ -16,15 +16,15 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) CreateUser(user *model.User) error {
-	query := `INSERT INTO users (id, email, password, name, role) VALUES ($1, $2, $3, $4, $5)`
-	_, err := r.db.Exec(query, user.ID, user.Email, user.Password, user.Name, user.Role)
+	query := `INSERT INTO users (id, email, password, name, role, email_verified) VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err := r.db.Exec(query, user.ID, user.Email, user.Password, user.Name, user.Role, user.EmailVerified)
 	return err
 }
 
 func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
-	query := `SELECT id, email, password, name, role FROM users WHERE email = $1`
-	err := r.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role)
+	query := `SELECT id, email, password, name, role, email_verified FROM users WHERE email = $1`
+	err := r.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.EmailVerified)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -33,12 +33,22 @@ func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 
 func (r *UserRepository) GetUserByID(id string) (*model.User, error) {
 	user := &model.User{}
-	query := `SELECT id, email, password, name, role FROM users WHERE id = $1`
-	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role)
+	query := `SELECT id, email, password, name, role, email_verified FROM users WHERE id = $1`
+	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Email, &user.Password, &user.Name, &user.Role, &user.EmailVerified)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	return user, err
+}
+
+func (r *UserRepository) SetEmailVerified(userID string) error {
+	_, err := r.db.Exec(`UPDATE users SET email_verified = true WHERE id = $1`, userID)
+	return err
+}
+
+func (r *UserRepository) DeleteUser(id string) error {
+	_, err := r.db.Exec(`DELETE FROM users WHERE id = $1`, id)
+	return err
 }
 
 func (r *UserRepository) StoreGoogleToken(userID, accessToken, refreshToken string, expiry time.Time) error {

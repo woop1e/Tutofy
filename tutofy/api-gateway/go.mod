@@ -1,10 +1,11 @@
 module api-gateway
 
-go 1.25.0
+go 1.25.9
 
 require (
 	assignment-service v0.0.0
 	auth-service v0.0.0
+	certificate-service v0.0.0
 	course-service v0.0.0
 	enrollment-service v0.0.0
 	github.com/joho/godotenv v1.5.1
@@ -21,7 +22,6 @@ require (
 	review-service v0.0.0
 	submission-service v0.0.0
 	user-service v0.0.0
-	certificate-service v0.0.0
 )
 
 require (

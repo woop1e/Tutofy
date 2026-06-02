@@ -81,6 +81,26 @@ func CreateMeetLink(accessToken, title string, start time.Time, durationMinutes 
 	return "", "", fmt.Errorf("no video entry point in calendar response")
 }
 
+// DeleteEvent removes a Google Calendar event by ID.
+func DeleteEvent(accessToken, eventID string) error {
+	url := fmt.Sprintf("https://www.googleapis.com/calendar/v3/calendars/primary/events/%s", eventID)
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		raw, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("calendar DELETE error %d: %s", resp.StatusCode, string(raw))
+	}
+	return nil
+}
+
 // UpdateEventSummary updates the summary (title) of an existing Google Calendar event.
 func UpdateEventSummary(accessToken, eventID, newTitle string) error {
 	patch := map[string]interface{}{

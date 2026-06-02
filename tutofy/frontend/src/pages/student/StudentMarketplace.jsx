@@ -29,10 +29,11 @@ const Stars = ({ rating }) => (
 );
 
 const TutorCard = ({ tutor }) => {
-  const navigate  = useNavigate();
-  const color     = avatarColor(tutor.id);
-  const initials  = (tutor.name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  const isMock    = tutor.id?.startsWith('mock-');
+  const navigate   = useNavigate();
+  const color      = avatarColor(tutor.id);
+  const initials   = (tutor.name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const [imgErr, setImgErr] = useState(false);
+  const isMock     = tutor.id?.startsWith('mock-');
   const subjects  = tutor.subjects || [];
   const hasRating = (tutor.avg_rating || 0) > 0;
   const price     = tutor.hourly_price || 0;
@@ -70,9 +71,11 @@ const TutorCard = ({ tutor }) => {
   return (
     <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6 flex gap-5 hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.07)] transition-shadow">
       <div className="flex-shrink-0">
-        <div className="w-[88px] h-[88px] rounded-[14px] flex items-center justify-center text-white text-[28px] font-bold select-none"
+        <div className="w-[88px] h-[88px] rounded-[14px] overflow-hidden flex items-center justify-center text-white text-[28px] font-bold select-none"
           style={{ backgroundColor: color }}>
-          {initials}
+          {tutor.photo_url && !imgErr
+            ? <img src={tutor.photo_url} alt={tutor.name} className="w-full h-full object-cover" onError={() => setImgErr(true)} />
+            : initials}
         </div>
       </div>
 

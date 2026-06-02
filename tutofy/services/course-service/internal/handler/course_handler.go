@@ -92,7 +92,7 @@ func (h *CourseHandler) UpdateCourse(ctx context.Context, req *coursepb.UpdateCo
 	callerRole := middleware.RoleFromContext(ctx)
 
 	course, err := h.svc.UpdateCourse(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetDescription(),
-		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline(),
+		req.GetCourseType(), req.GetPrice(), req.GetMaxStudents(), req.GetEnrollmentDeadline(),
 		req.GetTotalLessons(), req.GetTotalWeeks(), req.GetReleaseType(),
 		req.GetStartDate(), req.GetEndDate())
 	if err != nil {

@@ -1,6 +1,7 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
 COPY auth-service/ ./auth-service/
+COPY user-service/ ./user-service/
 COPY notification-service/ ./notification-service/
 WORKDIR /app/notification-service
 RUN n=0; until GONOSUMDB=* GODEBUG=http2client=0 go mod download; do n=$((n+1)); [ $n -ge 5 ] && exit 1; echo "retry $n..."; sleep 15; done

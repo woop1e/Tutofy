@@ -30,6 +30,7 @@ type EnrollmentService interface {
 	GetUserEnrollments(ctx context.Context, callerID, callerRole, userID string) ([]*model.Enrollment, error)
 	GetCourseEnrollments(ctx context.Context, callerRole, courseID string) ([]*model.Enrollment, error)
 	UnenrollUser(ctx context.Context, callerID, callerRole, userID, courseID string) error
+	CountEnrollments(ctx context.Context, courseID string) (int64, error)
 	// Enrollment request flow (student requests → tutor approves → student pays → enrolled)
 	RequestEnrollment(ctx context.Context, callerID, callerRole, courseID string) (*model.EnrollmentRequest, error)
 	GetCourseEnrollmentRequests(ctx context.Context, callerID, callerRole, courseID string) ([]*model.EnrollmentRequest, error)
@@ -87,16 +88,8 @@ func (s *enrollmentService) EnrollUser(ctx context.Context, callerID, callerRole
 		}
 	}
 
-	// If the course has a price, require an approved enrollment request first, then payment.
+	// If the course has a price, require payment.
 	if course.GetPrice() > 0 {
-		approved, err := s.repo.HasApprovedRequest(ctx, callerID, courseID)
-		if err != nil {
-			return nil, errors.New("could not verify enrollment approval")
-		}
-		if !approved {
-			return nil, ErrApprovalRequired
-		}
-
 		resp, err := s.paymentClient.CheckCoursePayment(outCtx, &paymentpb.CheckCoursePaymentRequest{
 			UserId:   callerID,
 			CourseId: courseID,
@@ -152,6 +145,10 @@ func (s *enrollmentService) GetCourseEnrollments(ctx context.Context, callerRole
 		return nil, ErrForbidden
 	}
 	return s.repo.GetEnrollmentsByCourse(ctx, courseID)
+}
+
+func (s *enrollmentService) CountEnrollments(ctx context.Context, courseID string) (int64, error) {
+	return s.repo.CountEnrollments(ctx, courseID)
 }
 
 func (s *enrollmentService) RequestEnrollment(ctx context.Context, callerID, callerRole, courseID string) (*model.EnrollmentRequest, error) {

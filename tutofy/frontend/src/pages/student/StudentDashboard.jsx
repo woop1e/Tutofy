@@ -309,7 +309,7 @@ const StudentDashboard = () => {
               </div>
               <Link to="/marketplace"
                 style={{ background: '#fff', color: 'var(--accent)', fontSize: 13, fontWeight: 700, padding: '9px 18px', borderRadius: 'var(--r-md)', textDecoration: 'none', flexShrink: 0 }}>
-                Find a tutor ←'
+                Find a tutor →
               </Link>
             </div>
           )}
@@ -380,7 +380,7 @@ const StudentDashboard = () => {
                 </p>
                 {noLearning && (
                   <Link to="/marketplace" style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginTop: 4, display: 'block' }}>
-                    Browse tutors ←'
+                    Browse tutors →
                   </Link>
                 )}
               </div>
@@ -484,7 +484,7 @@ const StudentDashboard = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Active learning</h2>
                 <Link to="/student/courses" style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-                  View all ←'
+                  View all →
                 </Link>
               </div>
 
@@ -497,7 +497,7 @@ const StudentDashboard = () => {
                   </div>
                   <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 12 }}>No active learning yet</p>
                   <Link to="/marketplace" style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-                    Browse tutors ←'
+                    Browse tutors →
                   </Link>
                 </div>
               ) : (
@@ -639,7 +639,7 @@ const StudentDashboard = () => {
                     );
                   })}
                   <Link to="/student/assignments" style={{ display: 'block', textAlign: 'center', fontSize: 12, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', marginTop: 12 }}>
-                    View all homework ←'
+                    View all homework →
                   </Link>
                 </div>
               )}

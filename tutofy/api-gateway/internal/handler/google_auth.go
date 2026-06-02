@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"auth-service/proto/authpb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // GoogleAuthHandler handles Google OAuth2 connect/callback for tutors.
@@ -106,4 +108,24 @@ func (h *GoogleAuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintln(w, "Google account connected successfully. You can close this window.")
+}
+
+// Status returns {"connected": true/false} for the authenticated caller.
+func (h *GoogleAuthHandler) Status(w http.ResponseWriter, r *http.Request) {
+	callerID := userIDFromToken(r)
+	if callerID == "" {
+		jsonResp(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	_, err := h.authClient.GetGoogleToken(r.Context(), &authpb.GetGoogleTokenRequest{UserId: callerID})
+	if err != nil {
+		st, _ := status.FromError(err)
+		if st.Code() == codes.NotFound {
+			jsonResp(w, http.StatusOK, map[string]bool{"connected": false})
+			return
+		}
+		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "could not check status"})
+		return
+	}
+	jsonResp(w, http.StatusOK, map[string]bool{"connected": true})
 }

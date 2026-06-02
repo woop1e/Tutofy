@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../api/auth';
 import { mediaAPI } from '../../api/media';
 import { usersAPI } from '../../api/users';
+import CheckEmailScreen from './CheckEmailScreen';
 
 /* ─── helpers ─────────────────────────────────────────── */
 function pwStrength(pw) {
@@ -50,9 +51,10 @@ const RegisterTutor = () => {
   const [errors,   setErrors]   = useState({});
   const [touched,  setTouched]  = useState({});
   const [stepErr,  setStepErr]  = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [apiErr,   setApiErr]   = useState('');
-  const [done,     setDone]     = useState(false);
+  const [loading,     setLoading]     = useState(false);
+  const [apiErr,      setApiErr]      = useState('');
+  const [done,        setDone]        = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
 
   const fileRef    = useRef(null);
   const { login, user } = useAuth();
@@ -124,6 +126,21 @@ const RegisterTutor = () => {
           password: form.password,
           role:     'tutor',
         });
+
+        if (res.needs_verification) {
+          localStorage.setItem('pendingVerify', JSON.stringify({
+            name:       form.name.trim(),
+            email:      form.email,
+            role:       'tutor',
+            bio:        form.bio.trim(),
+            subjects,
+            experience: parseInt(form.experience, 10) || 0,
+            hourlyRate: parseFloat(form.hourlyRate) || 0,
+          }));
+          setVerifyEmail(form.email);
+          return;
+        }
+
         login(res.token, form.name.trim());
 
         /* update tutor profile (non-blocking if it fails) */
@@ -184,6 +201,8 @@ const RegisterTutor = () => {
     { title: 'Create your account',       sub: 'Almost there — set up your login credentials.'                                  },
     { title: 'Your credentials',          sub: 'Upload a certificate or qualification to build student trust. This is optional.' },
   ];
+
+  if (verifyEmail) return <CheckEmailScreen email={verifyEmail} />;
 
   /* ── success screen ── */
   if (done) return (

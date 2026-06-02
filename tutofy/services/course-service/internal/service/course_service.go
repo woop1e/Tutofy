@@ -22,7 +22,7 @@ type CourseService interface {
 	CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
 	GetCourse(ctx context.Context, id string) (*model.Course, error)
 	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
-	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
+	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error)
 	PublishCourse(ctx context.Context, callerID, callerRole, courseID string) (*model.Course, error)
 	SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error)
 	DeleteCourse(ctx context.Context, callerID, callerRole, courseID string) error
@@ -96,7 +96,7 @@ func (s *courseService) GetAllCourses(ctx context.Context, limit, offset int32) 
 	return s.repo.GetAllCourses(ctx, limit, offset)
 }
 
-func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error) {
+func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string) (*model.Course, error) {
 	course, err := s.repo.GetCourseByID(ctx, courseID)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, 
 	if releaseType == "" {
 		releaseType = course.ReleaseType
 	}
-	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description, courseType, maxStudents, enrollmentDeadline, totalLessons, totalWeeks, releaseType, startDate, endDate)
+	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description, courseType, price, maxStudents, enrollmentDeadline, totalLessons, totalWeeks, releaseType, startDate, endDate)
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "course:"+courseID).Err()
 	}

@@ -1,14 +1,25 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
+	"auth-service/proto/authpb"
+	"notification-service/proto/notificationpb"
 	"user-service/proto/userpb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type UserHandler struct{ client userpb.UserServiceClient }
+type UserHandler struct {
+	client      userpb.UserServiceClient
+	auth        authpb.AuthServiceClient
+	notifClient notificationpb.NotificationServiceClient
+}
 
-func NewUserHandler(c userpb.UserServiceClient) *UserHandler { return &UserHandler{c} }
+func NewUserHandler(c userpb.UserServiceClient, auth authpb.AuthServiceClient, nc notificationpb.NotificationServiceClient) *UserHandler {
+	return &UserHandler{client: c, auth: auth, notifClient: nc}
+}
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.client.GetUser(tokenCtx(r), &userpb.GetUserRequest{UserId: r.PathValue("id")})
@@ -46,11 +57,14 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	_, err := h.client.DeleteUser(tokenCtx(r), &userpb.DeleteUserRequest{UserId: r.PathValue("id")})
+	id := r.PathValue("id")
+	_, err := h.client.DeleteUser(tokenCtx(r), &userpb.DeleteUserRequest{UserId: id})
 	if err != nil {
 		errResp(w, err)
 		return
 	}
+	// Also delete from auth-service so the user can no longer log in.
+	_, _ = h.auth.DeleteUser(tokenCtx(r), &authpb.DeleteUserRequest{UserId: id})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -78,8 +92,9 @@ func (h *UserHandler) UpdateTutorProfile(w http.ResponseWriter, r *http.Request)
 		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 		return
 	}
-	resp, err := h.client.UpdateTutorProfile(tokenCtx(r), &userpb.UpdateTutorProfileRequest{
-		UserId:             r.PathValue("id"),
+	uid := r.PathValue("id")
+	req := &userpb.UpdateTutorProfileRequest{
+		UserId:             uid,
 		Bio:                body.Bio,
 		Age:                body.Age,
 		Location:           body.Location,
@@ -97,10 +112,26 @@ func (h *UserHandler) UpdateTutorProfile(w http.ResponseWriter, r *http.Request)
 		AvailableTimeStart: body.AvailableTimeStart,
 		AvailableTimeEnd:   body.AvailableTimeEnd,
 		Timezone:           body.Timezone,
-	})
+	}
+	resp, err := h.client.UpdateTutorProfile(tokenCtx(r), req)
 	if err != nil {
-		errResp(w, err)
-		return
+		st, _ := status.FromError(err)
+		if st.Code() == codes.NotFound {
+			// User exists in auth-service but not in user-service — auto-create the record and retry.
+			if info, infoErr := h.auth.GetUserInfo(r.Context(), &authpb.GetUserInfoRequest{UserId: uid}); infoErr == nil {
+				_, _ = h.client.CreateUser(tokenCtx(r), &userpb.CreateUserRequest{
+					Id:    info.GetUserId(),
+					Email: info.GetEmail(),
+					Name:  info.GetName(),
+					Role:  info.GetRole(),
+				})
+				resp, err = h.client.UpdateTutorProfile(tokenCtx(r), req)
+			}
+		}
+		if err != nil {
+			errResp(w, err)
+			return
+		}
 	}
 	jsonResp(w, http.StatusOK, resp)
 }
@@ -115,19 +146,39 @@ func (h *UserHandler) GetTutorProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) ApproveTutor(w http.ResponseWriter, r *http.Request) {
-	_, err := h.client.ApproveTutor(tokenCtx(r), &userpb.ApproveTutorRequest{TutorId: r.PathValue("id")})
+	tutorID := r.PathValue("id")
+	_, err := h.client.ApproveTutor(tokenCtx(r), &userpb.ApproveTutorRequest{TutorId: tutorID})
 	if err != nil {
 		errResp(w, err)
 		return
+	}
+	if h.notifClient != nil {
+		go func() {
+			_, _ = h.notifClient.NotifyUser(context.Background(), &notificationpb.NotifyUserRequest{
+				UserId:  tutorID,
+				Type:    13, // NOTIFICATION_TYPE_TUTOR_APPROVED
+				Message: "Congratulations! Your tutor profile has been approved. You can now receive bookings from students.",
+			})
+		}()
 	}
 	jsonResp(w, http.StatusOK, map[string]string{"status": "approved"})
 }
 
 func (h *UserHandler) RejectTutor(w http.ResponseWriter, r *http.Request) {
-	_, err := h.client.RejectTutor(tokenCtx(r), &userpb.RejectTutorRequest{TutorId: r.PathValue("id")})
+	tutorID := r.PathValue("id")
+	_, err := h.client.RejectTutor(tokenCtx(r), &userpb.RejectTutorRequest{TutorId: tutorID})
 	if err != nil {
 		errResp(w, err)
 		return
+	}
+	if h.notifClient != nil {
+		go func() {
+			_, _ = h.notifClient.NotifyUser(context.Background(), &notificationpb.NotifyUserRequest{
+				UserId:  tutorID,
+				Type:    14, // NOTIFICATION_TYPE_TUTOR_REJECTED
+				Message: "Your tutor profile application was not approved at this time. Please review your profile information and resubmit for review.",
+			})
+		}()
 	}
 	jsonResp(w, http.StatusOK, map[string]string{"status": "rejected"})
 }

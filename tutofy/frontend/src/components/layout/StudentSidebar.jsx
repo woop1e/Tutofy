@@ -23,6 +23,18 @@ const Icon = ({ name, size = 16, active }) => {
   return icons[name] || null;
 };
 
+const ChevronLeft = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" width={13} height={13}>
+    <path d="M10 3L5 8l5 5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ChevronRight = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" width={13} height={13}>
+    <path d="M6 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const SECTIONS = [
   {
     label: 'Learn',
@@ -59,9 +71,18 @@ const StudentSidebar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('sidebar_collapsed') === 'true'
+  );
   const [courses, setCourses] = useState([]);
   const [open, setOpen]       = useState(false);
   const [loaded, setLoaded]   = useState(false);
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem('sidebar_collapsed', String(next));
+  };
 
   const onCoursesSection = location.pathname.startsWith('/student/courses');
   const activeCourseId   = (() => {
@@ -101,23 +122,32 @@ const StudentSidebar = () => {
   };
 
   return (
-    <div className="app-sidebar">
-      {/* Logo */}
+    <div className={collapsed ? 'app-sidebar collapsed' : 'app-sidebar'}>
+      {/* Logo row */}
       <div className="sidebar-logo">
         <Link to="/">
-          <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%' }} />
-          <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
+          <img src="/logo.svg" alt="tutofy" style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }} />
+          <span className="sidebar-text" style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>tutofy</span>
         </Link>
+        <button className="sidebar-toggle" onClick={toggleCollapsed} title="Collapse sidebar">
+          <ChevronLeft />
+        </button>
       </div>
 
       {/* Nav */}
       <nav className="sidebar-nav">
+        {/* Expand button — only visible when collapsed */}
+        <button className="sidebar-expand-btn" onClick={toggleCollapsed} title="Expand sidebar">
+          <ChevronRight />
+        </button>
+
         {SECTIONS.map((section) => (
           <div key={section.label}>
             <div className="sidebar-group-label">{section.label}</div>
             {section.items.map((item) => {
               const active = isActive(item.path);
-              if (item.expandable) {
+
+              if (item.expandable && !collapsed) {
                 return (
                   <div key={item.path}>
                     <div style={{ display: 'flex', alignItems: 'center', borderRadius: 'var(--r-md)', background: onCoursesSection ? 'var(--surface-hover)' : 'transparent' }}>
@@ -166,14 +196,16 @@ const StudentSidebar = () => {
                   </div>
                 );
               }
+
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={`sidebar-link${active ? ' active' : ''}`}
+                  title={collapsed ? item.label : undefined}
                 >
                   <Icon name={item.icon} active={active} />
-                  {item.label}
+                  <span className="sidebar-text">{item.label}</span>
                 </Link>
               );
             })}
@@ -184,16 +216,16 @@ const StudentSidebar = () => {
       {/* User */}
       <div className="sidebar-user">
         <div className="sidebar-user-row">
-          <div className="sidebar-avatar">{initials}</div>
-          <div style={{ minWidth: 0 }}>
+          <div className="sidebar-avatar" title={collapsed ? (user?.name || 'Student') : undefined}>{initials}</div>
+          <div className="sidebar-text" style={{ minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Student'}</p>
             <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Student</p>
           </div>
         </div>
 
-        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }}>
+        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }} title={collapsed ? 'Log out' : undefined}>
           <Icon name="logout" />
-          Log out
+          <span className="sidebar-text">Log out</span>
         </button>
       </div>
     </div>

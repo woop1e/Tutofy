@@ -101,3 +101,12 @@ func (h *EnrollmentHandler) RejectEnrollmentRequest(w http.ResponseWriter, r *ht
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *EnrollmentHandler) CountEnrollments(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.client.CountEnrollments(tokenCtx(r), &enrollmentpb.CourseRequest{CourseId: r.PathValue("id")})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, map[string]int64{"count": resp.GetCount()})
+}

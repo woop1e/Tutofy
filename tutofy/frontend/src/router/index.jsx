@@ -13,6 +13,7 @@ import TutorProfile from '../pages/public/TutorProfile';
 import Login from '../pages/auth/Login';
 import RegisterStudent from '../pages/auth/RegisterStudent';
 import RegisterTutor from '../pages/auth/RegisterTutor';
+import VerifyEmail from '../pages/auth/VerifyEmail';
 import StudentDashboard from '../pages/student/StudentDashboard';
 import MyCourses from '../pages/student/MyCourses';
 import CourseView from '../pages/student/CourseView';
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
   { path: '/login',             element: <Login /> },
   { path: '/register',          element: <RegisterStudent /> },
   { path: '/become-tutor',      element: <RegisterTutor /> },
+  { path: '/verify-email',      element: <VerifyEmail /> },
 
   { path: '/payment',                                element: p(<PaymentPage />) },
 

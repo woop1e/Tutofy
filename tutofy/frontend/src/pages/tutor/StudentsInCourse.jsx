@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
+import { usersAPI } from '../../api/users';
 
 const StudentsInCourse = () => {
   const { isAuthenticated, role, user } = useAuth();
@@ -24,10 +25,19 @@ const StudentsInCourse = () => {
     if (!id) return;
     Promise.all([
       coursesAPI.getCourseById(id).catch(() => null),
-      enrollmentsAPI.getCourseEnrollments(id).catch(() => []),
-    ]).then(([courseData, enrData]) => {
-      setCourse(courseData);
-      setEnrollments(Array.isArray(enrData) ? enrData : []);
+      enrollmentsAPI.getCourseEnrollments(id).catch(() => ({})),
+    ]).then(async ([courseData, enrData]) => {
+      setCourse(courseData?.course || courseData);
+      const list = Array.isArray(enrData) ? enrData : enrData?.enrollments || [];
+      const withNames = await Promise.all(list.map(async (e) => {
+        try {
+          const u = await usersAPI.getUserById(e.user_id);
+          return { ...e, student_name: u?.name || e.user_id, email: u?.email || '' };
+        } catch {
+          return e;
+        }
+      }));
+      setEnrollments(withNames);
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -79,7 +89,7 @@ const StudentsInCourse = () => {
               ) : (
                 <div className="divide-y divide-border">
                   {enrollments.map((enr, i) => {
-                    const name = enr.student_name || `Student ${i + 1}`;
+                    const name = enr.student_name || enr.user_id || `Student ${i + 1}`;
                     const progress = enr.progress || 0;
                     return (
                       <div key={enr.id || i} className="flex items-center gap-4 px-6 py-4 hover:bg-surface transition-colors">

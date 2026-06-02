@@ -517,7 +517,7 @@ const Messages = () => {
                   {sending ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <span className="text-white text-[18px] font-bold">←'</span>
+                    <span className="text-white text-[18px] font-bold">→</span>
                   )}
                 </button>
               </div>

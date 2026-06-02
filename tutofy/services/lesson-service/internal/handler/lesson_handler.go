@@ -127,7 +127,7 @@ func (h *LessonHandler) DeleteLesson(ctx context.Context, req *lessonpb.DeleteLe
 // --- helpers ---
 
 func toProto(l *model.Lesson) *lessonpb.Lesson {
-	return &lessonpb.Lesson{
+	lesson := &lessonpb.Lesson{
 		Id:              l.ID,
 		CourseId:        l.CourseID,
 		TutorId:         l.TutorID,
@@ -139,6 +139,10 @@ func toProto(l *model.Lesson) *lessonpb.Lesson {
 		Status:          modelStatusToProto(l.Status),
 		Price:           l.Price,
 	}
+	if !l.PaymentDeadline.IsZero() {
+		lesson.PaymentDeadline = timestamppb.New(l.PaymentDeadline)
+	}
+	return lesson
 }
 
 func protoStatusToModel(s lessonpb.LessonStatus) model.LessonStatus {

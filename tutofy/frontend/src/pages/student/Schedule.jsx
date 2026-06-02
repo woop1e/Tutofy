@@ -159,7 +159,7 @@ const Schedule = () => {
                 onClick={() => setWeekOffset((o) => o + 1)}
                 className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-body hover:text-primary transition-colors"
               >
-                ←'
+                →
               </button>
             </div>
           </div>
@@ -201,8 +201,13 @@ const Schedule = () => {
                   const isPlanned       = statusRaw.includes('planned')  || statusNum === 1;
                   const isExpired       = statusNum === 6;
 
-                  // Compute payment deadline client-side: scheduledAt − 3 hours
-                  const payDeadline = start ? new Date(start.getTime() - 3 * 60 * 60 * 1000) : null;
+                  const payDeadline = lesson.payment_deadline
+                    ? new Date(
+                        typeof lesson.payment_deadline === 'object' && lesson.payment_deadline.seconds
+                          ? lesson.payment_deadline.seconds * 1000
+                          : lesson.payment_deadline
+                      )
+                    : null;
                   const msLeft = payDeadline ? payDeadline.getTime() - Date.now() : null;
                   const hoursLeft = msLeft !== null ? Math.floor(msLeft / 3600000) : null;
                   const minsLeft  = msLeft !== null ? Math.floor((msLeft % 3600000) / 60000) : null;

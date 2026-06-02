@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../api/auth';
+import CheckEmailScreen from './CheckEmailScreen';
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [formData,     setFormData]     = useState({ email: '', password: '' });
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState('');
+  const [verifyEmail,  setVerifyEmail]  = useState('');
   const { login } = useAuth();
   const navigate  = useNavigate();
 
@@ -29,11 +31,18 @@ const Login = () => {
         navigate(redirect || '/student/dashboard', { replace: true });
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      const code = err.response?.data?.code;
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        setVerifyEmail(formData.email);
+        return;
+      }
+      setError(err.response?.data?.error || err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (verifyEmail) return <CheckEmailScreen email={verifyEmail} />;
 
   return (
     <div className="page-fade" style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>

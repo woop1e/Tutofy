@@ -265,7 +265,7 @@ function LessonDetailModal({ lesson, onSave, onClose }) {
             {link && (
               <a href={link} target="_blank" rel="noreferrer"
                 className="block text-center text-[12px] font-semibold text-[#22be70] border border-[#22be70]/30 rounded-[8px] py-2 mb-3 hover:bg-[#22be70]/5 transition-colors">
-                Open link ←'
+                Open link →
               </a>
             )}
             <div className="flex gap-2">

@@ -70,7 +70,8 @@ const Landing = () => {
   ];
 
   const displayTutors = (!loading && enrichedTutors.length > 0) ? enrichedTutors : fallback;
-  const dashLink = isAuthenticated ? (role === 'tutor' ? '/tutor/dashboard' : '/student/dashboard') : null;
+  const dashLink = isAuthenticated ? (role === 'tutor' ? '/tutor/dashboard' : role === 'admin' ? '/admin/dashboard' : '/tutors') : null;
+  const dashLabel = role === 'student' ? 'Find tutors →' : 'Dashboard →';
 
   /* shared inner container style */
   const section = { maxWidth: 1200, margin: '0 auto', padding: '0 40px', width: '100%' };
@@ -108,7 +109,7 @@ const Landing = () => {
               <>
                 <Link to="/tutors" style={{ color: 'var(--text-2)', fontSize: 13, fontWeight: 500, textDecoration: 'none', padding: '7px 12px' }}>Find tutors</Link>
                 <Link to={dashLink} style={{ background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 'var(--r-md)', textDecoration: 'none' }}>
-                  Dashboard →
+                  {dashLabel}
                 </Link>
               </>
             ) : (
@@ -294,7 +295,7 @@ const Landing = () => {
               <h2 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>Start learning today</h2>
               <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.75)' }}>Risk-free trial lesson. Cancel anytime.</p>
             </div>
-            <Link to="/register"
+            <Link to={isAuthenticated && role === 'student' ? '/tutors' : '/register'}
               style={{ background: '#fff', color: 'var(--accent)', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 'var(--r-lg)', textDecoration: 'none', flexShrink: 0, transition: 'opacity var(--t-fast)' }}
               onMouseEnter={e => e.currentTarget.style.opacity='.9'}
               onMouseLeave={e => e.currentTarget.style.opacity='1'}>

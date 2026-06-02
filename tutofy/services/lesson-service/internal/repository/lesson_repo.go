@@ -30,7 +30,7 @@ type LessonRepository interface {
 	GetStudentLessons(ctx context.Context, studentID string) ([]*model.Lesson, error)
 	GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error)
 	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
-	ExpireOverduePayments(ctx context.Context) (int64, error)
+	ExpireOverduePayments(ctx context.Context) ([]*model.Lesson, error)
 }
 
 type postgresRepo struct {
@@ -156,16 +156,26 @@ func (r *postgresRepo) SetCalendarEventID(ctx context.Context, lessonID, calenda
 	return err
 }
 
-func (r *postgresRepo) ExpireOverduePayments(ctx context.Context) (int64, error) {
-	res, err := r.db.ExecContext(ctx,
+func (r *postgresRepo) ExpireOverduePayments(ctx context.Context) ([]*model.Lesson, error) {
+	rows, err := r.db.QueryContext(ctx,
 		`UPDATE lessons SET status = $1
-		 WHERE status = $2 AND payment_deadline IS NOT NULL AND payment_deadline < NOW() AND deleted_at IS NULL`,
+		 WHERE status = $2 AND payment_deadline IS NOT NULL AND payment_deadline < NOW() AND deleted_at IS NULL
+		 RETURNING `+lessonColumns,
 		int32(model.LessonStatusPaymentExpired), int32(model.LessonStatusAwaitingPayment),
 	)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return res.RowsAffected()
+	defer rows.Close()
+	var lessons []*model.Lesson
+	for rows.Next() {
+		l, err := scanLessonRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		lessons = append(lessons, l)
+	}
+	return lessons, rows.Err()
 }
 
 func (r *postgresRepo) DeleteLesson(ctx context.Context, id string) error {
@@ -330,8 +340,9 @@ func (r *postgresRepo) GetStudentLessons(ctx context.Context, studentID string) 
 		`SELECT `+lessonColumns+`
 		 FROM lessons
 		 WHERE student_id = $1 AND course_id = '' AND deleted_at IS NULL
+		   AND status NOT IN ($2, $3)
 		 ORDER BY scheduled_at ASC`,
-		studentID,
+		studentID, int32(model.LessonStatusPaymentExpired), int32(model.LessonStatusCancelled),
 	)
 	if err != nil {
 		return nil, err
@@ -360,8 +371,9 @@ func (r *postgresRepo) GetTutorIndividualLessons(ctx context.Context, tutorID st
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT `+lessonColumns+` FROM lessons
 		 WHERE tutor_id = $1 AND course_id = '' AND deleted_at IS NULL
+		   AND status NOT IN ($2, $3)
 		 ORDER BY scheduled_at DESC`,
-		tutorID,
+		tutorID, int32(model.LessonStatusPaymentExpired), int32(model.LessonStatusCancelled),
 	)
 	if err != nil {
 		return nil, err
@@ -384,10 +396,11 @@ func (r *postgresRepo) GetTutorIndividualLessons(ctx context.Context, tutorID st
 func (r *postgresRepo) GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT scheduled_at FROM lessons
-		 WHERE tutor_id = $1 AND course_id = '' AND deleted_at IS NULL AND status != $2
-		 AND scheduled_at > NOW()
+		 WHERE tutor_id = $1 AND course_id = '' AND deleted_at IS NULL
+		   AND status NOT IN ($2, $3)
+		   AND scheduled_at > NOW()
 		 ORDER BY scheduled_at ASC`,
-		tutorID, int32(model.LessonStatusCancelled),
+		tutorID, int32(model.LessonStatusCancelled), int32(model.LessonStatusPaymentExpired),
 	)
 	if err != nil {
 		return nil, err

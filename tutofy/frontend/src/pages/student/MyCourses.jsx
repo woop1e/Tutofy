@@ -224,7 +224,7 @@ const MyCourses = () => {
               </p>
               <Link to="/tutors"
                 className="inline-block bg-[#0d9488] text-white font-semibold text-[14px] px-6 py-3 rounded-[10px] hover:bg-[#0f766e] transition-colors">
-                Find a Tutor ←'
+                Find a Tutor →
               </Link>
             </div>
           ) : (
@@ -404,7 +404,7 @@ const MyCourses = () => {
                           <Link to="/tutors"
                             className="flex-1 text-center text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors"
                             style={{ backgroundColor: 'rgba(147,91,245,0.08)', color }}>
-                            Book lesson ←'
+                            Book lesson →
                           </Link>
                         </div>
                       </div>
@@ -423,7 +423,7 @@ const MyCourses = () => {
                   </p>
                   {tab !== 'completed' && (
                     <Link to="/tutors" className="text-[#0d9488] text-[13px] font-semibold hover:underline">
-                      Find a tutor ←'
+                      Find a tutor →
                     </Link>
                   )}
                 </div>
@@ -440,7 +440,7 @@ const MyCourses = () => {
               </div>
               <Link to="/tutors"
                 className="bg-white text-[#0d9488] font-bold text-[13px] px-5 py-2.5 rounded-[10px] hover:bg-gray-50 transition-colors flex-shrink-0">
-                Find a Tutor ←'
+                Find a Tutor →
               </Link>
             </div>
           )}

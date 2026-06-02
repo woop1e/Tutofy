@@ -485,6 +485,7 @@ const Marketplace = () => {
 const TutorCard = ({ tutor, isMock, isAuthenticated, onProtectedAction }) => {
   const color    = avatarColor(tutor.id);
   const initials = (tutor.name || '??').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+  const [imgErr, setImgErr] = useState(false);
   const subjects = tutor.subjects || [];
   const bio      = tutor.bio || '';
   const hasRating = (tutor.avg_rating || 0) > 0;
@@ -527,14 +528,11 @@ const TutorCard = ({ tutor, isMock, isAuthenticated, onProtectedAction }) => {
 
       {/* Avatar */}
       <div className="flex-shrink-0">
-        {tutor.photo_url ? (
-          <img src={tutor.photo_url} alt={tutor.name}
-            className="w-[88px] h-[88px] rounded-[14px] object-cover"
-            onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
-        ) : null}
-        <div className="w-[88px] h-[88px] rounded-[14px] items-center justify-center text-white text-[28px] font-bold select-none"
-          style={{ backgroundColor: color, display: tutor.photo_url ? 'none' : 'flex' }}>
-          {initials}
+        <div className="w-[88px] h-[88px] rounded-[14px] overflow-hidden flex items-center justify-center text-white text-[28px] font-bold select-none"
+          style={{ backgroundColor: color }}>
+          {tutor.photo_url && !imgErr
+            ? <img src={tutor.photo_url} alt={tutor.name} className="w-full h-full object-cover" onError={() => setImgErr(true)} />
+            : initials}
         </div>
       </div>
 

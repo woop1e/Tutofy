@@ -31,14 +31,14 @@ const Assignments = () => {
 
   const [assignments, setAssignments]   = useState([]);
   const [courseMap, setCourseMap]       = useState({});
-  const [submissions, setSubmissions]   = useState({});   // assignmentId ←' submission
+  const [submissions, setSubmissions]   = useState({});   // assignmentId → submission
   const [loading, setLoading]           = useState(true);
   const [filter, setFilter]             = useState('pending');
   const [submitting, setSubmitting]     = useState(null);
   const [textInput, setTextInput]       = useState({});
-  const [fileInput, setFileInput]       = useState({});   // assignmentId ←' File
+  const [fileInput, setFileInput]       = useState({});   // assignmentId → File
   const [uploadErr, setUploadErr]       = useState({});
-  const [editing, setEditing]           = useState({});   // assignmentId ←' bool
+  const [editing, setEditing]           = useState({});   // assignmentId → bool
   const fileRefs = useRef({});
 
   useEffect(() => {
@@ -291,7 +291,7 @@ const Assignments = () => {
                             {canEdit && (
                               <button onClick={() => startEdit(a.id)}
                                 className="mt-2 text-[12px] text-[#0d9488] font-semibold hover:underline">
-                                Edit submission ←'
+                                Edit submission →
                               </button>
                             )}
                           </div>
@@ -357,7 +357,7 @@ const Assignments = () => {
                               >
                                 {submitting === a.id
                                   ? 'Submitting...'
-                                  : isEditing ? 'Update ←' : 'Submit ←'}
+                                  : isEditing ? 'Update →' : 'Submit →'}
                               </button>
                             </div>
                           </div>
