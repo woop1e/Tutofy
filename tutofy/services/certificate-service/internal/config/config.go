@@ -12,6 +12,8 @@ type Config struct {
 	Port                string
 	AuthServiceAddr     string
 	ProgressServiceAddr string
+	UserServiceAddr     string
+	CourseServiceAddr   string
 }
 
 func Load() *Config {
@@ -29,6 +31,8 @@ func Load() *Config {
 		Port:                port,
 		AuthServiceAddr:     env("AUTH_SERVICE_ADDR", "localhost:50051"),
 		ProgressServiceAddr: env("PROGRESS_SERVICE_ADDR", "localhost:50058"),
+		UserServiceAddr:     env("USER_SERVICE_ADDR", "localhost:50052"),
+		CourseServiceAddr:   env("COURSE_SERVICE_ADDR", "localhost:50053"),
 	}
 }
 

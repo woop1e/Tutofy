@@ -141,7 +141,8 @@ func (s *enrollmentService) UnenrollUser(ctx context.Context, callerID, callerRo
 }
 
 func (s *enrollmentService) GetCourseEnrollments(ctx context.Context, callerRole, courseID string) ([]*model.Enrollment, error) {
-	if callerRole != "tutor" && callerRole != "admin" {
+	// empty role = internal service-to-service call (no auth token)
+	if callerRole != "" && callerRole != "tutor" && callerRole != "admin" {
 		return nil, ErrForbidden
 	}
 	return s.repo.GetEnrollmentsByCourse(ctx, courseID)

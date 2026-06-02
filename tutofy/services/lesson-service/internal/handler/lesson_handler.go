@@ -196,6 +196,25 @@ func mapError(err error) error {
 	}
 }
 
+func (h *LessonHandler) GetCourseAttendanceSummary(ctx context.Context, req *lessonpb.GetCourseAttendanceSummaryRequest) (*lessonpb.CourseAttendanceSummary, error) {
+	if req.GetCourseId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "course_id is required")
+	}
+	summary, err := h.svc.GetCourseAttendanceSummary(ctx, req.GetCourseId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	result := make([]*lessonpb.StudentAttendanceSummary, 0, len(summary))
+	for studentID, counts := range summary {
+		result = append(result, &lessonpb.StudentAttendanceSummary{
+			StudentId: studentID,
+			Attended:  counts[0],
+			Total:     counts[1],
+		})
+	}
+	return &lessonpb.CourseAttendanceSummary{Summaries: result}, nil
+}
+
 func (h *LessonHandler) BookIndividualLesson(ctx context.Context, req *lessonpb.BookIndividualLessonRequest) (*lessonpb.Lesson, error) {
 	if req.GetTutorId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "tutor_id is required")

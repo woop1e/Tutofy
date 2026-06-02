@@ -22,8 +22,10 @@ type CreateCourseRequest struct {
 	TotalLessons        int32   `protobuf:"varint,7,opt,name=total_lessons,json=totalLessons,proto3" json:"total_lessons,omitempty"`
 	TotalWeeks          int32   `protobuf:"varint,8,opt,name=total_weeks,json=totalWeeks,proto3" json:"total_weeks,omitempty"`
 	ReleaseType         string  `protobuf:"bytes,9,opt,name=release_type,json=releaseType,proto3" json:"release_type,omitempty"`
-	StartDate           string  `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	EndDate             string  `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	StartDate               string  `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate                 string  `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	CompletionAttendancePct int32   `protobuf:"varint,12,opt,name=completion_attendance_pct,json=completionAttendancePct,proto3" json:"completion_attendance_pct,omitempty"`
+	CompletionGradePct      int32   `protobuf:"varint,13,opt,name=completion_grade_pct,json=completionGradePct,proto3" json:"completion_grade_pct,omitempty"`
 }
 
 func (x *CreateCourseRequest) Reset()         { *x = CreateCourseRequest{} }
@@ -40,6 +42,8 @@ func (x *CreateCourseRequest) GetTotalWeeks() int32          { return x.TotalWee
 func (x *CreateCourseRequest) GetReleaseType() string        { return x.ReleaseType }
 func (x *CreateCourseRequest) GetStartDate() string          { return x.StartDate }
 func (x *CreateCourseRequest) GetEndDate() string            { return x.EndDate }
+func (x *CreateCourseRequest) GetCompletionAttendancePct() int32 { return x.CompletionAttendancePct }
+func (x *CreateCourseRequest) GetCompletionGradePct() int32      { return x.CompletionGradePct }
 
 type GetCourseRequest struct {
 	state         protoimpl.MessageState
@@ -66,9 +70,11 @@ type UpdateCourseRequest struct {
 	TotalLessons       int32  `protobuf:"varint,7,opt,name=total_lessons,json=totalLessons,proto3" json:"total_lessons,omitempty"`
 	TotalWeeks         int32  `protobuf:"varint,8,opt,name=total_weeks,json=totalWeeks,proto3" json:"total_weeks,omitempty"`
 	ReleaseType        string `protobuf:"bytes,9,opt,name=release_type,json=releaseType,proto3" json:"release_type,omitempty"`
-	StartDate          string  `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	EndDate            string  `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
-	Price              float64 `protobuf:"fixed64,12,opt,name=price,proto3" json:"price,omitempty"`
+	StartDate               string  `protobuf:"bytes,10,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate                 string  `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	Price                   float64 `protobuf:"fixed64,12,opt,name=price,proto3" json:"price,omitempty"`
+	CompletionAttendancePct int32   `protobuf:"varint,13,opt,name=completion_attendance_pct,json=completionAttendancePct,proto3" json:"completion_attendance_pct,omitempty"`
+	CompletionGradePct      int32   `protobuf:"varint,14,opt,name=completion_grade_pct,json=completionGradePct,proto3" json:"completion_grade_pct,omitempty"`
 }
 
 func (x *UpdateCourseRequest) Reset()         { *x = UpdateCourseRequest{} }
@@ -86,6 +92,8 @@ func (x *UpdateCourseRequest) GetReleaseType() string        { return x.ReleaseT
 func (x *UpdateCourseRequest) GetStartDate() string          { return x.StartDate }
 func (x *UpdateCourseRequest) GetEndDate() string            { return x.EndDate }
 func (x *UpdateCourseRequest) GetPrice() float64             { return x.Price }
+func (x *UpdateCourseRequest) GetCompletionAttendancePct() int32 { return x.CompletionAttendancePct }
+func (x *UpdateCourseRequest) GetCompletionGradePct() int32      { return x.CompletionGradePct }
 
 type PublishCourseRequest struct {
 	state         protoimpl.MessageState
@@ -127,27 +135,45 @@ type CourseResponse struct {
 	TotalLessons       int32   `protobuf:"varint,10,opt,name=total_lessons,json=totalLessons,proto3" json:"total_lessons,omitempty"`
 	TotalWeeks         int32   `protobuf:"varint,11,opt,name=total_weeks,json=totalWeeks,proto3" json:"total_weeks,omitempty"`
 	ReleaseType        string  `protobuf:"bytes,12,opt,name=release_type,json=releaseType,proto3" json:"release_type,omitempty"`
-	StartDate          string  `protobuf:"bytes,13,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	EndDate            string  `protobuf:"bytes,14,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	StartDate               string  `protobuf:"bytes,13,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate                 string  `protobuf:"bytes,14,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	CompletionAttendancePct int32   `protobuf:"varint,15,opt,name=completion_attendance_pct,json=completionAttendancePct,proto3" json:"completion_attendance_pct"`
+	CompletionGradePct      int32   `protobuf:"varint,16,opt,name=completion_grade_pct,json=completionGradePct,proto3" json:"completion_grade_pct"`
+	CourseStatus            string  `protobuf:"bytes,17,opt,name=course_status,json=courseStatus,proto3" json:"course_status,omitempty"`
 }
 
 func (x *CourseResponse) Reset()         { *x = CourseResponse{} }
 func (x *CourseResponse) String() string  { return x.Id }
 func (x *CourseResponse) ProtoMessage()  {}
-func (x *CourseResponse) GetId() string                  { return x.Id }
-func (x *CourseResponse) GetTitle() string               { return x.Title }
-func (x *CourseResponse) GetDescription() string         { return x.Description }
-func (x *CourseResponse) GetTutorId() string             { return x.TutorId }
-func (x *CourseResponse) GetPrice() float64              { return x.Price }
-func (x *CourseResponse) GetCourseType() string          { return x.CourseType }
-func (x *CourseResponse) GetMaxStudents() int32          { return x.MaxStudents }
-func (x *CourseResponse) GetEnrollmentDeadline() string  { return x.EnrollmentDeadline }
-func (x *CourseResponse) GetIsPublished() bool           { return x.IsPublished }
-func (x *CourseResponse) GetTotalLessons() int32         { return x.TotalLessons }
-func (x *CourseResponse) GetTotalWeeks() int32           { return x.TotalWeeks }
-func (x *CourseResponse) GetReleaseType() string         { return x.ReleaseType }
-func (x *CourseResponse) GetStartDate() string           { return x.StartDate }
-func (x *CourseResponse) GetEndDate() string             { return x.EndDate }
+func (x *CourseResponse) GetId() string                      { return x.Id }
+func (x *CourseResponse) GetTitle() string                   { return x.Title }
+func (x *CourseResponse) GetDescription() string             { return x.Description }
+func (x *CourseResponse) GetTutorId() string                 { return x.TutorId }
+func (x *CourseResponse) GetPrice() float64                  { return x.Price }
+func (x *CourseResponse) GetCourseType() string              { return x.CourseType }
+func (x *CourseResponse) GetMaxStudents() int32              { return x.MaxStudents }
+func (x *CourseResponse) GetEnrollmentDeadline() string      { return x.EnrollmentDeadline }
+func (x *CourseResponse) GetIsPublished() bool               { return x.IsPublished }
+func (x *CourseResponse) GetTotalLessons() int32             { return x.TotalLessons }
+func (x *CourseResponse) GetTotalWeeks() int32               { return x.TotalWeeks }
+func (x *CourseResponse) GetReleaseType() string             { return x.ReleaseType }
+func (x *CourseResponse) GetStartDate() string               { return x.StartDate }
+func (x *CourseResponse) GetEndDate() string                 { return x.EndDate }
+func (x *CourseResponse) GetCompletionAttendancePct() int32  { return x.CompletionAttendancePct }
+func (x *CourseResponse) GetCompletionGradePct() int32       { return x.CompletionGradePct }
+func (x *CourseResponse) GetCourseStatus() string            { return x.CourseStatus }
+
+type CompleteCourseRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	CourseId string `protobuf:"bytes,1,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+}
+
+func (x *CompleteCourseRequest) Reset()             { *x = CompleteCourseRequest{} }
+func (x *CompleteCourseRequest) String() string      { return x.CourseId }
+func (x *CompleteCourseRequest) ProtoMessage()      {}
+func (x *CompleteCourseRequest) GetCourseId() string { return x.CourseId }
 
 type GetAllCoursesRequest struct {
 	state         protoimpl.MessageState
@@ -228,41 +254,23 @@ type CourseServiceServer interface {
 	AddTag(context.Context, *TagRequest) (*Empty, error)
 	RemoveTag(context.Context, *TagRequest) (*Empty, error)
 	GetCoursesByTag(context.Context, *GetCoursesByTagRequest) (*CoursesList, error)
+	CompleteCourse(context.Context, *CompleteCourseRequest) (*CourseResponse, error)
 	mustEmbedUnimplementedCourseServiceServer()
 }
 
 type UnimplementedCourseServiceServer struct{}
 
-func (UnimplementedCourseServiceServer) CreateCourse(context.Context, *CreateCourseRequest) (*CourseResponse, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) GetCourse(context.Context, *GetCourseRequest) (*CourseResponse, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) GetAllCourses(context.Context, *GetAllCoursesRequest) (*CoursesList, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) UpdateCourse(context.Context, *UpdateCourseRequest) (*CourseResponse, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) PublishCourse(context.Context, *PublishCourseRequest) (*CourseResponse, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) SearchCourses(context.Context, *SearchCoursesRequest) (*CoursesList, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) DeleteCourse(context.Context, *DeleteCourseRequest) (*Empty, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) AddTag(context.Context, *TagRequest) (*Empty, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) RemoveTag(context.Context, *TagRequest) (*Empty, error) {
-	return nil, nil
-}
-func (UnimplementedCourseServiceServer) GetCoursesByTag(context.Context, *GetCoursesByTagRequest) (*CoursesList, error) {
-	return nil, nil
-}
+func (UnimplementedCourseServiceServer) CreateCourse(context.Context, *CreateCourseRequest) (*CourseResponse, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) GetCourse(context.Context, *GetCourseRequest) (*CourseResponse, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) GetAllCourses(context.Context, *GetAllCoursesRequest) (*CoursesList, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) UpdateCourse(context.Context, *UpdateCourseRequest) (*CourseResponse, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) PublishCourse(context.Context, *PublishCourseRequest) (*CourseResponse, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) SearchCourses(context.Context, *SearchCoursesRequest) (*CoursesList, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) DeleteCourse(context.Context, *DeleteCourseRequest) (*Empty, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) AddTag(context.Context, *TagRequest) (*Empty, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) RemoveTag(context.Context, *TagRequest) (*Empty, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) GetCoursesByTag(context.Context, *GetCoursesByTagRequest) (*CoursesList, error) { return nil, nil }
+func (UnimplementedCourseServiceServer) CompleteCourse(context.Context, *CompleteCourseRequest) (*CourseResponse, error) { return nil, nil }
 func (UnimplementedCourseServiceServer) mustEmbedUnimplementedCourseServiceServer() {}
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -285,6 +293,7 @@ var CourseService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "AddTag", Handler: _CourseService_AddTag_Handler},
 		{MethodName: "RemoveTag", Handler: _CourseService_RemoveTag_Handler},
 		{MethodName: "GetCoursesByTag", Handler: _CourseService_GetCoursesByTag_Handler},
+		{MethodName: "CompleteCourse", Handler: _CourseService_CompleteCourse_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "course.proto",
@@ -435,6 +444,7 @@ type CourseServiceClient interface {
 	AddTag(ctx context.Context, in *TagRequest, opts ...grpc.CallOption) (*Empty, error)
 	RemoveTag(ctx context.Context, in *TagRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetCoursesByTag(ctx context.Context, in *GetCoursesByTagRequest, opts ...grpc.CallOption) (*CoursesList, error)
+	CompleteCourse(ctx context.Context, in *CompleteCourseRequest, opts ...grpc.CallOption) (*CourseResponse, error)
 }
 
 type courseServiceClient struct {
@@ -529,4 +539,21 @@ func (c *courseServiceClient) SearchCourses(ctx context.Context, in *SearchCours
 	out := new(CoursesList)
 	err := c.cc.Invoke(ctx, "/course.CourseService/SearchCourses", in, out, opts...)
 	return out, err
+}
+
+func (c *courseServiceClient) CompleteCourse(ctx context.Context, in *CompleteCourseRequest, opts ...grpc.CallOption) (*CourseResponse, error) {
+	out := new(CourseResponse)
+	err := c.cc.Invoke(ctx, "/course.CourseService/CompleteCourse", in, out, opts...)
+	return out, err
+}
+
+func _CourseService_CompleteCourse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteCourseRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(CourseServiceServer).CompleteCourse(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/course.CourseService/CompleteCourse"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CourseServiceServer).CompleteCourse(ctx, req.(*CompleteCourseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }

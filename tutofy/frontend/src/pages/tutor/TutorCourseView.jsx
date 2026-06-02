@@ -482,8 +482,10 @@ const TutorCourseView = () => {
   const [lessons,     setLessons]     = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [quizzes,     setQuizzes]     = useState([]);
-  const [enrollCount, setEnrollCount] = useState(0);
-  const [loading,     setLoading]     = useState(true);
+  const [enrollCount,    setEnrollCount]    = useState(0);
+  const [loading,        setLoading]        = useState(true);
+  const [completing,     setCompleting]     = useState(false);
+  const [showConfirm,    setShowConfirm]    = useState(false);
 
   // General (0) is open by default
   const [expandedWeeks, setExpandedWeeks] = useState(new Set([0, 1]));
@@ -570,7 +572,20 @@ const TutorCourseView = () => {
 
   const weeks = useMemo(() => groupIntoWeeks(allItems), [allItems]);
 
-  const courseStatus = course?.status || (course?.is_published ? 'published' : 'draft');
+  const courseStatus = course?.course_status || course?.status || (course?.is_published ? 'active' : 'draft');
+
+  const handleCompleteCourse = async () => {
+    setCompleting(true);
+    try {
+      const updated = await coursesAPI.completeCourse(courseId);
+      setCourse(c => ({ ...c, course_status: 'completed', ...(updated || {}) }));
+      setShowConfirm(false);
+    } catch (e) {
+      alert(e?.response?.data?.error || 'Failed to complete course');
+    } finally {
+      setCompleting(false);
+    }
+  };
 
   const toggleWeek = idx =>
     setExpandedWeeks(prev => { const s = new Set(prev); s.has(idx) ? s.delete(idx) : s.add(idx); return s; });
@@ -904,8 +919,46 @@ const TutorCourseView = () => {
               <PencilIcon />
               Edit Course
             </Link>
+            {courseStatus !== 'completed' && (
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="text-[#935bf5] text-[12px] font-semibold px-3.5 py-2 rounded-[8px] border border-[#935bf5]/30 hover:bg-[#935bf5]/08 transition-colors"
+              >
+                Complete Course
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Complete Course confirmation modal */}
+        {showConfirm && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[20px] p-6 max-w-md w-full shadow-xl">
+              <h3 className="text-[#0c0d12] text-[17px] font-bold mb-2">Complete this course?</h3>
+              <p className="text-[#6b6f7d] text-[13px] leading-relaxed mb-2">
+                This course will be marked as <strong>completed</strong>.
+              </p>
+              <p className="text-[#6b6f7d] text-[13px] leading-relaxed mb-6">
+                Students who satisfy the completion requirements (attendance {course?.completion_attendance_pct || 0}%, grade {course?.completion_grade_pct || 0}%) will automatically receive certificates.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1 py-2.5 rounded-[10px] text-[13px] font-semibold text-[#6b6f7d] border border-[#e8eaef] hover:border-[#0d9488] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCompleteCourse}
+                  disabled={completing}
+                  className="flex-1 py-2.5 rounded-[10px] text-[13px] font-semibold text-white bg-[#935bf5] hover:bg-[#7c3aed] disabled:opacity-50 transition-colors"
+                >
+                  {completing ? 'Completing…' : 'Yes, Complete Course'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main scroll area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -917,11 +970,13 @@ const TutorCourseView = () => {
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h1 className="text-[#0c0d12] text-[20px] font-bold">{course?.title || 'Course'}</h1>
                   <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
-                    courseStatus === 'published'
-                      ? 'bg-[rgba(34,190,112,0.12)] text-[#22be70]'
-                      : 'bg-[#f0f0f5] text-[#6b6f7d]'
+                    courseStatus === 'completed'
+                      ? 'bg-[rgba(147,91,245,0.12)] text-[#935bf5]'
+                      : courseStatus === 'active' || courseStatus === 'published'
+                        ? 'bg-[rgba(34,190,112,0.12)] text-[#22be70]'
+                        : 'bg-[#f0f0f5] text-[#6b6f7d]'
                   }`}>
-                    {courseStatus}
+                    {courseStatus === 'active' ? 'Active' : courseStatus === 'completed' ? 'Completed' : courseStatus === 'published' ? 'Active' : 'Draft'}
                   </span>
                 </div>
                 {course?.description && (

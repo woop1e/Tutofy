@@ -62,7 +62,7 @@ func (s *AuthService) Register(email_, password, name, role string) (setupToken 
 		_ = err
 	}
 
-	return s.GenerateJWT(user.ID, user.Role)
+	return s.GenerateJWT(user.ID, user.Role, user.Name)
 }
 
 func (s *AuthService) sendVerificationEmail(userID, to string) error {
@@ -97,7 +97,7 @@ func (s *AuthService) VerifyEmail(token string) (string, error) {
 
 	_ = s.rdb.Del(context.Background(), "verify:"+token).Err()
 
-	return s.GenerateJWT(user.ID, user.Role)
+	return s.GenerateJWT(user.ID, user.Role, user.Name)
 }
 
 func (s *AuthService) DeleteUser(userID string) error {
@@ -138,13 +138,14 @@ func (s *AuthService) Login(email_, password string) (string, error) {
 		return "", errors.New("email not verified")
 	}
 
-	return s.GenerateJWT(user.ID, user.Role)
+	return s.GenerateJWT(user.ID, user.Role, user.Name)
 }
 
-func (s *AuthService) GenerateJWT(userID, role string) (string, error) {
+func (s *AuthService) GenerateJWT(userID, role, name string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"role":    role,
+		"name":    name,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

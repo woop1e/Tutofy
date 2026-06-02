@@ -80,8 +80,11 @@ func main() {
 		ALTER TABLE courses ADD COLUMN IF NOT EXISTS total_lessons INT NOT NULL DEFAULT 0;
 		ALTER TABLE courses ADD COLUMN IF NOT EXISTS total_weeks   INT NOT NULL DEFAULT 0;
 		ALTER TABLE courses ADD COLUMN IF NOT EXISTS release_type  TEXT NOT NULL DEFAULT 'static';
-		ALTER TABLE courses ADD COLUMN IF NOT EXISTS start_date    TIMESTAMPTZ;
-		ALTER TABLE courses ADD COLUMN IF NOT EXISTS end_date      TIMESTAMPTZ;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS start_date                TIMESTAMPTZ;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS end_date                  TIMESTAMPTZ;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS completion_attendance_pct INT NOT NULL DEFAULT 0;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS completion_grade_pct      INT NOT NULL DEFAULT 0;
+		ALTER TABLE courses ADD COLUMN IF NOT EXISTS course_status             TEXT NOT NULL DEFAULT 'draft';
 	`); err != nil {
 		log.Fatalf("schema migration: %v", err)
 	}

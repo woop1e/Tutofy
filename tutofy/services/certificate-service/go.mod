@@ -3,13 +3,15 @@ module certificate-service
 go 1.24.0
 
 require (
-	auth-service v0.0.0
+	auth-service v0.0.0-00010101000000-000000000000
+	course-service v0.0.0-00010101000000-000000000000
+	progress-service v0.0.0-00010101000000-000000000000
+	user-service v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
-	progress-service v0.0.0
 )
 
 require (
@@ -20,5 +22,6 @@ require (
 )
 
 replace auth-service => ../auth-service
-
+replace course-service => ../course-service
 replace progress-service => ../progress-service
+replace user-service => ../user-service

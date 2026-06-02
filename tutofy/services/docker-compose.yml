@@ -412,6 +412,8 @@ services:
       PORT: "50066"
       AUTH_SERVICE_ADDR: "auth-service:50051"
       PROGRESS_SERVICE_ADDR: "progress-service:50058"
+      USER_SERVICE_ADDR: "user-service:50052"
+      COURSE_SERVICE_ADDR: "course-service:50053"
     depends_on:
       postgres:
         condition: service_healthy

@@ -74,6 +74,7 @@ type LessonService interface {
 	GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error)
 	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
 	ExpireOverduePayments(ctx context.Context) (int64, error)
+	GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error)
 }
 
 type lessonService struct {
@@ -531,6 +532,10 @@ func (s *lessonService) GetTutorBookedSlots(ctx context.Context, tutorID string)
 
 func (s *lessonService) GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error) {
 	return s.repo.GetTutorIndividualLessons(ctx, tutorID)
+}
+
+func (s *lessonService) GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error) {
+	return s.repo.GetCourseAttendanceSummary(ctx, courseID)
 }
 
 func (s *lessonService) ExpireOverduePayments(ctx context.Context) (int64, error) {

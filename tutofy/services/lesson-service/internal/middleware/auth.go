@@ -14,7 +14,8 @@ import (
 
 // publicMethods are callable without a JWT token (e.g. public marketplace endpoints).
 var publicMethods = map[string]bool{
-	"/lesson.LessonService/GetTutorBookedSlots": true,
+	"/lesson.LessonService/GetTutorBookedSlots":          true,
+	"/lesson.LessonService/GetCourseAttendanceSummary":   true,
 }
 
 // AuthInterceptor validates the Bearer token and injects user_id + role into context.

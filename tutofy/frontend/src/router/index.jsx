@@ -38,6 +38,7 @@ import CourseAttendance from '../pages/tutor/CourseAttendance';
 import StudentProfile from '../pages/tutor/StudentProfile';
 import CreateQuiz from '../pages/tutor/CreateQuiz';
 import TutorPublicProfile from '../pages/tutor/TutorPublicProfile';
+import TutorCertificates from '../pages/tutor/TutorCertificates';
 import PaymentPage from '../pages/student/PaymentPage';
 import QuizAttempt from '../pages/student/QuizAttempt';
 import Certificates from '../pages/student/Certificates';
@@ -90,6 +91,7 @@ const router = createBrowserRouter([
   { path: '/tutor/schedule',                          element: t(<TutorSchedule />) },
   { path: '/tutor/history',                          element: t(<TutorDashboard />) },
   { path: '/tutor/public-profile',                   element: t(<TutorPublicProfile />) },
+  { path: '/tutor/certificates',                     element: t(<TutorCertificates />) },
 
   { path: '/admin/dashboard',  element: a(<AdminDashboard />) },
   { path: '/admin/users',      element: a(<AdminUsers />) },

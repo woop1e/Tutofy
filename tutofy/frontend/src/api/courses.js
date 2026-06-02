@@ -26,6 +26,11 @@ export const coursesAPI = {
     return response.data;
   },
 
+  completeCourse: async (id) => {
+    const response = await apiClient.patch(`/courses/${id}/complete`);
+    return response.data;
+  },
+
   deleteCourse: async (id) => {
     const response = await apiClient.delete(`/courses/${id}`);
     return response.data;

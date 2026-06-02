@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -67,7 +68,11 @@ func jsonResp(w http.ResponseWriter, code int, v any) {
 
 func errResp(w http.ResponseWriter, err error) {
 	st, _ := status.FromError(err)
-	jsonResp(w, grpcToHTTP(st.Code()), map[string]string{"error": st.Message()})
+	code := grpcToHTTP(st.Code())
+	if code == http.StatusUnauthorized || code == http.StatusForbidden {
+		log.Printf("AUTH ERROR %d: grpc=%s msg=%s", code, st.Code(), st.Message())
+	}
+	jsonResp(w, code, map[string]string{"error": st.Message()})
 }
 
 func decode(r *http.Request, v any) error {

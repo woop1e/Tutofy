@@ -11,6 +11,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var publicMethods = map[string]bool{
+	"/course.CourseService/GetCourse":    true,
+	"/course.CourseService/GetAllCourses": true,
+}
+
 func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -18,6 +23,10 @@ func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterc
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
+		if publicMethods[info.FullMethod] {
+			return handler(ctx, req)
+		}
+
 		md, ok := metadata.FromIncomingContext(ctx)
 		if !ok {
 			return nil, status.Error(codes.Unauthenticated, "missing metadata")

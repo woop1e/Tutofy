@@ -31,6 +31,7 @@ type LessonRepository interface {
 	GetTutorBookedSlots(ctx context.Context, tutorID string) ([]time.Time, error)
 	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
 	ExpireOverduePayments(ctx context.Context) ([]*model.Lesson, error)
+	GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error)
 }
 
 type postgresRepo struct {
@@ -444,6 +445,35 @@ func (r *postgresRepo) GetAttendance(ctx context.Context, lessonID, callerID, ca
 			return nil, err
 		}
 		result = append(result, a)
+	}
+	return result, rows.Err()
+}
+
+// GetCourseAttendanceSummary returns per-student attendance counts for completed lessons in a course.
+// Returns map[studentID] -> [2]int32{attended, total}
+func (r *postgresRepo) GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT la.student_id,
+			COUNT(CASE WHEN la.status = 'present' THEN 1 END)::INT AS attended,
+			COUNT(*)::INT AS total
+		FROM lesson_attendance la
+		JOIN lessons l ON l.id = la.lesson_id
+		WHERE l.course_id = $1 AND l.status = $2 AND l.deleted_at IS NULL
+		GROUP BY la.student_id`,
+		courseID, int32(model.LessonStatusCompleted),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[string][2]int32)
+	for rows.Next() {
+		var studentID string
+		var attended, total int32
+		if err := rows.Scan(&studentID, &attended, &total); err != nil {
+			return nil, err
+		}
+		result[studentID] = [2]int32{attended, total}
 	}
 	return result, rows.Err()
 }

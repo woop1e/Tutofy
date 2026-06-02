@@ -36,10 +36,11 @@ const SECTIONS = [
   {
     label: 'Teach',
     items: [
-      { path: '/tutor/dashboard', label: 'Overview',   icon: 'home' },
-      { path: '/tutor/courses',   label: 'Courses',    icon: 'book' },
-      { path: '/tutor/students',  label: 'Students',   icon: 'users' },
-      { path: '/tutor/grading',   label: 'Grading',    icon: 'grade' },
+      { path: '/tutor/dashboard',     label: 'Overview',      icon: 'home' },
+      { path: '/tutor/courses',       label: 'Courses',       icon: 'book' },
+      { path: '/tutor/students',      label: 'Students',      icon: 'users' },
+      { path: '/tutor/grading',       label: 'Grading',       icon: 'grade' },
+      { path: '/tutor/certificates',  label: 'Certificates',  icon: 'grade' },
     ],
   },
   {

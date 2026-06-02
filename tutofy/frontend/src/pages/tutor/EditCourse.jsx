@@ -47,6 +47,8 @@ const EditCourse = () => {
     price: '', max_students: '5', status: 'draft',
     total_lessons: '', total_weeks: '', release_type: 'static',
     start_date: '', end_date: '',
+    completion_attendance_pct: '0',
+    completion_grade_pct: '0',
   });
   const [saving,    setSaving]   = useState(false);
   const [saveError, setSaveError]= useState('');
@@ -86,8 +88,10 @@ const EditCourse = () => {
             total_lessons: c.total_lessons ? String(c.total_lessons) : '',
             total_weeks:   c.total_weeks   ? String(c.total_weeks)   : '',
             release_type:  c.release_type  || 'static',
-            start_date:    c.start_date ? c.start_date.slice(0, 10) : '',
-            end_date:      c.end_date   ? c.end_date.slice(0, 10)   : '',
+            start_date:                  c.start_date ? c.start_date.slice(0, 10) : '',
+            end_date:                    c.end_date   ? c.end_date.slice(0, 10)   : '',
+            completion_attendance_pct:   c.completion_attendance_pct != null ? String(c.completion_attendance_pct) : '0',
+            completion_grade_pct:        c.completion_grade_pct != null ? String(c.completion_grade_pct) : '0',
           });
         }
       })
@@ -123,10 +127,12 @@ const EditCourse = () => {
     try {
       await coursesAPI.updateCourse(courseId, {
         ...form,
-        price:         form.price         ? parseFloat(form.price)      : 0,
-        max_students:  form.max_students  ? parseInt(form.max_students)  : 5,
-        total_lessons: form.total_lessons ? parseInt(form.total_lessons) : 0,
-        total_weeks:   form.total_weeks   ? parseInt(form.total_weeks)   : 0,
+        price:                       form.price         ? parseFloat(form.price)      : 0,
+        max_students:                form.max_students  ? parseInt(form.max_students)  : 5,
+        total_lessons:               form.total_lessons ? parseInt(form.total_lessons) : 0,
+        total_weeks:                 form.total_weeks   ? parseInt(form.total_weeks)   : 0,
+        completion_attendance_pct:   form.completion_attendance_pct ? parseInt(form.completion_attendance_pct) : 0,
+        completion_grade_pct:        form.completion_grade_pct ? parseInt(form.completion_grade_pct) : 0,
       });
       if (form.status === 'published') await coursesAPI.publishCourse(courseId);
       setSaveOk(true);
@@ -307,6 +313,24 @@ const EditCourse = () => {
                 <p className="text-[#6b6f7d] text-[11px]">
                   Start date controls the "Upcoming" badge on student course cards. Progress percentage uses total lessons planned.
                 </p>
+              </div>
+
+              {/* Completion Requirements */}
+              <div className="bg-white rounded-[16px] border border-[#f0f0f5] p-5">
+                <p className="text-[#0c0d12] text-[13px] font-semibold mb-1">Certificate Requirements</p>
+                <p className="text-[#6b6f7d] text-[11px] mb-4">Students must meet these thresholds to receive a certificate when you complete the course. Set to 0 to skip the check.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Min attendance %">
+                    <input type="number" min="0" max="100" className={INP} placeholder="e.g. 80"
+                      value={form.completion_attendance_pct}
+                      onChange={e => setForm(p => ({ ...p, completion_attendance_pct: e.target.value }))} />
+                  </Field>
+                  <Field label="Min average grade %">
+                    <input type="number" min="0" max="100" className={INP} placeholder="e.g. 60"
+                      value={form.completion_grade_pct}
+                      onChange={e => setForm(p => ({ ...p, completion_grade_pct: e.target.value }))} />
+                  </Field>
+                </div>
               </div>
 
               {/* Status */}

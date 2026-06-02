@@ -61,7 +61,13 @@ func main() {
 	// Build handlers.
 	ah  := handler.NewAuthHandler(authpb.NewAuthServiceClient(authConn), userpb.NewUserServiceClient(userConn))
 	uh  := handler.NewUserHandler(userpb.NewUserServiceClient(userConn), authpb.NewAuthServiceClient(authConn), notificationpb.NewNotificationServiceClient(notificationConn))
-	ch  := handler.NewCourseHandler(coursepb.NewCourseServiceClient(courseConn))
+	ch  := handler.NewCourseHandler(
+		coursepb.NewCourseServiceClient(courseConn),
+		enrollmentpb.NewEnrollmentServiceClient(enrollmentConn),
+		lessonpb.NewLessonServiceClient(lessonConn),
+		gradingpb.NewGradingServiceClient(gradingConn),
+		certificatepb.NewCertificateServiceClient(certificateConn),
+	)
 	tph := handler.NewTutorPublicProfileHandler(userpb.NewUserServiceClient(userConn), coursepb.NewCourseServiceClient(courseConn), reviewpb.NewReviewServiceClient(reviewConn))
 	eh  := handler.NewEnrollmentHandler(enrollmentpb.NewEnrollmentServiceClient(enrollmentConn))
 	lh  := handler.NewLessonHandler(lessonpb.NewLessonServiceClient(lessonConn), notificationpb.NewNotificationServiceClient(notificationConn), enrollmentpb.NewEnrollmentServiceClient(enrollmentConn), paymentpb.NewPaymentServiceClient(paymentConn))
@@ -121,7 +127,8 @@ func main() {
 	mux.HandleFunc("GET /courses",                ch.GetAllCourses)
 	mux.HandleFunc("GET /courses/{id}",           ch.GetCourse)
 	mux.HandleFunc("PUT /courses/{id}",           ch.UpdateCourse)
-	mux.HandleFunc("PATCH /courses/{id}/publish", ch.PublishCourse)
+	mux.HandleFunc("PATCH /courses/{id}/publish",   ch.PublishCourse)
+	mux.HandleFunc("PATCH /courses/{id}/complete",  ch.CompleteCourse)
 	mux.HandleFunc("DELETE /courses/{id}",        ch.DeleteCourse)
 
 	// Marketplace
@@ -209,8 +216,12 @@ func main() {
 
 	// Certificates
 	mux.HandleFunc("POST /certificates",                          cfh.IssueCertificate)
+	mux.HandleFunc("POST /certificates/request",                  cfh.RequestCertificate)
 	mux.HandleFunc("GET /users/{id}/certificates",                cfh.GetUserCertificates)
 	mux.HandleFunc("GET /certificates/{student_id}/{course_id}",  cfh.GetCertificate)
+	mux.HandleFunc("PATCH /certificates/{id}/approve",            cfh.ApproveCertificate)
+	mux.HandleFunc("PATCH /certificates/{id}/reject",             cfh.RejectCertificate)
+	mux.HandleFunc("GET /tutor/certificate-requests",             cfh.GetPendingCertificates)
 
 	// Reviews
 	mux.HandleFunc("POST /reviews",             rvh.CreateReview)
