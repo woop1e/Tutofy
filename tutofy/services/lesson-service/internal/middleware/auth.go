@@ -16,6 +16,7 @@ import (
 var publicMethods = map[string]bool{
 	"/lesson.LessonService/GetTutorBookedSlots":          true,
 	"/lesson.LessonService/GetCourseAttendanceSummary":   true,
+	"/lesson.LessonService/GetLessonDescriptions":        true,
 }
 
 // AuthInterceptor validates the Bearer token and injects user_id + role into context.

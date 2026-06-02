@@ -51,7 +51,7 @@ type AttendanceEntry struct {
 
 // LessonService is the business-logic contract.
 type LessonService interface {
-	CreateLesson(ctx context.Context, callerID, callerRole, courseID, title, videoLink string, scheduledAt time.Time, durationMinutes int32) (*model.Lesson, error)
+	CreateLesson(ctx context.Context, callerID, callerRole, courseID, title, videoLink, description string, scheduledAt time.Time, durationMinutes int32) (*model.Lesson, error)
 	// BookIndividualLesson creates a 1-on-1 lesson request (status=PENDING_CONFIRMATION). studentID is stored so tutors can mark attendance later.
 	BookIndividualLesson(ctx context.Context, tutorID, studentID, title string, scheduledAt time.Time, durationMinutes int32, price float64) (*model.Lesson, error)
 	// ConfirmLesson lets the tutor accept a PENDING_CONFIRMATION lesson → moves it to AWAITING_PAYMENT.
@@ -75,6 +75,7 @@ type LessonService interface {
 	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
 	ExpireOverduePayments(ctx context.Context) (int64, error)
 	GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error)
+	GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error)
 }
 
 type lessonService struct {
@@ -104,7 +105,7 @@ func NewLessonService(
 
 func (s *lessonService) CreateLesson(
 	ctx context.Context,
-	callerID, callerRole, courseID, title, videoLink string,
+	callerID, callerRole, courseID, title, videoLink, description string,
 	scheduledAt time.Time,
 	durationMinutes int32,
 ) (*model.Lesson, error) {
@@ -121,6 +122,7 @@ func (s *lessonService) CreateLesson(
 		CourseID:        courseID,
 		TutorID:         callerID,
 		Title:           title,
+		Description:     description,
 		ScheduledAt:     scheduledAt,
 		DurationMinutes: durationMinutes,
 		VideoLink:       videoLink,
@@ -532,6 +534,10 @@ func (s *lessonService) GetTutorBookedSlots(ctx context.Context, tutorID string)
 
 func (s *lessonService) GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error) {
 	return s.repo.GetTutorIndividualLessons(ctx, tutorID)
+}
+
+func (s *lessonService) GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error) {
+	return s.repo.GetCourseDescriptions(ctx, courseID)
 }
 
 func (s *lessonService) GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error) {

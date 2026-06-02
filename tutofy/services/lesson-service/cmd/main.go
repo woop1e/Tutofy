@@ -87,6 +87,7 @@ func main() {
 		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS price NUMERIC(10,2) NOT NULL DEFAULT 0;
 		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS payment_deadline TIMESTAMPTZ;
 		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS calendar_event_id TEXT NOT NULL DEFAULT '';
+		ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
 		CREATE TABLE IF NOT EXISTS lesson_attendance (
 			lesson_id  TEXT    NOT NULL,
 			student_id TEXT    NOT NULL,

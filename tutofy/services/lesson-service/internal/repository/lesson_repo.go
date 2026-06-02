@@ -32,6 +32,7 @@ type LessonRepository interface {
 	GetTutorIndividualLessons(ctx context.Context, tutorID string) ([]*model.Lesson, error)
 	ExpireOverduePayments(ctx context.Context) ([]*model.Lesson, error)
 	GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error)
+	GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error)
 }
 
 type postgresRepo struct {
@@ -55,7 +56,7 @@ func NewPostgresRepo(db *sql.DB) LessonRepository {
 	return &postgresRepo{db: db}
 }
 
-const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, COALESCE(price, 0), payment_deadline, COALESCE(calendar_event_id, '')`
+const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, COALESCE(price, 0), payment_deadline, COALESCE(calendar_event_id, ''), COALESCE(description, '')`
 
 func (r *postgresRepo) CreateLesson(ctx context.Context, lesson *model.Lesson) error {
 	var deadline *time.Time
@@ -63,11 +64,11 @@ func (r *postgresRepo) CreateLesson(ctx context.Context, lesson *model.Lesson) e
 		deadline = &lesson.PaymentDeadline
 	}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO lessons (id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, price, payment_deadline, calendar_event_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+		`INSERT INTO lessons (id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, price, payment_deadline, calendar_event_id, description)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
 		lesson.ID, lesson.CourseID, lesson.TutorID, lesson.StudentID, lesson.Title,
 		lesson.ScheduledAt, lesson.DurationMinutes, lesson.VideoLink, int32(lesson.Status), lesson.Price,
-		deadline, lesson.CalendarEventID,
+		deadline, lesson.CalendarEventID, lesson.Description,
 	)
 	return err
 }
@@ -207,7 +208,7 @@ func scanLesson(s scanner) (*model.Lesson, error) {
 	err := s.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
-		&deadline, &l.CalendarEventID,
+		&deadline, &l.CalendarEventID, &l.Description,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -229,7 +230,7 @@ func scanLessonRow(rows *sql.Rows) (*model.Lesson, error) {
 	err := rows.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
-		&deadline, &l.CalendarEventID,
+		&deadline, &l.CalendarEventID, &l.Description,
 	)
 	if err != nil {
 		return nil, err
@@ -445,6 +446,23 @@ func (r *postgresRepo) GetAttendance(ctx context.Context, lessonID, callerID, ca
 			return nil, err
 		}
 		result = append(result, a)
+	}
+	return result, rows.Err()
+}
+
+// GetCourseDescriptions returns id→description map for all lessons in a course.
+func (r *postgresRepo) GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, COALESCE(description,'') FROM lessons WHERE course_id=$1 AND deleted_at IS NULL`,
+		courseID,
+	)
+	if err != nil { return nil, err }
+	defer rows.Close()
+	result := make(map[string]string)
+	for rows.Next() {
+		var id, desc string
+		if err := rows.Scan(&id, &desc); err != nil { return nil, err }
+		result[id] = desc
 	}
 	return result, rows.Err()
 }

@@ -56,12 +56,22 @@ func (h *LessonHandler) CreateLesson(ctx context.Context, req *lessonpb.CreateLe
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
+	// description is passed via metadata because proto raw descriptor doesn't encode new fields
+	description := req.GetDescription()
+	if description == "" {
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			if vals := md.Get("x-description-bin"); len(vals) > 0 {
+				description = vals[0]
+			}
+		}
+	}
 	lesson, err := h.svc.CreateLesson(
 		ctx,
 		callerID, callerRole,
 		req.GetCourseId(),
 		req.GetTitle(),
 		req.GetVideoLink(),
+		description,
 		req.GetScheduledAt().AsTime(),
 		req.GetDurationMinutes(),
 	)
@@ -138,6 +148,7 @@ func toProto(l *model.Lesson) *lessonpb.Lesson {
 		VideoLink:       l.VideoLink,
 		Status:          modelStatusToProto(l.Status),
 		Price:           l.Price,
+		Description:     l.Description,
 	}
 	if !l.PaymentDeadline.IsZero() {
 		lesson.PaymentDeadline = timestamppb.New(l.PaymentDeadline)
@@ -194,6 +205,21 @@ func mapError(err error) error {
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}
+}
+
+func (h *LessonHandler) GetLessonDescriptions(ctx context.Context, req *lessonpb.GetLessonDescriptionsRequest) (*lessonpb.LessonDescriptionsList, error) {
+	if req.GetCourseId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "course_id is required")
+	}
+	descs, err := h.svc.GetCourseDescriptions(ctx, req.GetCourseId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	items := make([]*lessonpb.LessonDescription, 0, len(descs))
+	for id, desc := range descs {
+		items = append(items, &lessonpb.LessonDescription{Id: id, Description: desc})
+	}
+	return &lessonpb.LessonDescriptionsList{Items: items}, nil
 }
 
 func (h *LessonHandler) GetCourseAttendanceSummary(ctx context.Context, req *lessonpb.GetCourseAttendanceSummaryRequest) (*lessonpb.CourseAttendanceSummary, error) {

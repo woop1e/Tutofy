@@ -29,6 +29,11 @@ function formatDate(val) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function isNoteLesson(item) {
+  if (!item || item._type !== 'lesson') return false;
+  return !item.video_link && !!item.course_id;
+}
+
 function formatDuration(mins) {
   if (!mins) return null;
   if (mins < 60) return `${mins} min`;
@@ -47,8 +52,9 @@ function getMonday(d) {
 }
 
 function groupIntoWeeks(items) {
-  const withDate = items.filter(i => i._date);
-  const noDate   = items.filter(i => !i._date);
+  // Treat items with no date OR sentinel dates (year ≤ 2000) as "General" section
+  const withDate = items.filter(i => i._date && i._date.getFullYear() > 2000);
+  const noDate   = items.filter(i => !i._date || i._date.getFullYear() <= 2000);
   const result   = [];
 
   if (noDate.length) result.push({ label: 'General', dateRange: '', items: noDate });
@@ -522,7 +528,9 @@ const CourseView = () => {
                       const isDone       = submitted[item.id];
                       const isLast       = ii === week.items.length - 1;
 
-                      const iconBg = isLesson ? 'bg-[rgba(13,148,136,0.08)]'
+                      const isNote   = isNoteLesson(item);
+                      const iconBg = (isLesson && !isNote) ? 'bg-[rgba(13,148,136,0.08)]'
+                                   : isNote   ? 'bg-[rgba(107,111,125,0.08)]'
                                    : isQuiz   ? 'bg-[rgba(147,91,245,0.08)]'
                                    :            'bg-[rgba(255,166,26,0.1)]';
 
@@ -540,7 +548,11 @@ const CourseView = () => {
                           >
                             {/* Type icon */}
                             <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 ${iconBg}`}>
-                              {isLesson ? <VideoIcon /> : isQuiz ? <QuizIcon /> : <DocIcon />}
+                              {isNote ? (
+                                <svg viewBox="0 0 20 20" fill="none" stroke="#6b6f7d" strokeWidth="1.5" className="w-5 h-5">
+                                  <path d="M4 6h12M4 10h12M4 14h7" strokeLinecap="round"/>
+                                </svg>
+                              ) : isLesson ? <VideoIcon /> : isQuiz ? <QuizIcon /> : <DocIcon />}
                             </div>
 
                             {/* Title + meta */}
@@ -559,7 +571,7 @@ const CourseView = () => {
                                 )}
                               </div>
                               <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[11px] text-[#6b6f7d]">
-                                {isLesson && (
+                                {isLesson && !isNoteLesson(item) && (
                                   <>
                                     <span className="flex items-center gap-1">
                                       <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-3 h-3">
@@ -577,6 +589,14 @@ const CourseView = () => {
                                       </span>
                                     )}
                                   </>
+                                )}
+                                {isLesson && isNoteLesson(item) && (
+                                  <span className="flex items-center gap-1">
+                                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-3 h-3">
+                                      <path d="M2 3h8M2 6h8M2 9h5" strokeLinecap="round"/>
+                                    </svg>
+                                    Reading material
+                                  </span>
                                 )}
                                 {isAssignment && (
                                   <>

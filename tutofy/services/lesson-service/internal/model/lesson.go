@@ -22,6 +22,7 @@ type Lesson struct {
 	TutorID         string
 	StudentID       string // set for individual (non-course) lessons
 	Title           string
+	Description     string
 	ScheduledAt     time.Time
 	DurationMinutes int32
 	VideoLink       string

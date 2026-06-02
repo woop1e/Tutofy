@@ -159,7 +159,8 @@ func main() {
 	// Lessons
 	mux.HandleFunc("POST /lessons",                  lh.CreateLesson)
 	mux.HandleFunc("GET /lessons/{id}",              lh.GetLesson)
-	mux.HandleFunc("GET /courses/{id}/lessons",      lh.GetCourseLessons)
+	mux.HandleFunc("GET /courses/{id}/lessons",             lh.GetCourseLessons)
+	mux.HandleFunc("GET /courses/{id}/lesson-descriptions", lh.GetLessonDescriptions)
 	mux.HandleFunc("GET /schedule",                  lh.GetMySchedule)
 	mux.HandleFunc("GET /my-lessons",                lh.GetMyLessons)
 	mux.HandleFunc("POST /lessons/{id}/materials",   lh.AddMaterial)

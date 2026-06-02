@@ -543,10 +543,14 @@ const TutorCourseView = () => {
       assignmentsAPI.getCourseAssignments(courseId).catch(() => ({})),
       enrollmentsAPI.getCourseEnrollments(courseId).catch(() => []),
       quizzesAPI.getCourseQuizzes(courseId).catch(() => ({})),
-    ]).then(([cRes, lRes, aRes, eRes, qRes]) => {
+      lessonsAPI.getLessonDescriptions(courseId).catch(() => ({})),
+    ]).then(([cRes, lRes, aRes, eRes, qRes, dRes]) => {
       setCourse(cRes?.course || cRes);
+      const descMap = {};
+      (dRes?.items || []).forEach(d => { if (d.description) descMap[d.id] = d.description; });
       const ls = lRes?.lessons || lRes || [];
-      setLessons(Array.isArray(ls) ? ls : []);
+      const lsWithDesc = (Array.isArray(ls) ? ls : []).map(l => ({ ...l, description: descMap[l.id] || l.description || '' }));
+      setLessons(lsWithDesc);
       const as = aRes?.assignments || aRes || [];
       setAssignments(Array.isArray(as) ? as : []);
       const es = Array.isArray(eRes) ? eRes : eRes?.enrollments || [];
@@ -686,8 +690,8 @@ const TutorCourseView = () => {
     if (!noteDraft.title.trim()) { setSaveError('Title is required'); return; }
     setSaving(true); setSaveError('');
     try {
-      // General (weekIdx === 0) uses a sentinel date so groupIntoWeeks keeps it there.
-      // Specific weeks use their Monday so the note appears in the correct week.
+      // General section (wi === 0) uses sentinel date so student groupIntoWeeks puts it in General.
+      // Specific weeks use their Monday date.
       let scheduledAt = '2000-01-01T00:00:00Z';
       const wi = addingIn?.weekIdx;
       if (typeof wi === 'number' && wi > 0) {

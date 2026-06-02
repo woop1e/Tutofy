@@ -30,6 +30,11 @@ export const lessonsAPI = {
     return response.data;
   },
 
+  getLessonDescriptions: async (courseId) => {
+    const response = await apiClient.get(`/courses/${courseId}/lesson-descriptions`);
+    return response.data;
+  },
+
   // Get individual (non-course) lessons for the authenticated student
   getStudentLessons: async (_studentId) => {
     const response = await apiClient.get('/my-lessons');

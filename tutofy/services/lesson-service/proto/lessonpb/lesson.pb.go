@@ -95,6 +95,7 @@ type Lesson struct {
 	StudentId       string                 `protobuf:"bytes,9,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
 	Price           float64                `protobuf:"fixed64,10,opt,name=price,proto3" json:"price,omitempty"`
 	PaymentDeadline *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=payment_deadline,json=paymentDeadline,proto3" json:"payment_deadline,omitempty"`
+	Description     string                 `protobuf:"bytes,12,opt,name=description,proto3" json:"description,omitempty"`
 }
 
 func (x *Lesson) Reset() {
@@ -199,6 +200,13 @@ func (x *Lesson) GetPaymentDeadline() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Lesson) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
 func (x *Lesson) GetStatus() LessonStatus {
 	if x != nil {
 		return x.Status
@@ -216,6 +224,7 @@ type CreateLessonRequest struct {
 	ScheduledAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
 	DurationMinutes int32                  `protobuf:"varint,4,opt,name=duration_minutes,json=durationMinutes,proto3" json:"duration_minutes,omitempty"`
 	VideoLink       string                 `protobuf:"bytes,5,opt,name=video_link,json=videoLink,proto3" json:"video_link,omitempty"`
+	Description     string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
 }
 
 func (x *CreateLessonRequest) Reset() {
@@ -281,6 +290,13 @@ func (x *CreateLessonRequest) GetDurationMinutes() int32 {
 func (x *CreateLessonRequest) GetVideoLink() string {
 	if x != nil {
 		return x.VideoLink
+	}
+	return ""
+}
+
+func (x *CreateLessonRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
 	}
 	return ""
 }

@@ -10,6 +10,7 @@ import (
 	"lesson-service/proto/lessonpb"
 	"notification-service/proto/notificationpb"
 	"payment-service/proto/paymentpb"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -28,6 +29,7 @@ type createLessonBody struct {
 	CourseId        string `json:"course_id"`
 	Title           string `json:"title"`
 	VideoLink       string `json:"video_link"`
+	Description     string `json:"description"`
 	ScheduledAt     string `json:"scheduled_at"` // RFC3339
 	DurationMinutes int32  `json:"duration_minutes"`
 }
@@ -46,7 +48,13 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "scheduled_at must be RFC3339"})
 		return
 	}
-	resp, err := h.client.CreateLesson(tokenCtx(r), &lessonpb.CreateLessonRequest{
+	auth := r.Header.Get("Authorization")
+	lessonMD := metadata.Pairs(
+		"authorization", auth,
+		"x-description-bin", body.Description,
+	)
+	lessonCtx := metadata.NewOutgoingContext(r.Context(), lessonMD)
+	resp, err := h.client.CreateLesson(lessonCtx, &lessonpb.CreateLessonRequest{
 		CourseId:        body.CourseId,
 		Title:           body.Title,
 		VideoLink:       body.VideoLink,
@@ -94,6 +102,15 @@ func (h *LessonHandler) GetLesson(w http.ResponseWriter, r *http.Request) {
 
 func (h *LessonHandler) GetCourseLessons(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.client.GetCourseLessons(tokenCtx(r), &lessonpb.GetCourseLessonsRequest{CourseId: r.PathValue("id")})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}
+
+func (h *LessonHandler) GetLessonDescriptions(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.client.GetLessonDescriptions(context.Background(), &lessonpb.GetLessonDescriptionsRequest{CourseId: r.PathValue("id")})
 	if err != nil {
 		errResp(w, err)
 		return

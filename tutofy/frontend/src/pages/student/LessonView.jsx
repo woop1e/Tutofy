@@ -40,6 +40,12 @@ function formatDate(val) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Notes are lessons with no video link and no course_id (individual lessons have course_id='')
+function isNoteLesson(lesson) {
+  if (!lesson) return false;
+  return !lesson.video_link && !!lesson.course_id;
+}
+
 const STATUS_LABELS = {
   0: 'Planned', planned: 'Planned',
   1: 'Completed', completed: 'Completed',
@@ -107,9 +113,13 @@ const LessonView = () => {
       lessonsAPI.getCourseLessons(courseId).catch(() => ({})),
       coursesAPI.getCourseById(courseId).catch(() => null),
       assignmentsAPI.getCourseAssignments(courseId).catch(() => ({})),
-    ]).then(([lessonsRes, courseRes, assignRes]) => {
+      lessonsAPI.getLessonDescriptions(courseId).catch(() => ({})),
+    ]).then(([lessonsRes, courseRes, assignRes, descRes]) => {
+      const descMap = {};
+      (descRes?.items || []).forEach(d => { if (d.description) descMap[d.id] = d.description; });
       const rawLessons = lessonsRes?.lessons || lessonsRes || [];
-      setLessons(sortByDate(Array.isArray(rawLessons) ? rawLessons : []));
+      const withDesc = (Array.isArray(rawLessons) ? rawLessons : []).map(l => ({ ...l, description: descMap[l.id] || l.description || '' }));
+      setLessons(sortByDate(withDesc));
       setCourse(courseRes?.course || courseRes);
       const rawAssign = assignRes?.assignments || assignRes || [];
       setAssignments(Array.isArray(rawAssign) ? rawAssign : []);
@@ -308,8 +318,11 @@ const LessonView = () => {
                         }`}>
                           {idx + 1}. {lesson.title}
                         </p>
-                        {lesson.duration_minutes > 0 && (
+                        {!isNoteLesson(lesson) && lesson.duration_minutes > 0 && (
                           <p className="text-[11px] text-[#b0b5c4] mt-0.5">{formatDuration(lesson.duration_minutes)}</p>
+                        )}
+                        {isNoteLesson(lesson) && (
+                          <p className="text-[11px] text-[#b0b5c4] mt-0.5">Reading material</p>
                         )}
                       </div>
                     </Link>
@@ -410,7 +423,7 @@ const LessonView = () => {
 
                     {/* Meta row */}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#6b6f7d] mb-4">
-                      {currentLesson?.duration_minutes > 0 && (
+                      {!isNoteLesson(currentLesson) && currentLesson?.duration_minutes > 0 && (
                         <span className="flex items-center gap-1">
                           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
                             <circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5l2 2"/>
@@ -418,7 +431,7 @@ const LessonView = () => {
                           {formatDuration(currentLesson.duration_minutes)}
                         </span>
                       )}
-                      {currentLesson?.scheduled_at && (
+                      {!isNoteLesson(currentLesson) && currentLesson?.scheduled_at && (
                         <span className="flex items-center gap-1">
                           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
                             <rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 2v2M11 2v2M2 7h12"/>
@@ -426,12 +439,21 @@ const LessonView = () => {
                           {formatDate(currentLesson.scheduled_at)}
                         </span>
                       )}
-                      <span className="flex items-center gap-1">
-                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
-                          <path d="M2 12L6 4l4 8M4.5 9h5M10 4c1 0 4 .5 4 4s-3 4-4 4"/>
-                        </svg>
-                        Lesson {currentIndex + 1} of {lessons.length}
-                      </span>
+                      {isNoteLesson(currentLesson) ? (
+                        <span className="flex items-center gap-1">
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
+                            <path d="M3 4h10M3 7h10M3 10h6" strokeLinecap="round"/>
+                          </svg>
+                          Reading material
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
+                            <path d="M2 12L6 4l4 8M4.5 9h5M10 4c1 0 4 .5 4 4s-3 4-4 4"/>
+                          </svg>
+                          Lesson {currentIndex + 1} of {lessons.length}
+                        </span>
+                      )}
                     </div>
 
                     {/* Progress */}
@@ -499,11 +521,16 @@ const LessonView = () => {
                             </div>
                           </div>
                         )}
-                        <p className="text-[#6b6f7d] text-[13px] leading-relaxed">
-                          {currentLesson
-                            ? `This lesson covers "${currentLesson.title}". Follow along with the video above or join the live session using the link provided.`
-                            : 'Lesson content will appear here.'}
-                        </p>
+                        {isNoteLesson(currentLesson) ? (
+                          <div className="text-[#383a44] text-[14px] leading-relaxed whitespace-pre-wrap">
+                            {currentLesson?.description || <span className="text-[#b0b5c4] italic">No content yet.</span>}
+                          </div>
+                        ) : (
+                          <p className="text-[#6b6f7d] text-[13px] leading-relaxed">
+                            {currentLesson?.description
+                              || (currentLesson ? 'Follow along with the video above or join the live session using the link provided.' : 'Lesson content will appear here.')}
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -723,12 +750,14 @@ const LessonView = () => {
               <div className="w-[220px] flex-shrink-0 space-y-4 hidden xl:block">
 
                 <div className="bg-white rounded-[16px] border border-[#f0f0f5] p-4 sticky top-0">
-                  <p className="text-[#0c0d12] text-[13px] font-bold mb-4">Lesson Details</p>
+                  <p className="text-[#0c0d12] text-[13px] font-bold mb-4">{isNoteLesson(currentLesson) ? 'Note Details' : 'Lesson Details'}</p>
                   <div className="space-y-3">
+                    {!isNoteLesson(currentLesson) && (
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-[#6b6f7d]">Duration</span>
                       <span className="text-[#0c0d12] font-semibold">{formatDuration(currentLesson?.duration_minutes)}</span>
                     </div>
+                    )}
                     <div className="w-full h-px bg-[#f0f0f5]" />
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-[#6b6f7d]">Progress</span>
@@ -742,7 +771,7 @@ const LessonView = () => {
                       <span className="text-[#6b6f7d]">Assignments</span>
                       <span className="text-[#0c0d12] font-semibold">{assignments.length}</span>
                     </div>
-                    {currentLesson?.scheduled_at && (
+                    {!isNoteLesson(currentLesson) && currentLesson?.scheduled_at && (
                       <>
                         <div className="w-full h-px bg-[#f0f0f5]" />
                         <div className="flex items-center justify-between text-[12px]">

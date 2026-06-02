@@ -41,6 +41,7 @@ type LessonServiceClient interface {
 	DeclineLesson(ctx context.Context, in *DeclineLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
 	ActivateLesson(ctx context.Context, in *ActivateLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
 	GetCourseAttendanceSummary(ctx context.Context, in *GetCourseAttendanceSummaryRequest, opts ...grpc.CallOption) (*CourseAttendanceSummary, error)
+	GetLessonDescriptions(ctx context.Context, in *GetLessonDescriptionsRequest, opts ...grpc.CallOption) (*LessonDescriptionsList, error)
 }
 
 type lessonServiceClient struct {
@@ -119,6 +120,7 @@ type LessonServiceServer interface {
 	DeclineLesson(context.Context, *DeclineLessonRequest) (*Lesson, error)
 	ActivateLesson(context.Context, *ActivateLessonRequest) (*Lesson, error)
 	GetCourseAttendanceSummary(context.Context, *GetCourseAttendanceSummaryRequest) (*CourseAttendanceSummary, error)
+	GetLessonDescriptions(context.Context, *GetLessonDescriptionsRequest) (*LessonDescriptionsList, error)
 	mustEmbedUnimplementedLessonServiceServer()
 }
 
@@ -146,6 +148,9 @@ func (UnimplementedLessonServiceServer) GetMySchedule(context.Context, *GetSched
 }
 func (UnimplementedLessonServiceServer) GetCourseAttendanceSummary(context.Context, *GetCourseAttendanceSummaryRequest) (*CourseAttendanceSummary, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCourseAttendanceSummary not implemented")
+}
+func (UnimplementedLessonServiceServer) GetLessonDescriptions(context.Context, *GetLessonDescriptionsRequest) (*LessonDescriptionsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLessonDescriptions not implemented")
 }
 func (UnimplementedLessonServiceServer) mustEmbedUnimplementedLessonServiceServer() {}
 
@@ -316,6 +321,10 @@ var LessonService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCourseAttendanceSummary",
 			Handler:    _LessonService_GetCourseAttendanceSummary_Handler,
+		},
+		{
+			MethodName: "GetLessonDescriptions",
+			Handler:    _LessonService_GetLessonDescriptions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -527,6 +536,23 @@ func (c *lessonServiceClient) GetCourseAttendanceSummary(ctx context.Context, in
 	out := new(CourseAttendanceSummary)
 	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetCourseAttendanceSummary", in, out, opts...)
 	return out, err
+}
+
+func (c *lessonServiceClient) GetLessonDescriptions(ctx context.Context, in *GetLessonDescriptionsRequest, opts ...grpc.CallOption) (*LessonDescriptionsList, error) {
+	out := new(LessonDescriptionsList)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetLessonDescriptions", in, out, opts...)
+	return out, err
+}
+
+func _LessonService_GetLessonDescriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLessonDescriptionsRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).GetLessonDescriptions(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/GetLessonDescriptions"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).GetLessonDescriptions(ctx, req.(*GetLessonDescriptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _LessonService_GetCourseAttendanceSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
