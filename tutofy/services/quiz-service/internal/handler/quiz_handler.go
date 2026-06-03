@@ -28,9 +28,16 @@ func (h *QuizHandler) CreateQuiz(ctx context.Context, req *quizpb.CreateQuizRequ
 	if req.GetCourseId() == "" || req.GetTitle() == "" {
 		return nil, status.Error(codes.InvalidArgument, "course_id and title are required")
 	}
+	if req.GetTimeLimitMinutes() < 0 {
+		return nil, status.Error(codes.InvalidArgument, "time_limit_minutes must be >= 0")
+	}
+	if req.GetMaxAttempts() < 0 {
+		return nil, status.Error(codes.InvalidArgument, "max_attempts must be >= 0")
+	}
 	callerID, callerRole := middleware.UserIDFromContext(ctx), middleware.RoleFromContext(ctx)
 	deadline := parseDeadline(req.GetDeadline())
-	q, err := h.svc.CreateQuiz(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetTimeLimitMinutes(), req.GetMaxAttempts(), deadline)
+	scheduledAt := parseDeadline(req.GetScheduledAt())
+	q, err := h.svc.CreateQuiz(ctx, callerID, callerRole, req.GetCourseId(), req.GetTitle(), req.GetTimeLimitMinutes(), req.GetMaxAttempts(), deadline, scheduledAt)
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -159,6 +166,12 @@ func (h *QuizHandler) UpdateQuizSettings(ctx context.Context, req *quizpb.Update
 	if req.GetQuizId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "quiz_id is required")
 	}
+	if req.GetTimeLimitMinutes() < 0 {
+		return nil, status.Error(codes.InvalidArgument, "time_limit_minutes must be >= 0")
+	}
+	if req.GetMaxAttempts() < 0 {
+		return nil, status.Error(codes.InvalidArgument, "max_attempts must be >= 0")
+	}
 	callerRole := middleware.RoleFromContext(ctx)
 	deadline := parseDeadline(req.GetDeadline())
 	q, err := h.svc.UpdateQuizSettings(ctx, callerRole, req.GetQuizId(), req.GetTimeLimitMinutes(), req.GetMaxAttempts(), deadline)
@@ -177,7 +190,104 @@ func (h *QuizHandler) GetStudentAttempts(ctx context.Context, req *quizpb.GetStu
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	return &quizpb.StudentAttemptsResponse{AttemptsUsed: int32(count)}, nil
+	attempts, _ := h.svc.GetStudentCompletedAttempts(ctx, callerID, req.GetQuizId())
+	summaries := make([]*quizpb.QuizAttemptSummary, 0, len(attempts))
+	for _, a := range attempts {
+		completedAt := ""
+		if a.CompletedAt != nil {
+			completedAt = a.CompletedAt.UTC().Format("2006-01-02T15:04:05Z")
+		}
+		pct := float32(0)
+		if a.Total > 0 {
+			pct = float32(a.Score) / float32(a.Total) * 100
+		}
+		summaries = append(summaries, &quizpb.QuizAttemptSummary{
+			AttemptId:   a.ID,
+			StudentId:   a.StudentID,
+			Score:       int32(a.Score),
+			Total:       int32(a.Total),
+			Percentage:  pct,
+			StartedAt:   a.StartedAt.UTC().Format("2006-01-02T15:04:05Z"),
+			CompletedAt: completedAt,
+		})
+	}
+	return &quizpb.StudentAttemptsResponse{AttemptsUsed: int32(count), Results: summaries}, nil
+}
+
+func (h *QuizHandler) UpdateQuestion(ctx context.Context, req *quizpb.UpdateQuestionRequest) (*quizpb.QuestionResponse, error) {
+	if req.GetQuestionId() == "" || req.GetText() == "" {
+		return nil, status.Error(codes.InvalidArgument, "question_id and text are required")
+	}
+	callerRole := middleware.RoleFromContext(ctx)
+	q, err := h.svc.UpdateQuestion(ctx, callerRole, req.GetQuestionId(), req.GetText(), req.GetPosition())
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return &quizpb.QuestionResponse{Id: q.ID, QuizId: q.QuizID, Text: q.Text, Position: int32(q.Position)}, nil
+}
+
+func (h *QuizHandler) DeleteQuestion(ctx context.Context, req *quizpb.DeleteQuestionRequest) (*quizpb.Empty, error) {
+	if req.GetQuestionId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "question_id is required")
+	}
+	if err := h.svc.DeleteQuestion(ctx, middleware.RoleFromContext(ctx), req.GetQuestionId()); err != nil {
+		return nil, mapErr(err)
+	}
+	return &quizpb.Empty{}, nil
+}
+
+func (h *QuizHandler) UpdateOption(ctx context.Context, req *quizpb.UpdateOptionRequest) (*quizpb.OptionResponse, error) {
+	if req.GetOptionId() == "" || req.GetText() == "" {
+		return nil, status.Error(codes.InvalidArgument, "option_id and text are required")
+	}
+	callerRole := middleware.RoleFromContext(ctx)
+	o, err := h.svc.UpdateOption(ctx, callerRole, req.GetOptionId(), req.GetText(), req.GetIsCorrect())
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return &quizpb.OptionResponse{Id: o.ID, QuestionId: o.QuestionID, Text: o.Text}, nil
+}
+
+func (h *QuizHandler) DeleteOption(ctx context.Context, req *quizpb.DeleteOptionRequest) (*quizpb.Empty, error) {
+	if req.GetOptionId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "option_id is required")
+	}
+	if err := h.svc.DeleteOption(ctx, middleware.RoleFromContext(ctx), req.GetOptionId()); err != nil {
+		return nil, mapErr(err)
+	}
+	return &quizpb.Empty{}, nil
+}
+
+func (h *QuizHandler) GetQuizAttempts(ctx context.Context, req *quizpb.GetQuizAttemptsRequest) (*quizpb.QuizAttemptsListResponse, error) {
+	if req.GetQuizId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "quiz_id is required")
+	}
+	callerRole := middleware.RoleFromContext(ctx)
+	attempts, err := h.svc.GetQuizAttempts(ctx, callerRole, req.GetQuizId())
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	list := make([]*quizpb.QuizAttemptSummary, 0, len(attempts))
+	for _, a := range attempts {
+		completedAt := ""
+		if a.CompletedAt != nil {
+			completedAt = a.CompletedAt.UTC().Format("2006-01-02T15:04:05Z")
+		}
+		pct := float32(0)
+		if a.Total > 0 {
+			pct = float32(a.Score) / float32(a.Total) * 100
+		}
+		list = append(list, &quizpb.QuizAttemptSummary{
+			AttemptId:   a.ID,
+			StudentId:   a.StudentID,
+			Score:       int32(a.Score),
+			Total:       int32(a.Total),
+			Percentage:  pct,
+			StartedAt:   a.StartedAt.UTC().Format("2006-01-02T15:04:05Z"),
+			CompletedAt: completedAt,
+		})
+	}
+	return &quizpb.QuizAttemptsListResponse{Attempts: list}, nil
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -190,6 +300,7 @@ func quizToProto(q *model.Quiz) *quizpb.QuizResponse {
 		TimeLimitMinutes: q.TimeLimitMinutes,
 		MaxAttempts:      q.MaxAttempts,
 		Deadline:         formatDeadline(q.Deadline),
+		ScheduledAt:      formatDeadline(q.ScheduledAt),
 		CreatedAt:        q.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
@@ -237,7 +348,11 @@ func parseDeadline(s string) *time.Time {
 	if s == "" {
 		return nil
 	}
-	t, err := time.Parse(time.RFC3339, s)
+	// Try RFC3339Nano first — JS toISOString() includes milliseconds (.000Z)
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		t, err = time.Parse(time.RFC3339, s)
+	}
 	if err != nil {
 		return nil
 	}
@@ -263,6 +378,16 @@ func mapErr(err error) error {
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, service.ErrNoAttemptsRemaining):
 		return status.Error(codes.ResourceExhausted, err.Error())
+	case errors.Is(err, service.ErrAttemptInProgress):
+		return status.Error(codes.AlreadyExists, err.Error())
+	case errors.Is(err, service.ErrTimeLimitExceeded):
+		return status.Error(codes.DeadlineExceeded, err.Error())
+	case errors.Is(err, service.ErrNoQuestions):
+		return status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, service.ErrInvalidOption):
+		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, service.ErrInvalidInput):
+		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	default:

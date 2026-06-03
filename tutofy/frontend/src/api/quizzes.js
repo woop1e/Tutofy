@@ -50,4 +50,32 @@ export const quizzesAPI = {
     const response = await apiClient.get(`/quizzes/${quizId}/my-attempts`);
     return response.data?.attempts_used ?? 0;
   },
+
+  getMyAttemptResults: async (quizId) => {
+    const response = await apiClient.get(`/quizzes/${quizId}/my-attempts`);
+    return response.data;
+  },
+
+  updateQuestion: async (questionId, data) => {
+    const response = await apiClient.put(`/questions/${questionId}`, data);
+    return response.data;
+  },
+
+  deleteQuestion: async (questionId) => {
+    await apiClient.delete(`/questions/${questionId}`);
+  },
+
+  updateOption: async (optionId, data) => {
+    const response = await apiClient.put(`/options/${optionId}`, data);
+    return response.data;
+  },
+
+  deleteOption: async (optionId) => {
+    await apiClient.delete(`/options/${optionId}`);
+  },
+
+  getQuizAttempts: async (quizId) => {
+    const response = await apiClient.get(`/quizzes/${quizId}/attempts`);
+    return response.data?.attempts || [];
+  },
 };

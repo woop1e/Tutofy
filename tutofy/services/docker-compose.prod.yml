@@ -1,0 +1,53 @@
+version: "3.9"
+
+# Production overrides — run with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+
+  # ── Frontend (built React + nginx) ───────────────────────────────────────────
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""   # empty = relative URLs, nginx handles routing
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  # ── Override auth-service to use real secrets & SMTP ─────────────────────────
+  auth-service:
+    environment:
+      JWT_SECRET: "${JWT_SECRET}"
+      APP_URL: "http://${SERVER_IP}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+
+  # ── Override notification-service SMTP ───────────────────────────────────────
+  notification-service:
+    environment:
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+
+  # ── Override media-service: public MinIO URL uses server IP ──────────────────
+  media-service:
+    environment:
+      S3_PUBLIC_ENDPOINT: "http://${SERVER_IP}:9000"
+
+  # ── Override api-gateway: Google OAuth uses real server IP ───────────────────
+  api-gateway:
+    environment:
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      GOOGLE_REDIRECT_URI: "http://${SERVER_IP}/auth/google/callback"
+    ports:
+      - "8080:8080"   # keep open for direct access if needed

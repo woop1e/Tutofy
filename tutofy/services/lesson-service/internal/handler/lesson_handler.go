@@ -29,13 +29,8 @@ func NewLessonHandler(svc service.LessonService) *LessonHandler {
 }
 
 func (h *LessonHandler) CreateLesson(ctx context.Context, req *lessonpb.CreateLessonRequest) (*lessonpb.Lesson, error) {
-	switch {
-	case req.GetTitle() == "":
+	if req.GetTitle() == "" {
 		return nil, status.Error(codes.InvalidArgument, "title is required")
-	case req.GetDurationMinutes() <= 0:
-		return nil, status.Error(codes.InvalidArgument, "duration_minutes must be greater than 0")
-	case req.GetScheduledAt() == nil || req.GetScheduledAt().AsTime().IsZero():
-		return nil, status.Error(codes.InvalidArgument, "scheduled_at is required")
 	}
 
 	// Individual 1-on-1 booking: course_id is empty, tutor_id passed via metadata.

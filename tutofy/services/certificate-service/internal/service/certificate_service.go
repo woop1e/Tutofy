@@ -151,7 +151,7 @@ func (s *certificateService) RejectCertificate(ctx context.Context, callerID, ca
 
 func (s *certificateService) GetPendingCertificates(ctx context.Context, callerID, callerRole string) ([]*model.Certificate, error) {
 	if callerRole == "admin" {
-		callerID = ""
+		return s.repo.GetAllPending(ctx)
 	} else if callerRole != "tutor" {
 		return nil, ErrForbidden
 	}

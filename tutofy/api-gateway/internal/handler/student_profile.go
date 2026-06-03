@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 
 	"assignment-service/proto/assignmentpb"
@@ -214,6 +215,12 @@ func (h *StudentProfileHandler) GetStudentProfile(w http.ResponseWriter, r *http
 			var lessons []spLesson
 			if lessonsErr == nil && lessonsResp != nil {
 				for _, l := range lessonsResp.GetLessons() {
+					// Skip lessons without a Google Meet / Zoom / Teams link — only live sessions count.
+					vl := strings.ToLower(l.GetVideoLink())
+					if !strings.Contains(vl, "meet.google") && !strings.Contains(vl, "zoom.us") && !strings.Contains(vl, "teams.microsoft") {
+						continue
+					}
+
 					// Check attendance for this lesson.
 					attended := false
 					attResp, attErr := h.lessonClient.GetAttendance(ctx, &lessonpb.GetAttendanceRequest{LessonId: l.GetId()})

@@ -40,13 +40,18 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 		return
 	}
-	t, err := time.Parse(time.RFC3339Nano, body.ScheduledAt)
-	if err != nil {
-		t, err = time.Parse(time.RFC3339, body.ScheduledAt)
-	}
-	if err != nil {
-		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "scheduled_at must be RFC3339"})
-		return
+	// scheduled_at is optional for recorded lessons — default to now
+	t := time.Now()
+	if body.ScheduledAt != "" {
+		parsed, err2 := time.Parse(time.RFC3339Nano, body.ScheduledAt)
+		if err2 != nil {
+			parsed, err2 = time.Parse(time.RFC3339, body.ScheduledAt)
+		}
+		if err2 != nil {
+			jsonResp(w, http.StatusBadRequest, map[string]string{"error": "scheduled_at must be RFC3339"})
+			return
+		}
+		t = parsed
 	}
 	auth := r.Header.Get("Authorization")
 	lessonMD := metadata.Pairs(

@@ -1,5 +1,5 @@
 ﻿﻿﻿import React, { useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { quizzesAPI } from '../../api/quizzes';
@@ -260,6 +260,8 @@ const QuestionEditor = ({ q, idx, onChange, onDelete }) => {
 const CreateQuiz = () => {
   const { id: courseId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const scheduledAt = searchParams.get('scheduled_at') || null;
   const { isAuthenticated, role } = useAuth();
 
   const [info, setInfo] = useState({
@@ -296,9 +298,10 @@ const CreateQuiz = () => {
 
     setSaving(true);
     setError('');
+    console.log('[CreateQuiz] scheduledAt from URL:', scheduledAt);
     try {
       /* 1. create quiz */
-      const quizRes = await quizzesAPI.createQuiz({
+      const payload = {
         course_id: courseId,
         title: info.title.trim(),
         description: info.description.trim(),
@@ -306,7 +309,11 @@ const CreateQuiz = () => {
         passing_score: info.passingScore,
         max_attempts: info.maxAttempts,
         deadline: info.deadline ? new Date(info.deadline).toISOString() : null,
-      });
+        scheduled_at: scheduledAt ? `${scheduledAt}T00:00:00Z` : null,
+      };
+      console.log('[CreateQuiz] sending payload:', JSON.stringify(payload));
+      const quizRes = await quizzesAPI.createQuiz(payload);
+      console.log('[CreateQuiz] response:', JSON.stringify(quizRes));
       const quizId = quizRes?.quiz?.id || quizRes?.id;
       if (!quizId) throw new Error('Quiz creation failed');
 

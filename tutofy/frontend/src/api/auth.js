@@ -25,4 +25,13 @@ export const authAPI = {
     const response = await apiClient.get('/auth/google/status');
     return response.data;
   },
+
+  generateMeetLink: async (title, scheduledAt, durationMinutes) => {
+    const response = await apiClient.post('/calendar/meet-link', {
+      title,
+      scheduled_at: scheduledAt,
+      duration_minutes: durationMinutes || 60,
+    });
+    return response.data;
+  },
 };

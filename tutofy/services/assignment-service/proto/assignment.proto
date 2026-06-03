@@ -8,6 +8,7 @@ message CreateAssignmentRequest {
   string title       = 1;
   string description = 2;
   string course_id   = 3;
+  string due_date    = 4;
 }
 
 message CourseRequest {

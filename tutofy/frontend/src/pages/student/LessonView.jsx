@@ -1,4 +1,4 @@
-﻿﻿import React, { useEffect, useState, useMemo } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
@@ -8,6 +8,7 @@ import { coursesAPI } from '../../api/courses';
 import { submissionsAPI } from '../../api/submissions';
 import { mediaAPI } from '../../api/media';
 import { progressAPI } from '../../api/progress';
+import { quizzesAPI } from '../../api/quizzes';
 
 function getVideoEmbed(url) {
   if (!url) return null;
@@ -84,10 +85,12 @@ const LessonView = () => {
   const { id: courseId, lessonId } = useParams();
 
   const [lessons, setLessons] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
   const [course, setCourse] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
   const [answers, setAnswers] = useState({});
   const [files, setFiles] = useState({});
   const [uploadProgress, setUploadProgress] = useState({});
@@ -114,7 +117,8 @@ const LessonView = () => {
       coursesAPI.getCourseById(courseId).catch(() => null),
       assignmentsAPI.getCourseAssignments(courseId).catch(() => ({})),
       lessonsAPI.getLessonDescriptions(courseId).catch(() => ({})),
-    ]).then(([lessonsRes, courseRes, assignRes, descRes]) => {
+      quizzesAPI.getCourseQuizzes(courseId).catch(() => ({})),
+    ]).then(([lessonsRes, courseRes, assignRes, descRes, quizRes]) => {
       const descMap = {};
       (descRes?.items || []).forEach(d => { if (d.description) descMap[d.id] = d.description; });
       const rawLessons = lessonsRes?.lessons || lessonsRes || [];
@@ -123,19 +127,61 @@ const LessonView = () => {
       setCourse(courseRes?.course || courseRes);
       const rawAssign = assignRes?.assignments || assignRes || [];
       setAssignments(Array.isArray(rawAssign) ? rawAssign : []);
+      const rawQuizzes = quizRes?.quizzes || quizRes || [];
+      setQuizzes(Array.isArray(rawQuizzes) ? rawQuizzes : []);
     }).finally(() => setLoading(false));
   }, [courseId]);
 
-  const currentIndex = useMemo(() => lessons.findIndex((l) => l.id === lessonId), [lessons, lessonId]);
-  const currentLesson = currentIndex >= 0 ? lessons[currentIndex] : lessons[0] || null;
-  const prevLesson = currentIndex > 0 ? lessons[currentIndex - 1] : null;
-  const nextLesson = currentIndex >= 0 && currentIndex < lessons.length - 1 ? lessons[currentIndex + 1] : null;
+  // Merged sorted list matching TutorCourseView curriculum order:
+  //   1. General items first (no date or sentinel year ≤ 2000) — stable original order
+  //   2. Weekly items sorted chronologically (lessons, quizzes, assignments interleaved)
+  const itemSortDate = (item) => {
+    const d = parseDate(item.scheduled_at);
+    if (!d || d.getFullYear() <= 2000) return new Date(0); // General → front
+    return d;
+  };
+  const allItems = useMemo(() => {
+    const items = [
+      ...lessons.map(l => ({ ...l, _type: 'lesson' })),
+      ...quizzes.map(q => ({ ...q, _type: 'quiz' })),
+      ...assignments.map(a => ({ ...a, _type: 'assignment', scheduled_at: a.due_date })),
+    ];
+    return items.sort((a, b) => itemSortDate(a) - itemSortDate(b));
+  }, [lessons, quizzes, assignments]);
+
+  // Reset selected assignment when navigating to a different lesson
+  useEffect(() => { setSelectedAssignmentId(null); }, [lessonId]);
+
+  // Auto-scroll sidebar to the active item
+  const sidebarRef    = useRef(null);
+  const activeItemRef = useRef(null);
+  useEffect(() => {
+    if (activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [lessonId, allItems.length]);
+
+  const currentIndex = useMemo(() => allItems.findIndex((item) => item.id === lessonId), [allItems, lessonId]);
+  const currentLesson = useMemo(() => lessons.find(l => l.id === lessonId) || lessons[0] || null, [lessons, lessonId]);
+  const prevItem = currentIndex > 0 ? allItems[currentIndex - 1] : null;
+  const nextItem = currentIndex >= 0 && currentIndex < allItems.length - 1 ? allItems[currentIndex + 1] : null;
   const completedCount = lessons.filter((l) => completedSet.has(l.id)).length;
   const totalPlanned = course?.total_lessons || 0;
   const availablePct = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
   const overallPct = totalPlanned > 0 ? Math.round((completedCount / totalPlanned) * 100) : availablePct;
+  const itemUrl = (item) => item?._type === 'quiz'
+    ? `/student/courses/${courseId}/quizzes/${item.id}`
+    : `/student/courses/${courseId}/lessons/${item.id}`;
   const progress = overallPct;
   const videoInfo = useMemo(() => getVideoEmbed(currentLesson?.video_link), [currentLesson]);
+
+  // Join button: enabled 15 min before scheduled_at; if no date set — always enabled
+  const { canJoin, joinAvailableAt } = useMemo(() => {
+    const scheduledTime = parseDate(currentLesson?.scheduled_at);
+    if (!scheduledTime) return { canJoin: true, joinAvailableAt: null };
+    const openAt = new Date(scheduledTime.getTime() - 15 * 60 * 1000);
+    return { canJoin: new Date() >= openAt, joinAvailableAt: openAt };
+  }, [currentLesson]);
   const initials = user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S';
   const isCurrentDone = currentLesson ? completedSet.has(currentLesson.id) : false;
 
@@ -284,47 +330,97 @@ const LessonView = () => {
               )}
             </div>
 
-            {/* Lessons list */}
-            <div className="flex-1 overflow-y-auto py-2">
-              {lessons.length === 0 ? (
+            {/* Course content list */}
+            <div ref={sidebarRef} className="flex-1 overflow-y-auto py-2">
+              {allItems.length === 0 ? (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-[#6b6f7d] text-[12px]">No lessons yet</p>
+                  <p className="text-[#6b6f7d] text-[12px]">No content yet</p>
                 </div>
               ) : (
-                lessons.map((lesson, idx) => {
-                  const isCurrent = lesson.id === lessonId;
-                  const isDone = completedSet.has(lesson.id);
-                  return (
-                    <Link
-                      key={lesson.id}
-                      to={`/student/courses/${courseId}/lessons/${lesson.id}`}
-                      className={`flex items-start gap-3 px-4 py-3 border-r-2 transition-colors ${
-                        isCurrent
-                          ? 'bg-[rgba(13,148,136,0.07)] border-[#0d9488]'
-                          : 'border-transparent hover:bg-[#f8f9fc]'
-                      }`}
-                    >
-                      <div className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{
-                        backgroundColor: isDone ? '#22c55e' : isCurrent ? '#0d9488' : 'transparent',
-                        border: isDone || isCurrent ? 'none' : '2px solid #d0d3de',
-                      }}>
-                        {isDone ? <CheckIcon /> : isCurrent ? (
+                allItems.map((item, idx) => {
+                  const isQuizItem       = item._type === 'quiz';
+                  const isAssignmentItem = item._type === 'assignment';
+                  const isCurrent        = !isAssignmentItem && item.id === lessonId;
+                  const isSelectedAssign = isAssignmentItem && item.id === selectedAssignmentId;
+                  const isDone           = !isQuizItem && !isAssignmentItem && completedSet.has(item.id);
+
+                  const dotColor = isAssignmentItem ? '#ffa61a'
+                    : isQuizItem  ? 'transparent'
+                    : isDone      ? '#22c55e'
+                    : isCurrent   ? '#0d9488'
+                    : 'transparent';
+                  const dotBorder = isAssignmentItem ? '2px solid #ffa61a'
+                    : isQuizItem  ? '2px solid #935bf5'
+                    : (isDone || isCurrent) ? 'none'
+                    : '2px solid #d0d3de';
+
+                  const highlightBg = isSelectedAssign
+                    ? 'bg-[rgba(255,166,26,0.07)] border-[#ffa61a]'
+                    : isCurrent
+                      ? 'bg-[rgba(13,148,136,0.07)] border-[#0d9488]'
+                      : 'border-transparent hover:bg-[#f8f9fc]';
+
+                  const textColor = isSelectedAssign ? 'text-[#ffa61a]'
+                    : isCurrent   ? 'text-[#0d9488]'
+                    : isDone      ? 'text-[#0c0d12]'
+                    : isQuizItem  ? 'text-[#935bf5]'
+                    : isAssignmentItem ? 'text-[#d97706]'
+                    : 'text-[#6b6f7d]';
+
+                  const inner = (
+                    <>
+                      <div className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: dotColor, border: dotBorder }}>
+                        {isAssignmentItem ? (
+                          <svg viewBox="0 0 10 10" fill="none" className="w-[10px] h-[10px]">
+                            <path d="M3 2h4l1 1v6H2V2h1z" stroke="#ffa61a" strokeWidth="0.9"/>
+                            <path d="M3.5 5h3M3.5 6.5h2" stroke="#ffa61a" strokeWidth="0.8" strokeLinecap="round"/>
+                          </svg>
+                        ) : isQuizItem ? (
+                          <svg viewBox="0 0 10 10" fill="none" className="w-[10px] h-[10px]">
+                            <path d="M3.5 3.5a1.5 1.5 0 013 0c0 1-1.5 1-1.5 2" stroke="#935bf5" strokeWidth="1" strokeLinecap="round"/>
+                            <circle cx="5" cy="7" r="0.5" fill="#935bf5"/>
+                          </svg>
+                        ) : isDone ? <CheckIcon /> : isCurrent ? (
                           <div className="w-2 h-2 rounded-full bg-white" />
                         ) : <LockIcon />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className={`text-[12px] font-medium leading-snug ${
-                          isCurrent ? 'text-[#0d9488]' : isDone ? 'text-[#0c0d12]' : 'text-[#6b6f7d]'
-                        }`}>
-                          {idx + 1}. {lesson.title}
+                        <p className={`text-[12px] font-medium leading-snug ${textColor}`}>
+                          {idx + 1}. {item.title}
                         </p>
-                        {!isNoteLesson(lesson) && lesson.duration_minutes > 0 && (
-                          <p className="text-[11px] text-[#b0b5c4] mt-0.5">{formatDuration(lesson.duration_minutes)}</p>
+                        {isAssignmentItem && (
+                          <p className="text-[11px] text-[#b0b5c4] mt-0.5">
+                            {item.due_date ? `Due ${formatDate(item.due_date)}` : 'Assignment'}
+                          </p>
                         )}
-                        {isNoteLesson(lesson) && (
+                        {isQuizItem && <p className="text-[11px] text-[#b0b5c4] mt-0.5">Quiz</p>}
+                        {!isQuizItem && !isAssignmentItem && !isNoteLesson(item) && item.duration_minutes > 0 && (
+                          <p className="text-[11px] text-[#b0b5c4] mt-0.5">{formatDuration(item.duration_minutes)}</p>
+                        )}
+                        {!isQuizItem && !isAssignmentItem && isNoteLesson(item) && (
                           <p className="text-[11px] text-[#b0b5c4] mt-0.5">Reading material</p>
                         )}
                       </div>
+                    </>
+                  );
+
+                  const isActive = isCurrent || isSelectedAssign;
+                  if (isAssignmentItem) {
+                    return (
+                      <button key={item.id}
+                        ref={isSelectedAssign ? activeItemRef : null}
+                        onClick={() => setSelectedAssignmentId(prev => prev === item.id ? null : item.id)}
+                        className={`w-full flex items-start gap-3 px-4 py-3 border-r-2 transition-colors text-left ${highlightBg}`}>
+                        {inner}
+                      </button>
+                    );
+                  }
+                  return (
+                    <Link key={item.id}
+                      ref={isCurrent ? activeItemRef : null}
+                      to={itemUrl(item)}
+                      className={`flex items-start gap-3 px-4 py-3 border-r-2 transition-colors ${highlightBg}`}>
+                      {inner}
                     </Link>
                   );
                 })
@@ -339,8 +435,135 @@ const LessonView = () => {
               {/* Center column */}
               <div className="flex-1 min-w-0 space-y-4">
 
-                {/* Video player — only shown when there is a video/link */}
-                {videoInfo && (
+                {/* ── Assignment panel (shown when assignment selected from sidebar) ── */}
+                {selectedAssignmentId && (() => {
+                  const asgn = assignments.find(a => a.id === selectedAssignmentId);
+                  if (!asgn) return null;
+                  const isDone = submitted[asgn.id];
+                  const rawDesc = asgn.description || '';
+                  const fileMatch = rawDesc.match(/\n\n__file__:([^:]+):(.+)$/) || rawDesc.match(/^__file__:([^:]+):(.+)$/);
+                  const cleanDesc = fileMatch ? rawDesc.slice(0, fileMatch.index ?? 0).trim() : rawDesc;
+                  const attachMediaId = fileMatch?.[1];
+                  const attachFileName = fileMatch?.[2];
+                  return (
+                    <div className="bg-white rounded-[16px] border border-[#f0f0f5] overflow-hidden">
+                      {/* Header */}
+                      <div className="px-5 py-4 border-b border-[#f0f0f5] flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-[10px] bg-[rgba(255,166,26,0.12)] flex items-center justify-center flex-shrink-0">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="#ffa61a" strokeWidth="1.5" className="w-5 h-5">
+                              <path d="M5 2h8l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                              <path d="M13 2v4h4M7 9h6M7 12h6M7 15h4" strokeLinecap="round"/>
+                            </svg>
+                          </div>
+                          <div className="min-w-0">
+                            <h2 className="text-[#0c0d12] text-[16px] font-bold leading-snug truncate">{asgn.title}</h2>
+                            <div className="flex items-center gap-3 mt-0.5 text-[12px] text-[#6b6f7d]">
+                              {asgn.due_date && <span>Due {formatDate(asgn.due_date)}</span>}
+                              {asgn.max_score != null && <span>{asgn.max_score} pts</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <button onClick={() => setSelectedAssignmentId(null)}
+                          className="w-7 h-7 rounded-full hover:bg-[#f0f0f5] flex items-center justify-center text-[#6b6f7d] hover:text-[#0c0d12] transition-colors flex-shrink-0">
+                          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3 h-3">
+                            <path d="M2 2l8 8M10 2L2 10" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="px-5 py-4">
+                        {/* Description */}
+                        {cleanDesc && <p className="text-[#383a44] text-[13px] leading-relaxed mb-4">{cleanDesc}</p>}
+
+                        {/* Tutor attachment */}
+                        {attachMediaId && (
+                          <div className="flex items-center gap-3 bg-[#f8f9fc] border border-[#e8eaef] rounded-[10px] p-3 mb-4">
+                            <div className="w-8 h-8 rounded-[8px] bg-[rgba(147,91,245,0.1)] flex items-center justify-center flex-shrink-0">
+                              <svg viewBox="0 0 16 16" fill="none" stroke="#935bf5" strokeWidth="1.4" className="w-4 h-4">
+                                <path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6M9 2l4 4M9 2v4h4" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </div>
+                            <p className="text-[#0c0d12] text-[12px] font-medium flex-1 truncate">{attachFileName}</p>
+                            <button onClick={async () => {
+                              try { const r = await mediaAPI.getDownloadURL(attachMediaId); window.open(r.url, '_blank'); } catch {}
+                            }} className="text-[11px] text-[#935bf5] font-semibold hover:underline flex-shrink-0">Download</button>
+                          </div>
+                        )}
+
+                        {isDone ? (
+                          <div className="bg-[#edfbf4] rounded-[12px] p-4 flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full bg-[#22be70] flex items-center justify-center flex-shrink-0">
+                              <svg viewBox="0 0 10 10" fill="none" className="w-3 h-3"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                            </div>
+                            <div>
+                              <p className="text-[#22be70] text-[13px] font-semibold">Submitted!</p>
+                              <p className="text-[#22be70]/70 text-[12px]">Sent to your tutor for review.</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-[#0c0d12] text-[12px] font-semibold mb-1.5">Your Answer</p>
+                              <textarea
+                                value={answers[asgn.id] || ''}
+                                onChange={e => setAnswers(p => ({ ...p, [asgn.id]: e.target.value }))}
+                                placeholder="Type your answer here... (optional if uploading a file)"
+                                rows={4}
+                                className="w-full border border-[#e8eaef] rounded-[10px] px-3 py-2.5 text-[13px] text-[#0c0d12] placeholder-[#b0b5c4] resize-none focus:outline-none focus:border-[#0d9488] focus:ring-2 focus:ring-[rgba(13,148,136,0.08)] transition-all bg-white"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-[#0c0d12] text-[12px] font-semibold mb-1.5">Attach File <span className="text-[#6b6f7d] font-normal">(optional)</span></p>
+                              {files[asgn.id] ? (
+                                <div className="flex items-center gap-3 bg-[#f8f9fc] border border-[#e8eaef] rounded-[10px] px-3 py-2.5">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[#0c0d12] text-[12px] font-medium truncate">{files[asgn.id].name}</p>
+                                  </div>
+                                  <button onClick={() => setFiles(p => ({ ...p, [asgn.id]: null }))}
+                                    className="w-6 h-6 rounded-full bg-[#f0f0f5] hover:bg-[#fee2e2] flex items-center justify-center flex-shrink-0 transition-colors">
+                                    <svg viewBox="0 0 10 10" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-3 h-3"><path d="M2 2l6 6M8 2L2 8"/></svg>
+                                  </button>
+                                </div>
+                              ) : (
+                                <label className="flex items-center gap-3 border-2 border-dashed border-[#e8eaef] rounded-[10px] px-4 py-3 cursor-pointer hover:border-[#0d9488] hover:bg-[rgba(13,148,136,0.02)] transition-colors group">
+                                  <div className="w-8 h-8 rounded-full bg-[rgba(13,148,136,0.08)] flex items-center justify-center flex-shrink-0">
+                                    <svg viewBox="0 0 16 16" fill="none" stroke="#0d9488" strokeWidth="1.4" className="w-4 h-4">
+                                      <path d="M8 10V5M6 7l2-2 2 2"/><path d="M3 12a3 3 0 010-6 4 4 0 017.9-1A3 3 0 0113 12H3z"/>
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <p className="text-[#0c0d12] text-[12px] font-semibold">Click to upload a file</p>
+                                    <p className="text-[#6b6f7d] text-[11px] mt-0.5">PDF, DOCX, TXT, PNG, JPG, ZIP – up to 32 MB</p>
+                                  </div>
+                                  <input type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.zip"
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) setFiles(p => ({ ...p, [asgn.id]: f })); }} />
+                                </label>
+                              )}
+                            </div>
+                            {submitError[asgn.id] && (
+                              <p className="text-[#f24545] text-[12px]">{submitError[asgn.id]}</p>
+                            )}
+                            <button
+                              onClick={() => handleSubmit(asgn.id)}
+                              disabled={submitting === asgn.id || (!(answers[asgn.id] || '').trim() && !files[asgn.id])}
+                              className="w-full bg-[#0d9488] text-white text-[13px] font-semibold py-2.5 rounded-[10px] hover:bg-[#0f766e] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                            >
+                              {submitting === asgn.id ? (
+                                <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />{uploadProgress[asgn.id] ? 'Uploading...' : 'Submitting...'}</>
+                              ) : (
+                                <><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3M8 2v8M5 5l3-3 3 3"/></svg>Submit Assignment</>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Lesson content — hidden when an assignment is open */}
+                {!selectedAssignmentId && videoInfo && (
                   <div className="bg-[#0d0e12] rounded-[16px] overflow-hidden w-full" style={{ aspectRatio: '16/9' }}>
                     {videoInfo.type === 'iframe' ? (
                       <iframe
@@ -365,10 +588,25 @@ const LessonView = () => {
                         <div className="text-center px-6">
                           <p className="text-white font-semibold mb-1">Live Session</p>
                           <p className="text-white/50 text-[13px] mb-4">This lesson is a live video conference</p>
-                          <a href={videoInfo.url} target="_blank" rel="noopener noreferrer"
-                            className="inline-block bg-[#0d9488] text-white px-7 py-2.5 rounded-[10px] text-[14px] font-semibold hover:bg-[#0f766e] transition-colors">
-                            Join Meeting →
-                          </a>
+                          {canJoin ? (
+                            <a href={videoInfo.url} target="_blank" rel="noopener noreferrer"
+                              className="inline-block bg-[#0d9488] text-white px-7 py-2.5 rounded-[10px] text-[14px] font-semibold hover:bg-[#0f766e] transition-colors">
+                              Join Meeting →
+                            </a>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="inline-block bg-white/10 text-white/40 px-7 py-2.5 rounded-[10px] text-[14px] font-semibold cursor-not-allowed select-none">
+                                Join Meeting →
+                              </span>
+                              {joinAvailableAt && (
+                                <p className="text-white/40 text-[12px]">
+                                  Opens at {joinAvailableAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {' · '}
+                                  {joinAvailableAt.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -390,24 +628,9 @@ const LessonView = () => {
                   </div>
                 )}
 
-                {/* Note/text content — shown when there is no video */}
-                {!videoInfo && currentLesson?.description && (
-                  <div className="bg-white rounded-[16px] border border-[#f0f0f5] p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 rounded-[10px] bg-[rgba(13,148,136,0.08)] flex items-center justify-center">
-                        <svg viewBox="0 0 20 20" fill="none" stroke="#0d9488" strokeWidth="1.4" className="w-4 h-4">
-                          <path d="M4 3h9l4 4v11a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M6 8h8M6 11h8M6 14h5" strokeLinecap="round"/>
-                        </svg>
-                      </div>
-                      <p className="text-[#0c0d12] text-[14px] font-bold">Note</p>
-                    </div>
-                    <p className="text-[#383a44] text-[14px] leading-relaxed whitespace-pre-wrap">{currentLesson.description}</p>
-                  </div>
-                )}
 
-                {/* Lesson info + tabs */}
-                <div className="bg-white rounded-[16px] border border-[#f0f0f5] overflow-hidden">
+                {/* Lesson info + tabs + navigation — hidden when assignment is open */}
+                {!selectedAssignmentId && <div className="bg-white rounded-[16px] border border-[#f0f0f5] overflow-hidden">
                   <div className="p-5">
                     {/* Title row */}
                     <div className="flex items-start justify-between gap-3 mb-3">
@@ -451,7 +674,7 @@ const LessonView = () => {
                           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">
                             <path d="M2 12L6 4l4 8M4.5 9h5M10 4c1 0 4 .5 4 4s-3 4-4 4"/>
                           </svg>
-                          Lesson {currentIndex + 1} of {lessons.length}
+                          Item {currentIndex + 1} of {allItems.length}
                         </span>
                       )}
                     </div>
@@ -480,24 +703,11 @@ const LessonView = () => {
                       )}
                     </div>
 
-                    {/* Tabs */}
+                    {/* Tab — Overview only (assignments moved to sidebar) */}
                     <div className="flex gap-0 border-b border-[#f0f0f5] -mx-5 px-5">
-                      {[
-                        { key: 'overview', label: 'Overview' },
-                        { key: 'assignment', label: assignments.length > 0 ? `Assignments (${assignments.length})` : 'Assignments' },
-                      ].map((tab) => (
-                        <button
-                          key={tab.key}
-                          onClick={() => setActiveTab(tab.key)}
-                          className={`px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
-                            activeTab === tab.key
-                              ? 'border-[#0d9488] text-[#0d9488]'
-                              : 'border-transparent text-[#6b6f7d] hover:text-[#0c0d12]'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
+                      <div className="px-4 py-2.5 text-[13px] font-medium border-b-2 border-[#0d9488] text-[#0d9488] -mb-px">
+                        Overview
+                      </div>
                     </div>
                   </div>
 
@@ -522,9 +732,45 @@ const LessonView = () => {
                           </div>
                         )}
                         {isNoteLesson(currentLesson) ? (
-                          <div className="text-[#383a44] text-[14px] leading-relaxed whitespace-pre-wrap">
-                            {currentLesson?.description || <span className="text-[#b0b5c4] italic">No content yet.</span>}
-                          </div>
+                          (() => {
+                            const desc = currentLesson?.description || '';
+                            const fileMatch = desc.match(/^FILE:([^:]+):(.+)$/);
+                            if (fileMatch) {
+                              const [, mediaId, fileName] = fileMatch;
+                              return (
+                                <div className="flex items-center gap-3 bg-[#f8f9fc] border border-[#e8eaef] rounded-[12px] p-4">
+                                  <div className="w-10 h-10 rounded-[10px] bg-[rgba(147,91,245,0.1)] flex items-center justify-center flex-shrink-0">
+                                    <svg viewBox="0 0 20 20" fill="none" stroke="#935bf5" strokeWidth="1.5" className="w-5 h-5">
+                                      <path d="M11 2H5a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V8M11 2l6 6M11 2v6h6" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[#0c0d12] text-[13px] font-semibold truncate">{fileName}</p>
+                                    <p className="text-[#6b6f7d] text-[11px] mt-0.5">Attached file</p>
+                                  </div>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const res = await mediaAPI.getDownloadURL(mediaId);
+                                        window.open(res.url, '_blank');
+                                      } catch (e) { console.error('Download failed', e); }
+                                    }}
+                                    className="flex items-center gap-1.5 bg-[#935bf5] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#7c3aed] transition-colors flex-shrink-0"
+                                  >
+                                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+                                      <path d="M8 2v8M5 7l3 3 3-3M3 13h10" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    Download
+                                  </button>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="text-[#383a44] text-[14px] leading-relaxed whitespace-pre-wrap">
+                                {desc || <span className="text-[#b0b5c4] italic">No content yet.</span>}
+                              </div>
+                            );
+                          })()
                         ) : (
                           <p className="text-[#6b6f7d] text-[13px] leading-relaxed">
                             {currentLesson?.description
@@ -534,154 +780,10 @@ const LessonView = () => {
                       </div>
                     )}
 
-                    {activeTab === 'assignment' && (
-                      <div className="pt-1">
-                        {assignments.length === 0 ? (
-                          <div className="py-10 text-center">
-                            <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-3">
-                              <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-8 h-8"><path d="M4 2h9l4 4v13a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M13 2v4h4M7 9h6M7 12h6M7 15h3" strokeLinecap="round"/></svg>
-                            </div>
-                            <p className="text-[#0c0d12] text-[14px] font-semibold mb-1">No assignments yet</p>
-                            <p className="text-[#6b6f7d] text-[13px]">The tutor hasn't posted any assignments for this course.</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {assignments.map((asgn) => (
-                              <div key={asgn.id} className="border border-[#f0f0f5] rounded-[14px] p-4">
-                                <div className="flex items-start justify-between gap-3 mb-2">
-                                  <h3 className="text-[#0c0d12] text-[14px] font-bold leading-snug">{asgn.title}</h3>
-                                  {asgn.due_date && (
-                                    <span className="text-[11px] bg-[rgba(255,166,26,0.1)] text-[#ffa61a] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 whitespace-nowrap">
-                                      Due {formatDate(asgn.due_date)}
-                                    </span>
-                                  )}
-                                </div>
-                                {asgn.description && (
-                                  <p className="text-[#6b6f7d] text-[13px] leading-relaxed mb-3">{asgn.description}</p>
-                                )}
-                                {asgn.max_score != null && (
-                                  <p className="text-[12px] text-[#6b6f7d] mb-3">Max score: <span className="text-[#0c0d12] font-semibold">{asgn.max_score} pts</span></p>
-                                )}
-
-                                {submitted[asgn.id] ? (
-                                  <div className="bg-[#edfbf4] rounded-[12px] p-4 flex items-start gap-3">
-                                    <div className="w-7 h-7 rounded-full bg-[#22be70] flex items-center justify-center flex-shrink-0 mt-0.5">
-                                      <CheckIcon />
-                                    </div>
-                                    <div>
-                                      <p className="text-[#22be70] text-[13px] font-semibold">Assignment submitted!</p>
-                                      <p className="text-[#22be70]/70 text-[12px] mt-0.5">Your answer has been sent to the tutor for review.</p>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <p className="text-[#0c0d12] text-[12px] font-semibold mb-2">Your Answer</p>
-                                    <textarea
-                                      value={answers[asgn.id] || ''}
-                                      onChange={(e) => setAnswers((prev) => ({ ...prev, [asgn.id]: e.target.value }))}
-                                      placeholder="Type your answer here... (optional if uploading a file)"
-                                      rows={4}
-                                      className="w-full border border-[#e8eaef] rounded-[10px] px-3 py-2.5 text-[13px] text-[#0c0d12] placeholder-[#b0b5c4] resize-none focus:outline-none focus:border-[#0d9488] focus:ring-2 focus:ring-[rgba(13,148,136,0.1)] transition-all"
-                                    />
-
-                                    {/* File upload */}
-                                    <div className="mt-3">
-                                      <p className="text-[#0c0d12] text-[12px] font-semibold mb-2">
-                                        Attach File <span className="text-[#6b6f7d] font-normal">(optional)</span>
-                                      </p>
-                                      {files[asgn.id] ? (
-                                        <div className="flex items-center gap-3 bg-[#f8f9fc] border border-[#e8eaef] rounded-[10px] px-3 py-2.5">
-                                          <div className="w-8 h-8 rounded-[8px] bg-[rgba(13,148,136,0.1)] flex items-center justify-center flex-shrink-0">
-                                            <svg viewBox="0 0 16 16" fill="none" stroke="#0d9488" strokeWidth="1.4" className="w-4 h-4">
-                                              <path d="M4 2h6l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/>
-                                              <path d="M10 2v3h3"/>
-                                            </svg>
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-[#0c0d12] text-[12px] font-medium truncate">{files[asgn.id].name}</p>
-                                            <p className="text-[#6b6f7d] text-[11px]">
-                                              {files[asgn.id].size < 1024 * 1024
-                                                ? `${(files[asgn.id].size / 1024).toFixed(1)} KB`
-                                                : `${(files[asgn.id].size / (1024 * 1024)).toFixed(1)} MB`}
-                                            </p>
-                                          </div>
-                                          <button
-                                            onClick={() => removeFile(asgn.id)}
-                                            className="w-6 h-6 rounded-full bg-[#f0f0f5] hover:bg-[#fee2e2] flex items-center justify-center flex-shrink-0 transition-colors"
-                                            title="Remove file"
-                                          >
-                                            <svg viewBox="0 0 10 10" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-3 h-3">
-                                              <path d="M2 2l6 6M8 2L2 8"/>
-                                            </svg>
-                                          </button>
-                                        </div>
-                                      ) : (
-                                        <label className="flex flex-col items-center gap-2 border-2 border-dashed border-[#e8eaef] rounded-[10px] p-4 cursor-pointer hover:border-[#0d9488] hover:bg-[rgba(13,148,136,0.02)] transition-colors group">
-                                          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.08)] group-hover:bg-[rgba(13,148,136,0.14)] flex items-center justify-center transition-colors">
-                                            <svg viewBox="0 0 20 20" fill="none" stroke="#0d9488" strokeWidth="1.5" className="w-5 h-5">
-                                              <path d="M10 13V7M7 10l3-3 3 3"/>
-                                              <path d="M3 15a4 4 0 010-8 5 5 0 019.9-1A4 4 0 0117 15H3z"/>
-                                            </svg>
-                                          </div>
-                                          <div className="text-center">
-                                            <p className="text-[#0c0d12] text-[12px] font-semibold">Click to upload a file</p>
-                                            <p className="text-[#6b6f7d] text-[11px] mt-0.5">PDF, DOCX, TXT, PNG, JPG, ZIP - up to 32 MB</p>
-                                          </div>
-                                          <input
-                                            type="file"
-                                            className="hidden"
-                                            accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.zip"
-                                            onChange={(e) => handleFileChange(asgn.id, e)}
-                                          />
-                                        </label>
-                                      )}
-                                    </div>
-
-                                    {submitError[asgn.id] && (
-                                      <p className="text-[#f24545] text-[12px] mt-2 flex items-center gap-1.5">
-                                        <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 flex-shrink-0">
-                                          <circle cx="7" cy="7" r="6.5" fill="#fee2e2" stroke="#f24545" strokeWidth="0.8"/>
-                                          <path d="M7 4v4M7 9.5v.5" stroke="#f24545" strokeWidth="1.2" strokeLinecap="round"/>
-                                        </svg>
-                                        {submitError[asgn.id]}
-                                      </p>
-                                    )}
-
-                                    <button
-                                      onClick={() => handleSubmit(asgn.id)}
-                                      disabled={
-                                        submitting === asgn.id ||
-                                        (!(answers[asgn.id] || '').trim() && !files[asgn.id])
-                                      }
-                                      className="w-full mt-3 bg-[#0d9488] text-white text-[13px] font-semibold py-2.5 rounded-[10px] hover:bg-[#0f766e] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                                    >
-                                      {submitting === asgn.id ? (
-                                        <>
-                                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                          {uploadProgress[asgn.id] ? 'Uploading file...' : 'Submitting...'}
-                                        </>
-                                      ) : (
-                                        <>
-                                          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
-                                            <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3M8 2v8M5 5l3-3 3 3"/>
-                                          </svg>
-                                          Submit Assignment
-                                        </>
-                                      )}
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
-                </div>
+                </div>}
 
-                {/* Mark as Complete */}
-                <div className="flex justify-center">
+                {!selectedAssignmentId && <div className="flex justify-center">
                   {isCurrentDone ? (
                     <div className="flex items-center gap-2 bg-[#edfbf4] text-[#22be70] text-[13px] font-semibold px-5 py-2.5 rounded-[10px]">
                       <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
@@ -707,13 +809,12 @@ const LessonView = () => {
                       Mark as Complete
                     </button>
                   )}
-                </div>
+                </div>}
 
-                {/* Prev / Next navigation */}
-                <div className="flex items-center justify-between gap-3">
-                  {prevLesson ? (
+                {!selectedAssignmentId && <div className="flex items-center justify-between gap-3">
+                  {prevItem ? (
                     <Link
-                      to={`/student/courses/${courseId}/lessons/${prevLesson.id}`}
+                      to={itemUrl(prevItem)}
                       className="flex items-center gap-2 bg-white border border-[#e8eaef] text-[#383a44] text-[13px] font-semibold px-4 py-2.5 rounded-[10px] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors"
                     >
                       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
@@ -723,12 +824,12 @@ const LessonView = () => {
                     </Link>
                   ) : <div />}
 
-                  {nextLesson ? (
+                  {nextItem ? (
                     <Link
-                      to={`/student/courses/${courseId}/lessons/${nextLesson.id}`}
+                      to={itemUrl(nextItem)}
                       className="flex items-center gap-2 bg-[#0d9488] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:bg-[#0f766e] transition-colors"
                     >
-                      Next Lesson
+                      {nextItem._type === 'quiz' ? 'Next: Quiz' : 'Next Lesson'}
                       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
                         <path d="M6 3l5 5-5 5"/>
                       </svg>
@@ -742,7 +843,7 @@ const LessonView = () => {
                       Course Complete!
                     </div>
                   )}
-                </div>
+                </div>}
 
               </div>
 
@@ -784,22 +885,23 @@ const LessonView = () => {
                 </div>
 
                 <div className="bg-white rounded-[16px] border border-[#f0f0f5] p-4">
-                  <p className="text-[#0c0d12] text-[13px] font-bold mb-3">All Lessons</p>
+                  <p className="text-[#0c0d12] text-[13px] font-bold mb-3">All Content</p>
                   <div className="space-y-2">
-                    {lessons.map((lesson, idx) => {
-                      const isDone = idx < currentIndex;
-                      const isCur = lesson.id === lessonId;
+                    {allItems.map((item, idx) => {
+                      const isQuizItem = item._type === 'quiz';
+                      const isDone = !isQuizItem && idx < currentIndex;
+                      const isCur = item.id === lessonId;
                       return (
-                        <div key={lesson.id} className="flex items-center gap-2">
+                        <Link key={item.id} to={itemUrl(item)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{
-                            backgroundColor: isDone ? '#22c55e' : isCur ? '#0d9488' : '#e8eaef'
+                            backgroundColor: isQuizItem ? '#935bf5' : isDone ? '#22c55e' : isCur ? '#0d9488' : '#e8eaef'
                           }} />
                           <p className={`text-[11px] truncate ${
-                            isCur ? 'text-[#0d9488] font-semibold' : isDone ? 'text-[#383a44]' : 'text-[#6b6f7d]'
+                            isCur ? 'text-[#0d9488] font-semibold' : isDone ? 'text-[#383a44]' : isQuizItem ? 'text-[#935bf5]' : 'text-[#6b6f7d]'
                           }`}>
-                            {lesson.title}
+                            {item.title}
                           </p>
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

@@ -10,6 +10,39 @@ import { usersAPI } from '../../api/users';
 import { mediaAPI } from '../../api/media';
 
 /* â"€â"€ helpers â"€â"€ */
+function parseAssignmentDescription(text) {
+  if (!text) return { plain: '', files: [] };
+  const fileRegex = /\n\n__file__:([^:\n]+):(.+)/g;
+  const files = [];
+  let match;
+  while ((match = fileRegex.exec(text)) !== null) {
+    files.push({ id: match[1].trim(), name: match[2].trim() });
+  }
+  const plain = text.replace(/\n\n__file__:[^:\n]+:.+/g, '').trim();
+  return { plain, files };
+}
+
+function GradingDownloadButton({ id, name }) {
+  const [loading, setLoading] = React.useState(false);
+  return (
+    <button
+      onClick={async () => {
+        setLoading(true);
+        try { const res = await mediaAPI.getDownloadURL(id); window.open(res.url, '_blank'); } catch {}
+        setLoading(false);
+      }}
+      disabled={loading}
+      className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-[#e8eaef] bg-[#f8f9fc] hover:bg-[#f0f2ff] hover:border-[#0d9488] transition-colors text-left disabled:opacity-60"
+    >
+      <svg viewBox="0 0 20 20" fill="none" stroke="#6b6f7d" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0"><path d="M5 3h8l4 4v11a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M13 3v4h4M7 11h6M7 14h4" strokeLinecap="round"/></svg>
+      <span className="text-[12px] text-[#0c0d12] font-medium truncate flex-1">{name}</span>
+      {loading
+        ? <div className="w-3.5 h-3.5 border-2 border-[#0d9488] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+        : <svg viewBox="0 0 16 16" fill="none" stroke="#0d9488" strokeWidth="1.5" className="w-3.5 h-3.5 flex-shrink-0"><path d="M8 3v7M5 7l3 3 3-3" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 13h10" strokeLinecap="round"/></svg>
+      }
+    </button>
+  );
+}
 const COLORS = ['#0d9488', '#935bf5', '#00beb7', '#ff8032', '#22c55e', '#ef4444'];
 const avatarColor = (s) => COLORS[(s?.charCodeAt(0) || 0) % COLORS.length];
 const getInitials = (name) =>
@@ -132,10 +165,9 @@ const TutorGrading = () => {
     Promise.all([
       submissionsAPI.getAssignmentSubmissions(selAssignment.id).catch(() => ({})),
       gradingAPI.getAssignmentGrades(selAssignment.id).catch(() => ({})),
-    ]).then(([subRes, gradeRes]) => {
+    ]).then(async ([subRes, gradeRes]) => {
       const subs  = subRes?.submissions  || (Array.isArray(subRes)  ? subRes  : []);
       const grades = gradeRes?.grades    || (Array.isArray(gradeRes) ? gradeRes : []);
-      // merge grade info into each submission by student_id
       const gradeMap = {};
       grades.forEach((g) => { gradeMap[g.student_id] = g; });
       const merged = subs.map((s) => {
@@ -145,6 +177,19 @@ const TutorGrading = () => {
           : { ...s, graded: false };
       });
       setSubmissions(merged);
+
+      // Fetch names for students not yet in usersMap
+      setUsersMap(prev => {
+        const missing = [...new Set(merged.map(s => s.student_id).filter(id => id && !prev[id]))];
+        if (missing.length === 0) return prev;
+        Promise.all(missing.map(id => usersAPI.getUserById(id).catch(() => null)))
+          .then(results => {
+            const extra = {};
+            results.forEach(u => { if (u?.id) extra[u.id] = u; });
+            setUsersMap(p => ({ ...p, ...extra }));
+          });
+        return prev;
+      });
     }).catch(() => setSubmissions([]))
       .finally(() => setSubLoading(false));
   }, [selAssignment]);
@@ -489,14 +534,21 @@ const TutorGrading = () => {
                   </div>
 
                   {/* Instructions */}
-                  {selAssignment?.description && (
-                    <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6 mb-4">
-                      <h4 className="text-[#0c0d12] text-[14px] font-bold mb-3">Instructions</h4>
-                      <p className="text-[#383a44] text-[14px] leading-[1.7]">
-                        {selAssignment.description}
-                      </p>
-                    </div>
-                  )}
+                  {selAssignment?.description && (() => {
+                    const { plain, files } = parseAssignmentDescription(selAssignment.description);
+                    return (plain || files.length > 0) ? (
+                      <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6 mb-4">
+                        <h4 className="text-[#0c0d12] text-[14px] font-bold mb-3">Instructions</h4>
+                        {plain && <p className="text-[#383a44] text-[14px] leading-[1.7] mb-3">{plain}</p>}
+                        {files.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-[#6b6f7d] text-[11px] font-semibold uppercase tracking-wide mb-1">Attached files</p>
+                            {files.map(f => <GradingDownloadButton key={f.id} id={f.id} name={f.name} />)}
+                          </div>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
 
                   {/* Student submission */}
                   <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6 mb-4">

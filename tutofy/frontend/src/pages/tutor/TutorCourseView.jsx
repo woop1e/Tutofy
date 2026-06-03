@@ -1,4 +1,4 @@
-﻿﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
@@ -8,6 +8,7 @@ import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { quizzesAPI } from '../../api/quizzes';
 import { mediaAPI } from '../../api/media';
+import { authAPI } from '../../api/auth';
 
 // â"€â"€ date helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -263,10 +264,9 @@ function renderMarkdown(text) {
 
 function toRFC3339(val) {
   if (!val) return undefined;
-  // datetime-local gives YYYY-MM-DDTHH:MM - treat as local time, convert to UTC ISO
   const d = new Date(val);
   if (!isNaN(d.getTime())) return d.toISOString();
-  return val + 'T00:00:00Z';
+  return undefined; // invalid or partial date — let backend use default
 }
 
 // â"€â"€ blank drafts â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -282,52 +282,207 @@ const inputCls = 'w-full border border-[#e8eaef] rounded-[9px] px-3 py-2 text-[1
 
 // â"€â"€ forms (defined outside parent so they don't remount on every keystroke) â"€â"€â"€
 
-const LessonForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }) => (
-  <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
-    <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">New Lesson</p>
-    <div className="grid grid-cols-2 gap-3 mb-3">
-      <div>
-        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
-        <input className={inputCls} placeholder="Lesson title" value={draft.title}
-          onChange={e => setDraft(p => ({ ...p, title: e.target.value }))} />
-      </div>
-      <div>
-        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Meeting / Video link</label>
-        <input className={inputCls} placeholder="https://meet.google.com/..." value={draft.video_link}
-          onChange={e => setDraft(p => ({ ...p, video_link: e.target.value }))} />
-      </div>
-      <div>
-        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Date &amp; Time</label>
-        <input type="datetime-local" className={inputCls} value={draft.scheduled_at}
-          onChange={e => setDraft(p => ({ ...p, scheduled_at: e.target.value }))} />
-      </div>
-      <div>
-        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Duration (min)</label>
-        <input type="number" className={inputCls} placeholder="60" min="1" value={draft.duration_minutes}
-          onChange={e => setDraft(p => ({ ...p, duration_minutes: e.target.value }))} />
-      </div>
-    </div>
-    <div className="mb-3">
-      <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Description</label>
-      <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Optional description"
-        value={draft.description}
-        onChange={e => setDraft(p => ({ ...p, description: e.target.value }))} />
-    </div>
-    {saveError && <p className="text-[#f24545] text-[12px] mb-2">{saveError}</p>}
-    <div className="flex items-center gap-2">
-      <button onClick={onSave} disabled={saving}
-        className="bg-[#0d9488] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#0f766e] disabled:opacity-50 transition-colors flex items-center gap-1.5">
-        {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-        Save lesson
-      </button>
-      <button onClick={onCancel} className="text-[#6b6f7d] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
-        Cancel
-      </button>
-    </div>
-  </div>
-);
+const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
-const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave, onCancel, onAttachFile, fileUploading }) => (
+function weekDays(monday) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+}
+
+function isoDate(d) {
+  // Use local date components to avoid UTC timezone shift
+  const y  = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${da}`;
+}
+
+const WeekDayTimePicker = ({ value, onChange, weekMonday }) => {
+  const days = weekDays(weekMonday);
+
+  // value format: 'YYYY-MM-DDTHH:MM'
+  const hasDate = value && value.includes('T') && value.slice(0, 10).length === 10;
+  const selDate = hasDate ? value.slice(0, 10) : '';
+  const selTime = hasDate ? (value.slice(11, 16) || '09:00') : '09:00';
+
+  const pickDay  = (d) => onChange(isoDate(d) + 'T' + selTime);
+  const pickTime = (t) => {
+    const date = selDate || isoDate(days[0]);
+    onChange(date + 'T' + t);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1">
+        {days.map((d, i) => {
+          const iso      = isoDate(d);
+          const selected = iso === selDate;
+          const isWknd   = i >= 5;
+          return (
+            <button
+              key={iso}
+              type="button"
+              onClick={() => pickDay(d)}
+              className={`flex-1 flex flex-col items-center py-1.5 rounded-[8px] border transition-all
+                ${selected
+                  ? 'bg-[#0d9488] border-[#0d9488] text-white shadow-sm'
+                  : isWknd
+                    ? 'border-[#f0f0f5] text-[#b0b5c4] hover:border-[#0d9488]/40 hover:text-[#0d9488] bg-white'
+                    : 'border-[#e2e4ea] text-[#383a44] hover:border-[#0d9488]/60 hover:text-[#0d9488] bg-white'
+                }`}
+            >
+              <span className="text-[9px] font-medium uppercase tracking-wide leading-none mb-0.5 opacity-75">
+                {DAY_LABELS[i]}
+              </span>
+              <span className="text-[13px] font-bold leading-none">{d.getDate()}</span>
+            </button>
+          );
+        })}
+      </div>
+      <input
+        type="time"
+        className={inputCls}
+        value={selTime}
+        onChange={e => pickTime(e.target.value)}
+      />
+    </div>
+  );
+};
+
+const LessonForm = ({ draft, setDraft, saveError, saving, onSave, onCancel, weekMonday }) => {
+  const [googleConnected, setGoogleConnected] = React.useState(null); // null=loading, true/false
+  const [generatingMeet, setGeneratingMeet]   = React.useState(false);
+  const [meetError, setMeetError]             = React.useState('');
+
+  React.useEffect(() => {
+    authAPI.getGoogleStatus().then(d => setGoogleConnected(!!d?.connected)).catch(() => setGoogleConnected(false));
+  }, []);
+
+  const handleGenerateMeet = async () => {
+    const parsed = draft.scheduled_at ? new Date(draft.scheduled_at) : null;
+    if (!parsed || isNaN(parsed.getTime()) || !draft.scheduled_at.includes('T')) {
+      setMeetError('Please select a date and time first');
+      return;
+    }
+    setGeneratingMeet(true);
+    setMeetError('');
+    try {
+      const isoTime = new Date(draft.scheduled_at).toISOString();
+      const data = await authAPI.generateMeetLink(
+        draft.title || 'Lesson',
+        isoTime,
+        parseInt(draft.duration_minutes) || 60,
+      );
+      setDraft(p => ({ ...p, video_link: data.meet_link }));
+    } catch (e) {
+      const msg = e?.response?.data?.error;
+      if (msg === 'google_not_connected') {
+        setMeetError('Connect Google Calendar first');
+        setGoogleConnected(false);
+      } else {
+        setMeetError(msg || 'Failed to generate Meet link');
+      }
+    } finally {
+      setGeneratingMeet(false);
+    }
+  };
+
+  const canGenerate = googleConnected === true;
+
+  return (
+    <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
+      <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">New Lesson</p>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Title <span className="text-[#f24545]">*</span></label>
+          <input className={inputCls} placeholder="Lesson title" value={draft.title}
+            onChange={e => setDraft(p => ({ ...p, title: e.target.value }))} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">
+            Meeting / Video link
+          </label>
+          <div className="flex gap-2">
+            <input className={inputCls + ' flex-1'} placeholder="https://meet.google.com/..." value={draft.video_link}
+              onChange={e => setDraft(p => ({ ...p, video_link: e.target.value }))} />
+            {googleConnected === false ? (
+              <a
+                href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/google/connect?token=${localStorage.getItem('token')}`}
+                target="_blank" rel="noopener noreferrer"
+                title="Connect Google Calendar to auto-generate Meet links"
+                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-[7px] border border-[#e2e4ea] text-[#6b6f7d] hover:border-[#4285F4] hover:text-[#4285F4] transition-colors whitespace-nowrap flex-shrink-0">
+                <svg viewBox="0 0 18 18" className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+                  <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                  <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+                  <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+                </svg>
+                Connect
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={handleGenerateMeet}
+                disabled={!canGenerate || generatingMeet}
+                title={!draft.scheduled_at ? 'Select date & time first' : 'Generate Google Meet link'}
+                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-[7px] border border-[#e2e4ea] text-[#6b6f7d] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors disabled:opacity-40 whitespace-nowrap flex-shrink-0">
+                {generatingMeet
+                  ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  : <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+                      <path d="M8 2v4l3 2M2 8a6 6 0 1 0 12 0A6 6 0 0 0 2 8z" strokeLinecap="round"/>
+                    </svg>
+                }
+                Meet
+              </button>
+            )}
+          </div>
+          {meetError && <p className="text-[#f24545] text-[11px] mt-1">{meetError}</p>}
+        </div>
+        <div>
+          <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">
+            Date &amp; Time <span className="text-[#b0b5c4] font-normal">(required for live lessons)</span>
+          </label>
+          {weekMonday
+            ? <WeekDayTimePicker
+                value={draft.scheduled_at}
+                onChange={v => setDraft(p => ({ ...p, scheduled_at: v }))}
+                weekMonday={weekMonday}
+              />
+            : <input type="datetime-local" className={inputCls} value={draft.scheduled_at}
+                onChange={e => setDraft(p => ({ ...p, scheduled_at: e.target.value }))} />
+          }
+        </div>
+        <div>
+          <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Duration (min)</label>
+          <input type="number" className={inputCls} placeholder="60" min="1" value={draft.duration_minutes}
+            onChange={e => setDraft(p => ({ ...p, duration_minutes: e.target.value }))} />
+        </div>
+      </div>
+      <div className="mb-3">
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Description</label>
+        <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Optional description"
+          value={draft.description}
+          onChange={e => setDraft(p => ({ ...p, description: e.target.value }))} />
+      </div>
+      {saveError && <p className="text-[#f24545] text-[12px] mb-2">{saveError}</p>}
+      <div className="flex items-center gap-2">
+        <button onClick={onSave} disabled={saving}
+          className="bg-[#0d9488] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:bg-[#0f766e] disabled:opacity-50 transition-colors flex items-center gap-1.5">
+          {saving ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+          Save lesson
+        </button>
+        <button onClick={onCancel} className="text-[#6b6f7d] text-[12px] font-medium px-4 py-2 rounded-[8px] hover:bg-[#f0f0f5] transition-colors">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave, onCancel, onAttachFile, fileUploading, weekMonday }) => (
   <div className="bg-[#f8f9fc] border-t border-[#f0f0f5] px-5 py-4">
     <p className="text-[#0c0d12] text-[13px] font-semibold mb-3">
       {editingId ? 'Edit Assignment' : 'New Assignment'}
@@ -343,10 +498,19 @@ const AssignmentForm = ({ draft, setDraft, editingId, saveError, saving, onSave,
         <input type="number" className={inputCls} placeholder="100" min="0" value={draft.max_score}
           onChange={e => setDraft(p => ({ ...p, max_score: e.target.value }))} />
       </div>
-      <div>
-        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">Due date</label>
-        <input type="date" className={inputCls} value={draft.due_date}
-          onChange={e => setDraft(p => ({ ...p, due_date: e.target.value }))} />
+      <div className={weekMonday ? 'col-span-2' : ''}>
+        <label className="block text-[11px] text-[#6b6f7d] font-medium mb-1">
+          Due date <span className="text-[#b0b5c4] font-normal">(optional)</span>
+        </label>
+        {weekMonday
+          ? <WeekDayTimePicker
+              value={draft.due_date}
+              onChange={v => setDraft(p => ({ ...p, due_date: v }))}
+              weekMonday={weekMonday}
+            />
+          : <input type="date" className={inputCls} value={draft.due_date}
+              onChange={e => setDraft(p => ({ ...p, due_date: e.target.value }))} />
+        }
       </div>
     </div>
     <div className="mb-3">
@@ -471,7 +635,55 @@ const FileUploadForm = ({ draft, setDraft, saveError, saving, onSave, onCancel }
   </div>
 );
 
-// â"€â"€ component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ── NoteItem ──────────────────────────────────────────────────────────────────
+
+const NoteItem = ({ item, collapsed, onToggle, onDelete, deleting }) => (
+  <div className="group">
+    <div
+      className="flex items-center gap-3 px-5 py-3.5 cursor-pointer select-none hover:bg-[#fafbff] transition-colors"
+      onClick={onToggle}
+    >
+      <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-[#f3f4f7]">
+        <svg viewBox="0 0 16 16" fill="none" stroke="#6b6f7d" strokeWidth="1.4" className="w-4 h-4">
+          <path d="M3 2h10v12H3zM3 6h10M3 9h7" strokeLinecap="round"/>
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[#0c0d12] text-[13px] font-semibold truncate">{item.title}</p>
+        {collapsed && item.description && (
+          <p className="text-[#b0b5c4] text-[11px] truncate mt-0.5">
+            {item.description.replace(/<[^>]+>/g, '').slice(0, 70)}…
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <svg
+          viewBox="0 0 16 16" fill="none" stroke="#b0b5c4" strokeWidth="1.5"
+          className={`w-4 h-4 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
+        >
+          <path d="M4 6l4 4 4-4" strokeLinecap="round"/>
+        </svg>
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          disabled={deleting}
+          className="p-1.5 rounded-[6px] hover:bg-[#fff0f0] text-[#6b6f7d] hover:text-[#e53e3e] transition-colors disabled:opacity-40 opacity-0 group-hover:opacity-100 ml-1"
+        >
+          <TrashIcon />
+        </button>
+      </div>
+    </div>
+    {!collapsed && item.description && (
+      <div className="px-5 pb-4">
+        <div
+          className="prose-note text-[#383a44] text-[13px] leading-relaxed border-l-2 border-[#f0f0f5] pl-4"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(item.description) }}
+        />
+      </div>
+    )}
+  </div>
+);
+
+// ── component ─────────────────────────────────────────────────────────────────
 
 const TutorCourseView = () => {
   const { isAuthenticated, role } = useAuth();
@@ -489,6 +701,14 @@ const TutorCourseView = () => {
 
   // General (0) is open by default
   const [expandedWeeks, setExpandedWeeks] = useState(new Set([0, 1]));
+
+  // Note items that are collapsed (by lesson id)
+  const [collapsedNotes, setCollapsedNotes] = useState(new Set());
+  const toggleNote = (id) => setCollapsedNotes(prev => {
+    const s = new Set(prev);
+    s.has(id) ? s.delete(id) : s.add(id);
+    return s;
+  });
 
   // inline add form: { weekIdx, type: 'lesson'|'assignment' } | null
   const [addingIn, setAddingIn] = useState(null);
@@ -514,11 +734,26 @@ const TutorCourseView = () => {
   // Empty week placeholders created by "+ Add Week" button
   const [pendingWeeks, setPendingWeeks] = useState([]);
 
+  // Refs so handleContentSelect always reads the latest values without stale closures
+  const weeksRef        = useRef([]);
+  const pendingWeeksRef = useRef([]);
+
   const handleContentSelect = useCallback((type) => {
     setShowContentModal(false);
-    const targetIdx = pendingWeekIdx ?? 0;
+    const targetIdx    = pendingWeekIdx ?? 0;
+    const currentWeeks = weeksRef.current;
+    const currentPW    = pendingWeeksRef.current;
     if (type === 'quiz') {
-      navigate(`/tutor/courses/${courseId}/quizzes/new`);
+      let monday = null;
+      if (typeof targetIdx === 'number') {
+        monday = currentWeeks[targetIdx]?.weekMonday || null;
+      } else if (typeof targetIdx === 'string' && targetIdx.startsWith('pw_')) {
+        const pw = currentPW.find(w => w.id === targetIdx);
+        monday = pw?.weekMonday || null;
+      }
+      const qs = monday ? `?scheduled_at=${monday.toISOString().slice(0, 10)}` : '';
+      console.log('[TutorCourseView] quiz navigate: targetIdx=', targetIdx, 'monday=', monday, 'qs=', qs);
+      navigate(`/tutor/courses/${courseId}/quizzes/new${qs}`);
     } else if (type === 'lesson' || type === 'video') {
       openAdd(targetIdx, 'lesson');
     } else if (type === 'homework') {
@@ -564,7 +799,7 @@ const TutorCourseView = () => {
     const items = [
       ...lessons.map(l => ({ ...l, _type: 'lesson',     _date: parseDate(l.scheduled_at) })),
       ...assignments.map(a => ({ ...a, _type: 'assignment', _date: parseDate(a.due_date) })),
-      ...quizzes.map(q => ({ ...q, _type: 'quiz', _date: null })),
+      ...quizzes.map(q => ({ ...q, _type: 'quiz', _date: parseDate(q.scheduled_at) })),
     ];
     return items.sort((a, b) => {
       if (!a._date && !b._date) return 0;
@@ -575,6 +810,8 @@ const TutorCourseView = () => {
   }, [lessons, assignments, quizzes]);
 
   const weeks = useMemo(() => groupIntoWeeks(allItems), [allItems]);
+  weeksRef.current        = weeks;
+  pendingWeeksRef.current = pendingWeeks;
 
   const courseStatus = course?.course_status || course?.status || (course?.is_published ? 'active' : 'draft');
 
@@ -607,15 +844,16 @@ const TutorCourseView = () => {
     }
 
     if (type === 'lesson') {
-      setLessonDraft({ ...blankLesson, scheduled_at: monday ? toInputDate(monday) + 'T09:00' : '' });
+      const localDate = monday ? isoDate(monday) : '';
+      setLessonDraft({ ...blankLesson, scheduled_at: localDate ? `${localDate}T09:00` : '' });
     } else if (type === 'assignment') {
-      setAssignmentDraft({ ...blankAssignment, due_date: monday ? toInputDate(monday) : '' });
+      setAssignmentDraft({ ...blankAssignment, due_date: monday ? `${isoDate(monday)}T23:59` : '' });
     } else if (type === 'note') {
       setNoteDraft({ ...blankNote });
     } else if (type === 'file') {
       setFileDraft({ ...blankFile });
     }
-    setAddingIn({ weekIdx, type });
+    setAddingIn({ weekIdx, type, weekMonday: monday });
     setSaveError('');
     if (typeof weekIdx === 'number') {
       setExpandedWeeks(prev => { const s = new Set(prev); s.add(weekIdx); return s; });
@@ -634,12 +872,16 @@ const TutorCourseView = () => {
     if (!lessonDraft.title.trim()) { setSaveError('Title is required'); return; }
     setSaving(true); setSaveError('');
     try {
+      // If no date entered, fall back to the week's Monday so the lesson stays in the correct week
+      const wi = addingIn?.weekIdx;
+      const weekMonday = typeof wi === 'number' && wi > 0 ? weeks[wi]?.weekMonday : null;
+      const scheduledAt = toRFC3339(lessonDraft.scheduled_at) || (weekMonday ? weekMonday.toISOString() : undefined);
       const created = await lessonsAPI.createLesson({
         course_id:        courseId,
         title:            lessonDraft.title.trim(),
         description:      lessonDraft.description.trim(),
         video_link:       lessonDraft.video_link.trim(),
-        scheduled_at:     toRFC3339(lessonDraft.scheduled_at),
+        scheduled_at:     scheduledAt,
         duration_minutes: lessonDraft.duration_minutes ? parseInt(lessonDraft.duration_minutes) : undefined,
         status:           'published',
       });
@@ -668,15 +910,29 @@ const TutorCourseView = () => {
       if (assignmentDraft.attachmentId) {
         description += `\n\n__file__:${assignmentDraft.attachmentId}:${assignmentDraft.attachmentName}`;
       }
+      // Fall back to week's Monday when no due_date is set, so the assignment stays in the correct week (mirrors saveLesson behaviour)
+      const wi = addingIn?.weekIdx;
+      let weekMonday = null;
+      if (typeof wi === 'number' && wi > 0) {
+        weekMonday = weeks[wi]?.weekMonday || null;
+      } else if (typeof wi === 'string' && wi.startsWith('pw_')) {
+        const pw = pendingWeeks.find(w => w.id === wi);
+        weekMonday = pw?.weekMonday || null;
+      }
+      // WeekDayTimePicker produces "YYYY-MM-DDTHH:MM"; extract date-only for the API
+      const rawDue = assignmentDraft.due_date?.includes('T')
+        ? assignmentDraft.due_date.slice(0, 10)
+        : assignmentDraft.due_date;
+      const dueDate = rawDue || (weekMonday ? isoDate(weekMonday) : undefined);
       const created = await assignmentsAPI.createAssignment({
         course_id:   courseId,
         title:       assignmentDraft.title.trim(),
         description,
-        due_date:    assignmentDraft.due_date || undefined,
+        due_date:    dueDate || undefined,
         max_score:   assignmentDraft.max_score ? parseFloat(assignmentDraft.max_score) : undefined,
       });
       const newA = created?.assignment || created;
-      if (newA?.id) setAssignments(prev => [...prev, { ...newA, description }]);
+      if (newA?.id) setAssignments(prev => [...prev, { ...newA, description, due_date: newA.due_date || dueDate }]);
       clearPendingWeek(addingIn?.weekIdx);
       setAddingIn(null);
     } catch (e) {
@@ -1028,6 +1284,8 @@ const TutorCourseView = () => {
           </div>
 
 
+
+
           {/* Week sections */}
           {weeks.map((week, wi) => {
             const open       = expandedWeeks.has(wi);
@@ -1140,28 +1398,13 @@ const TutorCourseView = () => {
                               </div>
                             </div>
                           ) : isNoteLesson ? (
-                            <div className="px-5 py-4 group">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[#0c0d12] text-[15px] font-bold leading-snug mb-2">{item.title}</p>
-                                  {item.description && (
-                                    <div
-                                      className="prose-note text-[#383a44] text-[13px] leading-relaxed"
-                                      dangerouslySetInnerHTML={{ __html: renderMarkdown(item.description) }}
-                                    />
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pt-0.5">
-                                  <button
-                                    onClick={() => deleteLesson(item.id)}
-                                    disabled={deleting === item.id}
-                                    className="p-1.5 rounded-[6px] hover:bg-[#fff0f0] text-[#6b6f7d] hover:text-[#e53e3e] transition-colors disabled:opacity-40"
-                                  >
-                                    <TrashIcon />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
+                            <NoteItem
+                              item={item}
+                              collapsed={collapsedNotes.has(item.id)}
+                              onToggle={() => toggleNote(item.id)}
+                              onDelete={() => deleteLesson(item.id)}
+                              deleting={deleting === item.id}
+                            />
                           ) : (
                           /* Row for lessons, quizzes, assignments */
                           <div className="flex items-center gap-4 px-5 py-3.5 group">
@@ -1208,6 +1451,22 @@ const TutorCourseView = () => {
                                   {isEditingThis ? 'Cancel' : 'Edit'}
                                 </button>
                               )}
+                              {isQuiz && (
+                                <>
+                                  <Link to={`/tutor/courses/${courseId}/quizzes/${item.id}/edit`}
+                                    className="flex items-center gap-1 text-[#6b6f7d] hover:text-[#0d9488] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(13,148,136,0.06)] transition-colors">
+                                    <PencilIcon />
+                                    Edit
+                                  </Link>
+                                  <Link to={`/tutor/courses/${courseId}/quizzes/${item.id}/results`}
+                                    className="flex items-center gap-1 text-[#6b6f7d] hover:text-[#935bf5] text-[11px] font-medium px-2.5 py-1.5 rounded-[6px] hover:bg-[rgba(147,91,245,0.06)] transition-colors">
+                                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3">
+                                      <path d="M2 10V6M5 10V3M8 10V6M11 10V8" strokeLinecap="round"/>
+                                    </svg>
+                                    Results
+                                  </Link>
+                                </>
+                              )}
                               <button
                                 onClick={() => isLesson ? deleteLesson(item.id) : isQuiz ? deleteQuiz(item.id) : deleteAssignment(item.id)}
                                 disabled={deleting === item.id}
@@ -1241,10 +1500,10 @@ const TutorCourseView = () => {
 
                     {/* Inline add forms */}
                     {isAddHere && addingIn.type === 'lesson' && (
-                      <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} />
+                      <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} weekMonday={addingIn?.weekMonday} />
                     )}
                     {isAddHere && addingIn.type === 'assignment' && (
-                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} onAttachFile={handleAttachFile} fileUploading={fileUploading} />
+                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} onAttachFile={handleAttachFile} fileUploading={fileUploading} weekMonday={addingIn?.weekMonday} />
                     )}
                     {isAddHere && addingIn.type === 'note' && (
                       <NoteForm draft={noteDraft} setDraft={setNoteDraft} saveError={saveError} saving={saving} onSave={saveNote} onCancel={cancelAdd} />
@@ -1294,10 +1553,10 @@ const TutorCourseView = () => {
                       </div>
                     )}
                     {isAddHere && addingIn.type === 'lesson' && (
-                      <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} />
+                      <LessonForm draft={lessonDraft} setDraft={setLessonDraft} saveError={saveError} saving={saving} onSave={saveLesson} onCancel={cancelAdd} weekMonday={addingIn?.weekMonday} />
                     )}
                     {isAddHere && addingIn.type === 'assignment' && (
-                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} onAttachFile={handleAttachFile} fileUploading={fileUploading} />
+                      <AssignmentForm draft={assignmentDraft} setDraft={setAssignmentDraft} editingId={editingId} saveError={saveError} saving={saving} onSave={saveAssignment} onCancel={cancelAdd} onAttachFile={handleAttachFile} fileUploading={fileUploading} weekMonday={addingIn?.weekMonday} />
                     )}
                     {isAddHere && addingIn.type === 'note' && (
                       <NoteForm draft={noteDraft} setDraft={setNoteDraft} saveError={saveError} saving={saving} onSave={saveNote} onCancel={cancelAdd} />

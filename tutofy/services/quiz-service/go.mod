@@ -1,6 +1,6 @@
 module quiz-service
 
-go 1.24
+go 1.24.0
 
 require (
 	auth-service v0.0.0

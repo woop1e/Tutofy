@@ -13,6 +13,46 @@ import { reviewsAPI } from '../../api/reviews';
 import { progressAPI } from '../../api/progress';
 import { certificatesAPI } from '../../api/certificates';
 
+function parseAssignmentDescription(text) {
+  if (!text) return { plain: '', files: [] };
+  const fileRegex = /\n\n__file__:([^:\n]+):(.+)/g;
+  const files = [];
+  let match;
+  while ((match = fileRegex.exec(text)) !== null) {
+    files.push({ id: match[1].trim(), name: match[2].trim() });
+  }
+  const plain = text.replace(/\n\n__file__:[^:\n]+:.+/g, '').trim();
+  return { plain, files };
+}
+
+function AttachmentDownloadButton({ id, name }) {
+  const [loading, setLoading] = React.useState(false);
+  return (
+    <button
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const res = await mediaAPI.getDownloadURL(id);
+          window.open(res.url, '_blank');
+        } catch {}
+        setLoading(false);
+      }}
+      disabled={loading}
+      className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-[#e8eaef] bg-[#f8f9fc] hover:bg-[#f0f2ff] hover:border-[#0d9488] transition-colors w-full text-left disabled:opacity-60"
+    >
+      <svg viewBox="0 0 20 20" fill="none" stroke="#6b6f7d" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0">
+        <path d="M5 3h8l4 4v11a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z"/>
+        <path d="M13 3v4h4M7 11h6M7 14h4" strokeLinecap="round"/>
+      </svg>
+      <span className="text-[12px] text-[#0c0d12] font-medium truncate flex-1">{name}</span>
+      {loading
+        ? <div className="w-3.5 h-3.5 border-2 border-[#0d9488] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+        : <svg viewBox="0 0 16 16" fill="none" stroke="#0d9488" strokeWidth="1.5" className="w-3.5 h-3.5 flex-shrink-0"><path d="M8 3v7M5 7l3 3 3-3" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 13h10" strokeLinecap="round"/></svg>
+      }
+    </button>
+  );
+}
+
 // â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function parseDate(val) {
@@ -246,7 +286,7 @@ const CourseView = () => {
     const items = [
       ...lessons.map(l => ({ ...l, _type: 'lesson',     _date: parseDate(l.scheduled_at) })),
       ...assignments.map(a => ({ ...a, _type: 'assignment', _date: parseDate(a.due_date) })),
-      ...quizzes.map(q => ({ ...q, _type: 'quiz', _date: null })),
+      ...quizzes.map(q => ({ ...q, _type: 'quiz', _date: parseDate(q.scheduled_at) })),
     ];
     return items.sort((a, b) => {
       if (!a._date && !b._date) return 0;
@@ -644,9 +684,20 @@ const CourseView = () => {
 
                               {/* Assignment detail */}
                               <div className="mb-4">
-                                {item.description && (
-                                  <p className="text-[#383a44] text-[13px] leading-relaxed mb-3">{item.description}</p>
-                                )}
+                                {(() => {
+                                  const { plain, files } = parseAssignmentDescription(item.description);
+                                  return (
+                                    <>
+                                      {plain && <p className="text-[#383a44] text-[13px] leading-relaxed mb-3">{plain}</p>}
+                                      {files.length > 0 && (
+                                        <div className="mb-3 space-y-1.5">
+                                          <p className="text-[#6b6f7d] text-[11px] font-semibold uppercase tracking-wide mb-1">Attached by tutor</p>
+                                          {files.map(f => <AttachmentDownloadButton key={f.id} id={f.id} name={f.name} />)}
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                                 <div className="flex flex-wrap gap-2">
                                   {item._date && (
                                     <span className="text-[11px] bg-[rgba(255,166,26,0.12)] text-[#ffa61a] font-semibold px-2.5 py-1 rounded-full">

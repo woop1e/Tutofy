@@ -1,0 +1,17 @@
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Secrets — never commit real .env files
+tutofy/services/auth-service/.env
+tutofy/services/.env
+tutofy/services/.env.prod
+
+# Build artifacts
+tutofy/frontend/dist/
+tutofy/frontend/node_modules/

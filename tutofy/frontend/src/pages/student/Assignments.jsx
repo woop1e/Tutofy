@@ -1,4 +1,4 @@
-﻿﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
+﻿﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
@@ -9,15 +9,59 @@ import { assignmentsAPI } from '../../api/assignments';
 import { submissionsAPI } from '../../api/submissions';
 import { mediaAPI } from '../../api/media';
 
+// Parses "\n\n__file__:<id>:<name>" tokens from description text
+function parseDescription(text) {
+  if (!text) return { plain: '', files: [] };
+  const fileRegex = /\n\n__file__:([^:\n]+):(.+)/g;
+  const files = [];
+  let match;
+  while ((match = fileRegex.exec(text)) !== null) {
+    files.push({ id: match[1].trim(), name: match[2].trim() });
+  }
+  const plain = text.replace(/\n\n__file__:[^:\n]+:.+/g, '').trim();
+  return { plain, files };
+}
+
+async function downloadFile(id) {
+  try {
+    const res = await mediaAPI.getDownloadURL(id);
+    window.open(res.url, '_blank');
+  } catch {}
+}
+
+function DownloadButton({ id, name }) {
+  const [loading, setLoading] = React.useState(false);
+  const ext = name.split('.').pop().toLowerCase();
+  const iconColor = ext === 'pdf' ? '#ef4444' : ext === 'docx' || ext === 'doc' ? '#3b82f6' : '#6b6f7d';
+  return (
+    <button
+      onClick={async () => { setLoading(true); await downloadFile(id); setLoading(false); }}
+      disabled={loading}
+      className="flex items-center gap-2 px-3 py-2 rounded-[10px] border border-[#e8eaef] bg-[#f8f9fc] hover:bg-[#f0f2ff] hover:border-[#0d9488] transition-colors text-left w-full disabled:opacity-60"
+    >
+      <svg viewBox="0 0 20 20" fill="none" stroke={iconColor} strokeWidth="1.5" className="w-4 h-4 flex-shrink-0">
+        <path d="M5 3h8l4 4v11a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z"/>
+        <path d="M13 3v4h4M7 11h6M7 14h4" strokeLinecap="round"/>
+      </svg>
+      <span className="text-[12px] text-[#0c0d12] font-medium truncate flex-1">{name}</span>
+      {loading
+        ? <div className="w-3.5 h-3.5 border-2 border-[#0d9488] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+        : <svg viewBox="0 0 16 16" fill="none" stroke="#0d9488" strokeWidth="1.5" className="w-3.5 h-3.5 flex-shrink-0"><path d="M8 3v7M5 7l3 3 3-3" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 13h10" strokeLinecap="round"/></svg>
+      }
+    </button>
+  );
+}
+
 function formatDeadline(dateStr) {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   const now = new Date();
   const diff = d - now;
-  if (diff < 0) return { label: 'Overdue', color: '#ef4444', bg: '#fff0f0' };
-  if (diff < 86400000) return { label: 'Due today', color: '#ff8032', bg: '#fff5ee' };
-  if (diff < 3 * 86400000) return { label: `Due ${d.toLocaleDateString('en-GB', { weekday: 'short' })}`, color: '#ffa61a', bg: '#fffbf0' };
-  return { label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), color: '#6b6f7d', bg: '#f8f9fc' };
+  const dateLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (diff < 0) return { label: `Overdue · ${dateLabel}`, color: '#ef4444', bg: '#fff0f0' };
+  if (diff < 86400000) return { label: `Due today · ${dateLabel}`, color: '#ff8032', bg: '#fff5ee' };
+  if (diff < 3 * 86400000) return { label: `Due ${d.toLocaleDateString('en-GB', { weekday: 'short' })} · ${dateLabel}`, color: '#ffa61a', bg: '#fffbf0' };
+  return { label: `Due ${dateLabel}`, color: '#6b6f7d', bg: '#f8f9fc' };
 }
 
 const isPastDeadline = (dateStr) => dateStr && new Date(dateStr) < new Date();
@@ -39,7 +83,6 @@ const Assignments = () => {
   const [fileInput, setFileInput]       = useState({});   // assignmentId → File
   const [uploadErr, setUploadErr]       = useState({});
   const [editing, setEditing]           = useState({});   // assignmentId → bool
-  const fileRefs = useRef({});
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
@@ -242,6 +285,7 @@ const Assignments = () => {
                 const canEdit     = isSubmitted && !isPastDeadline(a.due_date) && sub?.status !== 'graded';
                 const showForm    = !isSubmitted || isEditing;
                 const file        = fileInput[a.id];
+                const parsedDesc  = parseDescription(a.description);
 
                 return (
                   <div key={a.id} className="bg-white rounded-[16px] border border-[#f0f0f5] p-5">
@@ -255,13 +299,15 @@ const Assignments = () => {
                           <h3 className="text-[#0c0d12] text-[14px] font-bold">{a.title}</h3>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {isSubmitted && (
-                              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[rgba(13,148,136,0.08)] text-[#0d9488]">
-                                âœ" Submitted
+                              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[rgba(13,148,136,0.08)] text-[#0d9488] flex items-center gap-1">
+                                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                Submitted
                               </span>
                             )}
-                            {deadline && !isSubmitted && (
-                              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                            {deadline && (
+                              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1"
                                 style={{ color: deadline.color, backgroundColor: deadline.bg }}>
+                                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3 h-3 flex-shrink-0"><rect x="1" y="2" width="10" height="9" rx="1.5"/><path d="M4 1v2M8 1v2M1 5h10" strokeLinecap="round"/></svg>
                                 {deadline.label}
                               </span>
                             )}
@@ -270,8 +316,16 @@ const Assignments = () => {
 
                         <p className="text-[#6b6f7d] text-[12px] mb-1">{course.title || `Course ${a.courseId}`}</p>
 
-                        {a.description && (
-                          <p className="text-[#383a44] text-[13px] mt-2 leading-relaxed">{a.description}</p>
+                        {parsedDesc.plain && (
+                          <p className="text-[#383a44] text-[13px] mt-2 leading-relaxed">{parsedDesc.plain}</p>
+                        )}
+                        {parsedDesc.files.length > 0 && (
+                          <div className="mt-2 space-y-1.5">
+                            <p className="text-[#6b6f7d] text-[11px] font-semibold uppercase tracking-wide mb-1">Attached by tutor</p>
+                            {parsedDesc.files.map(f => (
+                              <DownloadButton key={f.id} id={f.id} name={f.name} />
+                            ))}
+                          </div>
                         )}
                         {a.max_score && (
                           <p className="text-[#6b6f7d] text-[12px] mt-1">Max score: {a.max_score} pts</p>
@@ -286,7 +340,10 @@ const Assignments = () => {
                               </div>
                             )}
                             {sub.file_id && (
-                              <p className="text-[#0d9488] text-[12px] mt-1 font-medium">ðŸ"Ž File attached</p>
+                              <p className="text-[#0d9488] text-[12px] mt-1 font-medium flex items-center gap-1">
+                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M13.5 7.5l-6 6a3.5 3.5 0 01-4.95-4.95l6-6a2 2 0 012.83 2.83l-6 6a.5.5 0 01-.71-.71l5.5-5.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                File attached
+                              </p>
                             )}
                             {canEdit && (
                               <button onClick={() => startEdit(a.id)}
@@ -315,33 +372,31 @@ const Assignments = () => {
                             />
 
                             {/* File upload */}
-                            <div
-                              onClick={() => {
-                                if (!fileRefs.current[a.id]) fileRefs.current[a.id] = document.createElement('input');
-                                const inp = fileRefs.current[a.id];
-                                inp.type = 'file';
-                                inp.accept = '.pdf,.doc,.docx,.png,.jpg,.jpeg,.zip,.txt';
-                                inp.onchange = (e) => {
+                            <label className="flex items-center gap-2 border border-dashed border-[#d5d8e3] rounded-[10px] px-4 py-2.5 cursor-pointer hover:border-[#0d9488] hover:bg-[#f5f6ff] transition-colors">
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip,.txt"
+                                className="hidden"
+                                onChange={(e) => {
                                   const f = e.target.files[0];
                                   if (f) setFileInput((p) => ({ ...p, [a.id]: f }));
-                                };
-                                inp.click();
-                              }}
-                              className="flex items-center gap-2 border border-dashed border-[#d5d8e3] rounded-[10px] px-4 py-2.5 cursor-pointer hover:border-[#0d9488] hover:bg-[#f5f6ff] transition-colors"
-                            >
-                              <span className="text-[16px]">ðŸ"Ž</span>
-                              <span className="text-[13px] text-[#6b6f7d]">
+                                  e.target.value = '';
+                                }}
+                              />
+                              <svg viewBox="0 0 16 16" fill="none" stroke="#6b6f7d" strokeWidth="1.5" className="w-4 h-4 flex-shrink-0"><path d="M13.5 7.5l-6 6a3.5 3.5 0 01-4.95-4.95l6-6a2 2 0 012.83 2.83l-6 6a.5.5 0 01-.71-.71l5.5-5.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              <span className="text-[13px] text-[#6b6f7d] flex-1 truncate">
                                 {file ? file.name : 'Attach a file (optional)'}
                               </span>
                               {file && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setFileInput((p) => ({ ...p, [a.id]: null })); }}
-                                  className="ml-auto text-[#f24545] text-[11px] font-semibold hover:underline"
+                                  type="button"
+                                  onClick={(e) => { e.preventDefault(); setFileInput((p) => ({ ...p, [a.id]: null })); }}
+                                  className="text-[#f24545] text-[11px] font-semibold hover:underline flex-shrink-0"
                                 >
                                   Remove
                                 </button>
                               )}
-                            </div>
+                            </label>
 
                             <div className="flex gap-2">
                               {isEditing && (

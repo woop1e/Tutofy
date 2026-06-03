@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"auth-service/proto/authpb"
@@ -108,6 +110,163 @@ func (h *GoogleAuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintln(w, "Google account connected successfully. You can close this window.")
+}
+
+// GenerateMeetLink creates a Google Calendar event with Google Meet and returns the meet link.
+// POST /calendar/meet-link  body: { title, scheduled_at (RFC3339), duration_minutes }
+func (h *GoogleAuthHandler) GenerateMeetLink(w http.ResponseWriter, r *http.Request) {
+	callerID := userIDFromToken(r)
+	if callerID == "" {
+		jsonResp(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var body struct {
+		Title           string `json:"title"`
+		ScheduledAt     string `json:"scheduled_at"`
+		DurationMinutes int    `json:"duration_minutes"`
+	}
+	if err := decode(r, &body); err != nil || body.ScheduledAt == "" {
+		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "title and scheduled_at are required"})
+		return
+	}
+	if body.DurationMinutes <= 0 {
+		body.DurationMinutes = 60
+	}
+
+	// Get stored Google token
+	tok, err := h.authClient.GetGoogleToken(r.Context(), &authpb.GetGoogleTokenRequest{UserId: callerID})
+	if err != nil {
+		st, _ := status.FromError(err)
+		if st.Code() == codes.NotFound {
+			jsonResp(w, http.StatusPreconditionFailed, map[string]string{"error": "google_not_connected"})
+			return
+		}
+		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "could not get google token"})
+		return
+	}
+
+	accessToken := tok.GetAccessToken()
+
+	// Refresh token if expired
+	if expiry, err2 := time.Parse(time.RFC3339, tok.GetExpiry()); err2 == nil && time.Now().After(expiry.Add(-60*time.Second)) {
+		newTok, refreshErr := h.refreshAccessToken(tok.GetRefreshToken())
+		if refreshErr != nil {
+			jsonResp(w, http.StatusBadGateway, map[string]string{"error": "token refresh failed"})
+			return
+		}
+		accessToken = newTok.AccessToken
+		newExpiry := time.Now().Add(time.Duration(newTok.ExpiresIn) * time.Second).Format(time.RFC3339)
+		h.authClient.StoreGoogleToken(r.Context(), &authpb.StoreGoogleTokenRequest{
+			UserId:       callerID,
+			AccessToken:  newTok.AccessToken,
+			RefreshToken: tok.GetRefreshToken(),
+			Expiry:       newExpiry,
+		})
+	}
+
+	// Parse times
+	start, err := time.Parse(time.RFC3339, body.ScheduledAt)
+	if err != nil {
+		start, err = time.Parse(time.RFC3339Nano, body.ScheduledAt)
+		if err != nil {
+			jsonResp(w, http.StatusBadRequest, map[string]string{"error": "invalid scheduled_at"})
+			return
+		}
+	}
+	end := start.Add(time.Duration(body.DurationMinutes) * time.Minute)
+
+	title := body.Title
+	if title == "" {
+		title = "Lesson"
+	}
+
+	// Build Calendar event payload with Meet
+	requestID := fmt.Sprintf("%d", time.Now().UnixNano())
+	event := map[string]any{
+		"summary": title,
+		"start":   map[string]string{"dateTime": start.UTC().Format(time.RFC3339), "timeZone": "UTC"},
+		"end":     map[string]string{"dateTime": end.UTC().Format(time.RFC3339), "timeZone": "UTC"},
+		"conferenceData": map[string]any{
+			"createRequest": map[string]any{
+				"requestId":             requestID,
+				"conferenceSolutionKey": map[string]string{"type": "hangoutsMeet"},
+			},
+		},
+	}
+	payload, _ := json.Marshal(event)
+
+	req, _ := http.NewRequest("POST",
+		"https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1",
+		bytes.NewReader(payload),
+	)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		jsonResp(w, http.StatusBadGateway, map[string]string{"error": "calendar api error"})
+		return
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != 200 {
+		jsonResp(w, http.StatusBadGateway, map[string]string{"error": "calendar api returned " + resp.Status, "detail": string(raw)})
+		return
+	}
+
+	var calEvent struct {
+		HtmlLink       string `json:"htmlLink"`
+		ConferenceData struct {
+			EntryPoints []struct {
+				EntryPointType string `json:"entryPointType"`
+				Uri            string `json:"uri"`
+				Label          string `json:"label"`
+			} `json:"entryPoints"`
+		} `json:"conferenceData"`
+	}
+	if err := json.Unmarshal(raw, &calEvent); err != nil {
+		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "could not parse calendar response"})
+		return
+	}
+
+	meetLink := ""
+	for _, ep := range calEvent.ConferenceData.EntryPoints {
+		if strings.EqualFold(ep.EntryPointType, "video") {
+			meetLink = ep.Uri
+			break
+		}
+	}
+	if meetLink == "" {
+		jsonResp(w, http.StatusBadGateway, map[string]string{"error": "no meet link in response"})
+		return
+	}
+
+	jsonResp(w, http.StatusOK, map[string]string{
+		"meet_link":       meetLink,
+		"calendar_link":   calEvent.HtmlLink,
+	})
+}
+
+func (h *GoogleAuthHandler) refreshAccessToken(refreshToken string) (*googleTokenResp, error) {
+	body := url.Values{
+		"client_id":     {h.clientID},
+		"client_secret": {h.clientSecret},
+		"refresh_token": {refreshToken},
+		"grant_type":    {"refresh_token"},
+	}
+	resp, err := http.PostForm("https://oauth2.googleapis.com/token", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	var tok googleTokenResp
+	if err := json.Unmarshal(raw, &tok); err != nil || tok.Error != "" {
+		return nil, fmt.Errorf("refresh failed: %s", tok.Error)
+	}
+	return &tok, nil
 }
 
 // Status returns {"connected": true/false} for the authenticated caller.

@@ -20,7 +20,7 @@ var (
 )
 
 type AssignmentService interface {
-	CreateAssignment(ctx context.Context, callerID, callerRole, title, description, courseID string) (*model.Assignment, error)
+	CreateAssignment(ctx context.Context, callerID, callerRole, title, description, courseID, dueDate string) (*model.Assignment, error)
 	GetAssignment(ctx context.Context, id string) (*model.Assignment, error)
 	GetAssignmentsByCourse(ctx context.Context, courseID string, limit, offset int32) ([]*model.Assignment, error)
 	UpdateAssignment(ctx context.Context, callerRole, id, title, description, dueDate string) (*model.Assignment, error)
@@ -36,7 +36,7 @@ func NewAssignmentService(repo repository.AssignmentRepository, courseClient cou
 	return &assignmentService{repo: repo, courseClient: courseClient}
 }
 
-func (s *assignmentService) CreateAssignment(ctx context.Context, callerID, callerRole, title, description, courseID string) (*model.Assignment, error) {
+func (s *assignmentService) CreateAssignment(ctx context.Context, callerID, callerRole, title, description, courseID, dueDate string) (*model.Assignment, error) {
 	if callerRole != "tutor" && callerRole != "admin" {
 		return nil, ErrNotTutor
 	}
@@ -58,6 +58,7 @@ func (s *assignmentService) CreateAssignment(ctx context.Context, callerID, call
 		Title:       title,
 		Description: description,
 		CourseID:    courseID,
+		DueDate:     dueDate,
 	}
 
 	if err := s.repo.CreateAssignment(ctx, a); err != nil {

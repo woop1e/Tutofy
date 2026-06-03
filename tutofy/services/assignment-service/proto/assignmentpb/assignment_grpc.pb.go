@@ -16,6 +16,7 @@ type CreateAssignmentRequest struct {
 	Title       string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	CourseId    string `protobuf:"bytes,3,opt,name=course_id,json=courseId,proto3" json:"course_id,omitempty"`
+	DueDate     string `protobuf:"bytes,4,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
 }
 
 func (x *CreateAssignmentRequest) Reset()         { *x = CreateAssignmentRequest{} }
@@ -24,6 +25,7 @@ func (x *CreateAssignmentRequest) ProtoMessage()  {}
 func (x *CreateAssignmentRequest) GetTitle() string       { return x.Title }
 func (x *CreateAssignmentRequest) GetDescription() string { return x.Description }
 func (x *CreateAssignmentRequest) GetCourseId() string    { return x.CourseId }
+func (x *CreateAssignmentRequest) GetDueDate() string     { return x.DueDate }
 
 type CourseRequest struct {
 	state         protoimpl.MessageState

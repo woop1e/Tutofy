@@ -20,6 +20,7 @@ type CertificateRepository interface {
 	GetByStudent(ctx context.Context, studentID string) ([]*model.Certificate, error)
 	GetPendingByTutor(ctx context.Context, tutorID string) ([]*model.Certificate, error)
 	UpdateStatus(ctx context.Context, id string, status model.CertStatus) error
+	GetAllPending(ctx context.Context) ([]*model.Certificate, error)
 }
 
 type postgresRepo struct{ db *sql.DB }
@@ -97,6 +98,26 @@ func (r *postgresRepo) GetPendingByTutor(ctx context.Context, tutorID string) ([
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT `+cols+` FROM certificates WHERE tutor_id=$1 AND status=$2 ORDER BY issued_at DESC`,
 		tutorID, int32(model.CertStatusPending),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []*model.Certificate
+	for rows.Next() {
+		c, err := scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, c)
+	}
+	return result, rows.Err()
+}
+
+func (r *postgresRepo) GetAllPending(ctx context.Context) ([]*model.Certificate, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT `+cols+` FROM certificates WHERE status=$1 ORDER BY issued_at DESC`,
+		int32(model.CertStatusPending),
 	)
 	if err != nil {
 		return nil, err

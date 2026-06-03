@@ -66,6 +66,7 @@ func migrate(db *sql.DB) error {
 		ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS time_limit_minutes INTEGER NOT NULL DEFAULT 0;
 		ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 0;
 		ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS deadline TIMESTAMPTZ;
+		ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ;
 	`)
 	return err
 }

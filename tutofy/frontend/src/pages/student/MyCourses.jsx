@@ -6,6 +6,7 @@ import { enrollmentsAPI } from '../../api/enrollments';
 import NotificationBell from '../../components/ui/NotificationBell';
 import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
+import { progressAPI } from '../../api/progress';
 
 const COLORS = ['#0d9488', '#935bf5', '#00beb7', '#ff8032', '#22c55e'];
 
@@ -94,26 +95,38 @@ const MyCourses = () => {
 
         const courseIds = enrollments.map(e => e.course_id).filter(Boolean);
         if (courseIds.length) {
-          const counts = await Promise.all(
-            courseIds.map(id =>
-              lessonsAPI.getCourseLessons(id)
-                .then(r => {
-                  const arr = Array.isArray(r?.lessons || r) ? (r?.lessons || r) : [];
-                  const sorted = [...arr].sort((a, b) => {
-                    const ms = v => {
-                      if (!v) return 0;
-                      if (typeof v === 'object' && v.seconds != null) return Number(v.seconds) * 1000;
-                      return new Date(String(v).replace(' ', 'T')).getTime() || 0;
-                    };
-                    return ms(a.scheduled_at) - ms(b.scheduled_at);
-                  });
-                  return { id, count: sorted.length, firstId: sorted[0]?.id || null };
-                })
-                .catch(() => ({ id, count: 0, firstId: null }))
-            )
-          );
+          const [counts, progressResults] = await Promise.all([
+            Promise.all(
+              courseIds.map(id =>
+                lessonsAPI.getCourseLessons(id)
+                  .then(r => {
+                    const arr = Array.isArray(r?.lessons || r) ? (r?.lessons || r) : [];
+                    const sorted = [...arr].sort((a, b) => {
+                      const ms = v => {
+                        if (!v) return 0;
+                        if (typeof v === 'object' && v.seconds != null) return Number(v.seconds) * 1000;
+                        return new Date(String(v).replace(' ', 'T')).getTime() || 0;
+                      };
+                      return ms(a.scheduled_at) - ms(b.scheduled_at);
+                    });
+                    return { id, count: sorted.length, firstId: sorted[0]?.id || null };
+                  })
+                  .catch(() => ({ id, count: 0, firstId: null }))
+              )
+            ),
+            Promise.all(
+              courseIds.map(id =>
+                progressAPI.getStudentCourseProgress(userId, id)
+                  .then(r => ({ id, pct: Math.round(r?.percentage ?? r?.available_pct ?? 0) }))
+                  .catch(() => ({ id, pct: 0 }))
+              )
+            ),
+          ]);
           setLessonCounts(Object.fromEntries(counts.map(c => [c.id, c.count])));
           setFirstLessons(Object.fromEntries(counts.map(c => [c.id, c.firstId])));
+
+          const progressMap = Object.fromEntries(progressResults.map(p => [p.id, p.pct]));
+          setEnrolledCourses(prev => prev.map(e => ({ ...e, progress: progressMap[e.course_id] ?? e.progress })));
         }
       } finally {
         setLoading(false);

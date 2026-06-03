@@ -37,10 +37,13 @@ import TutorSchedule from '../pages/tutor/TutorSchedule';
 import CourseAttendance from '../pages/tutor/CourseAttendance';
 import StudentProfile from '../pages/tutor/StudentProfile';
 import CreateQuiz from '../pages/tutor/CreateQuiz';
+import EditQuiz from '../pages/tutor/EditQuiz';
+import QuizResults from '../pages/tutor/QuizResults';
 import TutorPublicProfile from '../pages/tutor/TutorPublicProfile';
 import TutorCertificates from '../pages/tutor/TutorCertificates';
 import PaymentPage from '../pages/student/PaymentPage';
 import QuizAttempt from '../pages/student/QuizAttempt';
+import QuizCoverView from '../pages/student/QuizCoverView';
 import Certificates from '../pages/student/Certificates';
 import StudentMarketplace from '../pages/student/StudentMarketplace';
 import StudentTutorProfile from '../pages/student/StudentTutorProfile';
@@ -65,7 +68,8 @@ const router = createBrowserRouter([
   { path: '/student/courses',                        element: s(<MyCourses />) },
   { path: '/student/courses/:id',                    element: s(<CourseView />) },
   { path: '/student/courses/:id/lessons/:lessonId',  element: s(<LessonView />) },
-  { path: '/student/courses/:id/quizzes/:quizId',    element: s(<QuizAttempt />) },
+  { path: '/student/courses/:id/quizzes/:quizId',         element: s(<QuizCoverView />) },
+  { path: '/student/courses/:id/quizzes/:quizId/attempt', element: <QuizAttempt /> },
   { path: '/student/assignments',                    element: s(<Assignments />) },
   { path: '/student/schedule',                       element: s(<Schedule />) },
   { path: '/student/marketplace',                    element: s(<StudentMarketplace />) },
@@ -81,7 +85,9 @@ const router = createBrowserRouter([
   { path: '/tutor/courses/:id/edit',                 element: t(<EditCourse />) },
   { path: '/tutor/courses/:id/students',             element: t(<StudentsInCourse />) },
   { path: '/tutor/courses/:id/attendance',           element: t(<CourseAttendance />) },
-  { path: '/tutor/courses/:id/quizzes/new',          element: t(<CreateQuiz />) },
+  { path: '/tutor/courses/:id/quizzes/new',             element: t(<CreateQuiz />) },
+  { path: '/tutor/courses/:id/quizzes/:quizId/edit',   element: t(<EditQuiz />) },
+  { path: '/tutor/courses/:id/quizzes/:quizId/results',element: t(<QuizResults />) },
   { path: '/tutor/courses/new',                      element: t(<CreateCourse />) },
   { path: '/tutor/assignments/:id/grade',            element: t(<GradeAssignment />) },
   { path: '/tutor/messages',                         element: t(<TutorMessages />) },

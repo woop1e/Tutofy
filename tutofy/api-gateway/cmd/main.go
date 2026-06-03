@@ -85,7 +85,7 @@ func main() {
 	)
 	mdh := handler.NewMediaHandler(mediapb.NewMediaServiceClient(mediaConn))
 	sbh := handler.NewSubmissionHandler(submissionpb.NewSubmissionServiceClient(submissionConn))
-	qzh := handler.NewQuizHandler(quizpb.NewQuizServiceClient(quizConn))
+	qzh := handler.NewQuizHandler(quizpb.NewQuizServiceClient(quizConn), userpb.NewUserServiceClient(userConn))
 	rvh := handler.NewReviewHandler(reviewpb.NewReviewServiceClient(reviewConn))
 	cfh := handler.NewCertificateHandler(certificatepb.NewCertificateServiceClient(certificateConn))
 	gah := handler.NewGoogleAuthHandler(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURI, authpb.NewAuthServiceClient(authConn))
@@ -109,6 +109,7 @@ func main() {
 	mux.HandleFunc("GET /auth/google/connect",         gah.Connect)
 	mux.HandleFunc("GET /auth/google/callback",        gah.Callback)
 	mux.HandleFunc("GET /auth/google/status",          gah.Status)
+	mux.HandleFunc("POST /calendar/meet-link",         gah.GenerateMeetLink)
 
 	// Users
 	mux.HandleFunc("GET /users",                       uh.GetAllUsers)
@@ -247,6 +248,11 @@ func main() {
 	mux.HandleFunc("GET /attempts/{id}/result",       qzh.GetAttemptResult)
 	mux.HandleFunc("PUT /quizzes/{id}/settings",      qzh.UpdateQuizSettings)
 	mux.HandleFunc("GET /quizzes/{id}/my-attempts",   qzh.GetStudentAttempts)
+	mux.HandleFunc("PUT /questions/{id}",             qzh.UpdateQuestion)
+	mux.HandleFunc("DELETE /questions/{id}",          qzh.DeleteQuestion)
+	mux.HandleFunc("PUT /options/{id}",               qzh.UpdateOption)
+	mux.HandleFunc("DELETE /options/{id}",            qzh.DeleteOption)
+	mux.HandleFunc("GET /quizzes/{id}/attempts",      qzh.GetQuizAttempts)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("api-gateway listening on %s", addr)

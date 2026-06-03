@@ -9,6 +9,7 @@ type Quiz struct {
 	TimeLimitMinutes int32
 	MaxAttempts      int32
 	Deadline         *time.Time
+	ScheduledAt      *time.Time
 	CreatedAt        time.Time
 }
 

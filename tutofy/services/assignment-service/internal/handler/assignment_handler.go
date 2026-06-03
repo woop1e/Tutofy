@@ -34,7 +34,7 @@ func (h *AssignmentHandler) CreateAssignment(ctx context.Context, req *assignmen
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	a, err := h.svc.CreateAssignment(ctx, callerID, callerRole, req.GetTitle(), req.GetDescription(), req.GetCourseId())
+	a, err := h.svc.CreateAssignment(ctx, callerID, callerRole, req.GetTitle(), req.GetDescription(), req.GetCourseId(), req.GetDueDate())
 	if err != nil {
 		if errors.Is(err, service.ErrNotTutor) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())

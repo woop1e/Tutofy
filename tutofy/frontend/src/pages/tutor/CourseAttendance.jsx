@@ -5,6 +5,7 @@ import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
 import { enrollmentsAPI } from '../../api/enrollments';
+import { usersAPI } from '../../api/users';
 
 // â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -83,17 +84,32 @@ const CourseAttendance = () => {
       coursesAPI.getCourseById(courseId).catch(() => null),
       lessonsAPI.getCourseLessons(courseId).catch(() => ({})),
       enrollmentsAPI.getCourseEnrollments(courseId).catch(() => []),
-    ]).then(([cRes, lRes, eRes]) => {
+    ]).then(async ([cRes, lRes, eRes]) => {
       setCourse(cRes?.course || cRes);
+
+      // Only live lessons (with a Google Meet / Zoom / Teams link) are relevant for attendance
       const ls = lRes?.lessons || lRes || [];
-      const sorted = (Array.isArray(ls) ? ls : []).sort((a, b) => {
-        const da = parseTS(a.scheduled_at), db = parseTS(b.scheduled_at);
-        return (da || 0) - (db || 0);
-      });
-      setLessons(sorted);
-      if (sorted.length > 0) setSelectedId(sorted[0].id);
+      const liveLessons = (Array.isArray(ls) ? ls : [])
+        .filter(l => l.video_link && /meet\.google|zoom\.us|teams\.microsoft/i.test(l.video_link))
+        .sort((a, b) => {
+          const da = parseTS(a.scheduled_at), db = parseTS(b.scheduled_at);
+          return (da || 0) - (db || 0);
+        });
+      setLessons(liveLessons);
+      if (liveLessons.length > 0) setSelectedId(liveLessons[0].id);
+
+      // Fetch student names from user service
       const es = Array.isArray(eRes) ? eRes : eRes?.enrollments || [];
-      setStudents(es);
+      const withNames = await Promise.all(es.map(async (e) => {
+        const uid = e.student_id || e.user_id;
+        try {
+          const u = await usersAPI.getUserById(uid);
+          return { ...e, student_id: uid, student_name: u?.name || uid };
+        } catch {
+          return { ...e, student_id: uid };
+        }
+      }));
+      setStudents(withNames);
     }).finally(() => setLoading(false));
   }, [courseId]);
 
@@ -242,8 +258,8 @@ const CourseAttendance = () => {
               <div className="w-16 h-16 rounded-full bg-[#f0f0f5] flex items-center justify-center mx-auto mb-3">
                 <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-8 h-8"><rect x="4" y="2" width="12" height="16" rx="1.5"/><path d="M7 2h6v3H7z"/><path d="M7 9h6M7 12h6M7 15h4" strokeLinecap="round"/></svg>
               </div>
-              <p className="text-[#0c0d12] text-[16px] font-semibold mb-1">No lessons to track</p>
-              <p className="text-[#6b6f7d] text-[13px]">Add lessons to the course first.</p>
+              <p className="text-[#0c0d12] text-[16px] font-semibold mb-1">No live lessons to track</p>
+              <p className="text-[#6b6f7d] text-[13px]">Attendance is only tracked for scheduled live lessons.</p>
             </div>
           )}
 
