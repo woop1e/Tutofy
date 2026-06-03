@@ -1,0 +1,98 @@
+# ── Stage 1: Build all Go binaries ───────────────────────────────────────────
+FROM golang:1.25-alpine AS builder
+
+RUN apk add --no-cache git
+
+WORKDIR /app
+
+# Copy all services (api-gateway imports their proto packages)
+COPY tutofy/services/auth-service/         ./services/auth-service/
+COPY tutofy/services/user-service/         ./services/user-service/
+COPY tutofy/services/course-service/       ./services/course-service/
+COPY tutofy/services/enrollment-service/   ./services/enrollment-service/
+COPY tutofy/services/lesson-service/       ./services/lesson-service/
+COPY tutofy/services/grading-service/      ./services/grading-service/
+COPY tutofy/services/notification-service/ ./services/notification-service/
+COPY tutofy/services/progress-service/     ./services/progress-service/
+COPY tutofy/services/assignment-service/   ./services/assignment-service/
+COPY tutofy/services/messaging-service/    ./services/messaging-service/
+COPY tutofy/services/payment-service/      ./services/payment-service/
+COPY tutofy/services/media-service/        ./services/media-service/
+COPY tutofy/services/submission-service/   ./services/submission-service/
+COPY tutofy/services/quiz-service/         ./services/quiz-service/
+COPY tutofy/services/review-service/       ./services/review-service/
+COPY tutofy/services/certificate-service/  ./services/certificate-service/
+COPY tutofy/api-gateway/                   ./api-gateway/
+
+# Build each service
+RUN for svc in auth-service user-service course-service enrollment-service \
+      lesson-service grading-service notification-service progress-service \
+      assignment-service messaging-service payment-service media-service \
+      submission-service quiz-service review-service certificate-service; do \
+    echo "=== Building $svc ===" && \
+    cd /app/services/$svc && \
+    GONOSUMDB=* GODEBUG=http2client=0 go mod download -x 2>/dev/null || true && \
+    CGO_ENABLED=0 GOOS=linux GONOSUMDB=* go build -mod=mod -o /bin/$svc ./cmd && \
+    cd /app; \
+  done
+
+# Build api-gateway
+RUN cd /app/api-gateway && \
+    GONOSUMDB=* GODEBUG=http2client=0 go mod download -x 2>/dev/null || true && \
+    CGO_ENABLED=0 GOOS=linux GONOSUMDB=* go build -mod=mod -o /bin/api-gateway ./cmd
+
+# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
+FROM alpine:3.20
+
+RUN apk add --no-cache \
+    ca-certificates \
+    supervisor \
+    curl \
+    bash
+
+# Install NATS server
+RUN curl -fsSL https://github.com/nats-io/nats-server/releases/download/v2.10.14/nats-server-v2.10.14-linux-amd64.zip \
+    -o /tmp/nats.zip && \
+    unzip /tmp/nats.zip -d /tmp && \
+    mv /tmp/nats-server-v2.10.14-linux-amd64/nats-server /usr/local/bin/nats-server && \
+    rm -rf /tmp/nats*
+
+# Install MinIO server
+RUN curl -fsSL https://dl.min.io/server/minio/release/linux-amd64/minio \
+    -o /usr/local/bin/minio && \
+    chmod +x /usr/local/bin/minio
+
+# Install MinIO client (mc) for bucket creation
+RUN curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc \
+    -o /usr/local/bin/mc && \
+    chmod +x /usr/local/bin/mc
+
+# Copy all built binaries
+COPY --from=builder /bin/auth-service        /bin/auth-service
+COPY --from=builder /bin/user-service        /bin/user-service
+COPY --from=builder /bin/course-service      /bin/course-service
+COPY --from=builder /bin/enrollment-service  /bin/enrollment-service
+COPY --from=builder /bin/lesson-service      /bin/lesson-service
+COPY --from=builder /bin/grading-service     /bin/grading-service
+COPY --from=builder /bin/notification-service /bin/notification-service
+COPY --from=builder /bin/progress-service    /bin/progress-service
+COPY --from=builder /bin/assignment-service  /bin/assignment-service
+COPY --from=builder /bin/messaging-service   /bin/messaging-service
+COPY --from=builder /bin/payment-service     /bin/payment-service
+COPY --from=builder /bin/media-service       /bin/media-service
+COPY --from=builder /bin/submission-service  /bin/submission-service
+COPY --from=builder /bin/quiz-service        /bin/quiz-service
+COPY --from=builder /bin/review-service      /bin/review-service
+COPY --from=builder /bin/certificate-service /bin/certificate-service
+COPY --from=builder /bin/api-gateway         /bin/api-gateway
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy configs
+COPY tutofy/services/init-db.sql  /app/init-db.sql
+COPY supervisord.conf              /etc/supervisord.conf
+COPY start.sh                      /app/start.sh
+RUN chmod +x /app/start.sh
+
+EXPOSE 8080 9000
+
+CMD ["/app/start.sh"]
