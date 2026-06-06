@@ -15,3 +15,4 @@ tutofy/services/.env.prod
 # Build artifacts
 tutofy/frontend/dist/
 tutofy/frontend/node_modules/
+tests/
