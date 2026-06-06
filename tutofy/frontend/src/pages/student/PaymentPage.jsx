@@ -120,7 +120,7 @@ const PaymentPage = () => {
   // Free lesson: skip card form entirely
   if (lessonMode && lessonId && amount === 0 && step !== 'success') {
     return (
-      <div className="min-h-screen bg-[#f5f6fa] flex flex-col items-center justify-center font-sans p-6">
+      <div className="h-screen bg-[#f5f6fa] flex flex-col items-center justify-center font-sans p-6">
         <div className="bg-white rounded-[24px] border border-[#ebebf0] p-10 max-w-[420px] w-full text-center shadow-[0_8px_40px_rgba(76,110,255,0.10)]">
           <div className="w-20 h-20 rounded-full bg-[#f0fff8] flex items-center justify-center mx-auto mb-5">
             <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10 text-[#0d9488]">
@@ -154,7 +154,7 @@ const PaymentPage = () => {
 
   if (step === 'success') {
     return (
-      <div className="min-h-screen bg-[#f5f6fa] flex flex-col items-center justify-center font-sans p-6">
+      <div className="h-screen bg-[#f5f6fa] flex flex-col items-center justify-center font-sans p-6">
         <div className="bg-white rounded-[24px] border border-[#ebebf0] p-10 max-w-[420px] w-full text-center shadow-[0_8px_40px_rgba(76,110,255,0.10)]">
           <div className="w-20 h-20 rounded-full bg-[#edfaf3] flex items-center justify-center mx-auto mb-5">
             <svg viewBox="0 0 40 40" className="w-10 h-10 text-[#22be70]" fill="none">

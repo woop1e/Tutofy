@@ -130,13 +130,13 @@ const QuizAttempt = () => {
   const pct = result ? (result.percentage ?? 0) : 0;
 
   if (loading) return (
-    <div className="min-h-screen bg-[#f3f4f7] flex items-center justify-center">
+    <div className="h-screen bg-[#f3f4f7] flex items-center justify-center">
       <div className="w-10 h-10 border-4 border-[#935bf5] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (error && !attemptId) return (
-    <div className="min-h-screen bg-[#f3f4f7] flex items-center justify-center p-6">
+    <div className="h-screen bg-[#f3f4f7] flex items-center justify-center p-6">
       <div className="bg-white rounded-[20px] border border-[#f0f0f5] p-10 text-center max-w-md w-full">
         <div className="w-16 h-16 rounded-full bg-[rgba(242,69,69,0.08)] flex items-center justify-center mx-auto mb-4">
           <svg viewBox="0 0 24 24" fill="none" stroke="#f24545" strokeWidth="2" className="w-8 h-8">

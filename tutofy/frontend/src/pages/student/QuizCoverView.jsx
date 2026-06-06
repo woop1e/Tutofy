@@ -5,6 +5,7 @@ import StudentSidebar from '../../components/layout/StudentSidebar';
 import { lessonsAPI } from '../../api/lessons';
 import { coursesAPI } from '../../api/courses';
 import { quizzesAPI } from '../../api/quizzes';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 function parseDate(val) {
   if (!val) return null;
@@ -114,7 +115,7 @@ const QuizCoverView = () => {
   };
 
   if (loading) return (
-    <div className="flex min-h-screen bg-[#f3f4f7]">
+    <div className="flex h-screen bg-[#f3f4f7]">
       <StudentSidebar />
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#935bf5] border-t-transparent rounded-full animate-spin" />
@@ -123,7 +124,7 @@ const QuizCoverView = () => {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -137,6 +138,7 @@ const QuizCoverView = () => {
             <div className="w-px h-4 bg-[#e8eaef]" />
             <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{course?.title || 'Course'}</p>
           </div>
+          <TopBarActions />
         </div>
 
         <div className="flex flex-1 overflow-hidden">

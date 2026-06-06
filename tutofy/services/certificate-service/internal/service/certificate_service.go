@@ -159,6 +159,9 @@ func (s *certificateService) GetPendingCertificates(ctx context.Context, callerI
 }
 
 func (s *certificateService) IssueCertificate(ctx context.Context, callerRole, studentID, courseID string) (*model.Certificate, error) {
+	if callerRole != "admin" && callerRole != "tutor" {
+		return nil, ErrForbidden
+	}
 	if callerRole != "admin" {
 		progress, err := s.progressClient.GetProgress(outCtx(ctx), &progresspb.GetProgressRequest{
 			StudentId: studentID,
@@ -190,6 +193,9 @@ func (s *certificateService) GetCertificate(ctx context.Context, callerID, calle
 }
 
 func (s *certificateService) GetUserCertificates(ctx context.Context, callerID, callerRole, studentID string) ([]*model.Certificate, error) {
+	if callerRole == "" {
+		return nil, ErrForbidden
+	}
 	if callerRole == "student" && callerID != studentID {
 		return nil, ErrForbidden
 	}

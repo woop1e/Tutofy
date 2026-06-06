@@ -41,7 +41,7 @@ func (h *LessonHandler) CreateLesson(ctx context.Context, req *lessonpb.CreateLe
 			return nil, status.Error(codes.InvalidArgument, "course_id is required (or x-tutor-id for individual booking)")
 		}
 		studentID := middleware.UserIDFromContext(ctx)
-		lesson, err := h.svc.BookIndividualLesson(ctx, tutorIDs[0], studentID, req.GetTitle(), req.GetScheduledAt().AsTime(), req.GetDurationMinutes(), 0)
+		lesson, err := h.svc.BookIndividualLesson(ctx, tutorIDs[0], studentID, req.GetTitle(), "", req.GetScheduledAt().AsTime(), req.GetDurationMinutes(), 0)
 		if err != nil {
 			return nil, mapError(err)
 		}
@@ -51,15 +51,7 @@ func (h *LessonHandler) CreateLesson(ctx context.Context, req *lessonpb.CreateLe
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	// description is passed via metadata because proto raw descriptor doesn't encode new fields
 	description := req.GetDescription()
-	if description == "" {
-		if md, ok := metadata.FromIncomingContext(ctx); ok {
-			if vals := md.Get("x-description-bin"); len(vals) > 0 {
-				description = vals[0]
-			}
-		}
-	}
 	lesson, err := h.svc.CreateLesson(
 		ctx,
 		callerID, callerRole,
@@ -144,6 +136,7 @@ func toProto(l *model.Lesson) *lessonpb.Lesson {
 		Status:          modelStatusToProto(l.Status),
 		Price:           l.Price,
 		Description:     l.Description,
+		StudentRating:   l.StudentRating,
 	}
 	if !l.PaymentDeadline.IsZero() {
 		lesson.PaymentDeadline = timestamppb.New(l.PaymentDeadline)
@@ -246,9 +239,28 @@ func (h *LessonHandler) BookIndividualLesson(ctx context.Context, req *lessonpb.
 	if req.GetScheduledAt() == nil {
 		return nil, status.Error(codes.InvalidArgument, "scheduled_at is required")
 	}
+	// Prefer x-student-id from metadata (set by api-gateway directly from JWT).
+	// Fall back to UserIDFromContext which relies on authpb ValidateToken.
 	studentID := middleware.UserIDFromContext(ctx)
+	if studentID == "" {
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			if vals := md.Get("x-student-id"); len(vals) > 0 {
+				studentID = vals[0]
+			}
+		}
+	}
+	if studentID == "" {
+		return nil, status.Error(codes.InvalidArgument, "could not determine student identity")
+	}
+	// Use student name as description so tutor dashboard can display it
+	studentName := ""
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if vals := md.Get("x-student-name"); len(vals) > 0 {
+			studentName = vals[0]
+		}
+	}
 	lesson, err := h.svc.BookIndividualLesson(ctx,
-		req.GetTutorId(), studentID, req.GetTitle(),
+		req.GetTutorId(), studentID, req.GetTitle(), studentName,
 		req.GetScheduledAt().AsTime(), req.GetDurationMinutes(), req.GetPrice(),
 	)
 	if err != nil {
@@ -400,6 +412,18 @@ func (h *LessonHandler) GetTutorIndividualLessons(ctx context.Context, _ *lesson
 		list = append(list, toProto(l))
 	}
 	return &lessonpb.CourseLessonsList{Lessons: list}, nil
+}
+
+func (h *LessonHandler) RateLesson(ctx context.Context, req *lessonpb.RateLessonRequest) (*lessonpb.Lesson, error) {
+	studentID := middleware.UserIDFromContext(ctx)
+	if studentID == "" {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+	l, err := h.svc.RateLesson(ctx, req.GetLessonId(), studentID, req.GetRating())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return toProto(l), nil
 }
 
 func (h *LessonHandler) GetTutorBookedSlots(ctx context.Context, req *lessonpb.GetTutorBookedSlotsRequest) (*lessonpb.TutorBookedSlotsResponse, error) {

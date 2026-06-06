@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
+    allowedHosts: true,
     proxy: {
       '/auth': 'http://localhost:8080',
       '/users': 'http://localhost:8080',
@@ -13,6 +14,7 @@ export default defineConfig({
       '/lessons': 'http://localhost:8080',
       '/assignments': 'http://localhost:8080',
       '/grades': 'http://localhost:8080',
+      '/students': 'http://localhost:8080',
       '/notifications': 'http://localhost:8080',
       '/progress': 'http://localhost:8080',
       '/payments': 'http://localhost:8080',
@@ -24,6 +26,22 @@ export default defineConfig({
       '/media': 'http://localhost:8080',
       '/reviews': 'http://localhost:8080',
       '/certificates': 'http://localhost:8080',
+      '/admin': 'http://localhost:8080',
+      '/marketplace': 'http://localhost:8080',
+      '/tutors': 'http://localhost:8080',
+      '/tutor/individual-lessons': 'http://localhost:8080',
+      '/tutor/students': 'http://localhost:8080',
+      '/tutor/certificate-requests': 'http://localhost:8080',
+      '/submissions': 'http://localhost:8080',
+      '/quizzes': 'http://localhost:8080',
+      '/book-lesson': 'http://localhost:8080',
+      '/my-lessons': 'http://localhost:8080',
+      '/schedule': 'http://localhost:8080',
+      '/parent': 'http://localhost:8080',
+      '/attempts': 'http://localhost:8080',
+      '/questions': 'http://localhost:8080',
+      '/options': 'http://localhost:8080',
+      '/calendar': 'http://localhost:8080',
     },
   },
 })

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../ui/LanguageSwitcher';
 
 const Icon = ({ name, size = 16, active }) => {
   const s = active ? 'var(--accent)' : 'var(--muted)';
@@ -32,28 +34,28 @@ const ChevronRight = () => (
   </svg>
 );
 
-const SECTIONS = [
+const SECTIONS_DEF = [
   {
-    label: 'Teach',
+    key: 'learn',
     items: [
-      { path: '/tutor/dashboard',     label: 'Overview',      icon: 'home' },
-      { path: '/tutor/courses',       label: 'Courses',       icon: 'book' },
-      { path: '/tutor/students',      label: 'Students',      icon: 'users' },
-      { path: '/tutor/grading',       label: 'Grading',       icon: 'grade' },
-      { path: '/tutor/certificates',  label: 'Certificates',  icon: 'grade' },
+      { path: '/tutor/dashboard',     key: 'overview',      icon: 'home' },
+      { path: '/tutor/courses',       key: 'courses',       icon: 'book',     tourId: 'tour-nav-courses' },
+      { path: '/tutor/students',      key: 'students',      icon: 'users',    tourId: 'tour-nav-students' },
+      { path: '/tutor/grading',       key: 'grading',       icon: 'grade',    tourId: 'tour-nav-grading' },
+      { path: '/tutor/certificates',  key: 'certificates',  icon: 'grade' },
     ],
   },
   {
-    label: 'Schedule',
+    key: 'schedule',
     items: [
-      { path: '/tutor/schedule',  label: 'Schedule',   icon: 'schedule' },
+      { path: '/tutor/schedule',  key: 'schedule',   icon: 'schedule', tourId: 'tour-nav-schedule' },
     ],
   },
   {
-    label: 'Account',
+    key: 'account',
     items: [
-      { path: '/tutor/messages',  label: 'Messages',   icon: 'message' },
-      { path: '/tutor/profile',   label: 'My Profile', icon: 'user' },
+      { path: '/tutor/messages',  key: 'messages',   icon: 'message', tourId: 'tour-nav-messages' },
+      { path: '/tutor/profile',   key: 'profile',    icon: 'user',    tourId: 'tour-nav-profile' },
     ],
   },
 ];
@@ -62,10 +64,19 @@ const TutorSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
 
-  const [collapsed, setCollapsed] = useState(
+  const SECTIONS = SECTIONS_DEF.map(s => ({
+    label: t(`nav.${s.key}`),
+    items: s.items.map(i => ({ ...i, label: t(`nav.${i.key}`) })),
+  }));
+
+  const [collapsed,   setCollapsed]   = useState(
     () => localStorage.getItem('sidebar_collapsed') === 'true'
   );
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -82,7 +93,16 @@ const TutorSidebar = () => {
     (path !== '/tutor/dashboard' && location.pathname.startsWith(path));
 
   return (
-    <div className={collapsed ? 'app-sidebar collapsed' : 'app-sidebar'}>
+    <>
+      {!mobileOpen && (
+        <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+          <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" width={18} height={18}>
+            <path d="M2 4h14M2 9h14M2 14h14" strokeLinecap="round"/>
+          </svg>
+        </button>
+      )}
+      {mobileOpen && <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} />}
+    <div className={`${collapsed ? 'app-sidebar collapsed' : 'app-sidebar'}${mobileOpen ? ' mobile-open' : ''}`}>
       {/* Logo row */}
       <div className="sidebar-logo">
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
@@ -110,6 +130,7 @@ const TutorSidebar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  id={item.tourId}
                   className={`sidebar-link${active ? ' active' : ''}`}
                   title={collapsed ? item.label : undefined}
                 >
@@ -128,7 +149,7 @@ const TutorSidebar = () => {
           <div className="sidebar-avatar" title={collapsed ? (user?.name || 'Tutor') : undefined}>{initials}</div>
           <div className="sidebar-text" style={{ minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Tutor'}</p>
-            <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>Tutor</p>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>{t('dashboard.tutor')}</p>
           </div>
         </div>
 
@@ -144,24 +165,16 @@ const TutorSidebar = () => {
               Public profile
             </Link>
 
-            <Link
-              to="/tutor/courses/new"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none', background: 'var(--accent-soft)', marginBottom: 6, transition: 'background var(--t-fast)' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(13,148,136,0.15)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'var(--accent-soft)'}
-            >
-              <Icon name="plus" />
-              New course
-            </Link>
           </>
         )}
 
-        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }} title={collapsed ? 'Log out' : undefined}>
+        <button className="sidebar-logout" onClick={() => { logout(); navigate('/login'); }} title={collapsed ? t('nav.logOut') : undefined}>
           <Icon name="logout" />
-          <span className="sidebar-text">Log out</span>
+          <span className="sidebar-text">{t('nav.logOut')}</span>
         </button>
       </div>
     </div>
+    </>
   );
 };
 

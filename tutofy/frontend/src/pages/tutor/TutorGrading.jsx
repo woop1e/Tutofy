@@ -8,6 +8,7 @@ import { submissionsAPI } from '../../api/submissions';
 import { gradingAPI } from '../../api/grading';
 import { usersAPI } from '../../api/users';
 import { mediaAPI } from '../../api/media';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 /* â"€â"€ helpers â"€â"€ */
 function parseAssignmentDescription(text) {
@@ -152,9 +153,15 @@ const TutorGrading = () => {
     })();
   }, [user]);
 
+  /* â"€â"€ filtered assignments list for the left sidebar selector â"€â"€ */
+  const filteredAssignments = useMemo(() => {
+    let list = assignments;
+    if (filterCourse) list = list.filter((a) => a.courseId === filterCourse);
+    return list;
+  }, [assignments, filterCourse]);
+
   /* â"€â"€ load submissions + grades when selected assignment changes â"€â"€ */
   useEffect(() => {
-    if (!selAssignment) return;
     setSubLoading(true);
     setSelSubIdx(0);
     setScore('');
@@ -162,23 +169,34 @@ const TutorGrading = () => {
     setRubric({ content: 0, structure: 0, grammar: 0, vocab: 0 });
     setSaveMsg('');
 
-    Promise.all([
-      submissionsAPI.getAssignmentSubmissions(selAssignment.id).catch(() => ({})),
-      gradingAPI.getAssignmentGrades(selAssignment.id).catch(() => ({})),
-    ]).then(async ([subRes, gradeRes]) => {
-      const subs  = subRes?.submissions  || (Array.isArray(subRes)  ? subRes  : []);
-      const grades = gradeRes?.grades    || (Array.isArray(gradeRes) ? gradeRes : []);
-      const gradeMap = {};
-      grades.forEach((g) => { gradeMap[g.student_id] = g; });
-      const merged = subs.map((s) => {
-        const g = gradeMap[s.student_id];
-        return g
-          ? { ...s, grade: g.grade ?? 0, feedback: g.feedback ?? '', graded: true }
-          : { ...s, graded: false };
-      });
+    const toLoad = selAssignment ? [selAssignment] : filteredAssignments;
+    if (toLoad.length === 0) {
+      setSubmissions([]);
+      setSubLoading(false);
+      return;
+    }
+
+    Promise.all(
+      toLoad.map(async (asgn) => {
+        const [subRes, gradeRes] = await Promise.all([
+          submissionsAPI.getAssignmentSubmissions(asgn.id).catch(() => ({})),
+          gradingAPI.getAssignmentGrades(asgn.id).catch(() => ({})),
+        ]);
+        const subs  = subRes?.submissions  || (Array.isArray(subRes)  ? subRes  : []);
+        const grades = gradeRes?.grades    || (Array.isArray(gradeRes) ? gradeRes : []);
+        const gradeMap = {};
+        grades.forEach((g) => { gradeMap[g.student_id] = g; });
+        return subs.map((s) => {
+          const g = gradeMap[s.student_id];
+          return g
+            ? { ...s, grade: g.grade ?? 0, feedback: g.feedback ?? '', graded: true, _assignment: asgn }
+            : { ...s, graded: false, _assignment: asgn };
+        });
+      })
+    ).then(async (results) => {
+      const merged = results.flat();
       setSubmissions(merged);
 
-      // Fetch names for students not yet in usersMap
       setUsersMap(prev => {
         const missing = [...new Set(merged.map(s => s.student_id).filter(id => id && !prev[id]))];
         if (missing.length === 0) return prev;
@@ -192,23 +210,17 @@ const TutorGrading = () => {
       });
     }).catch(() => setSubmissions([]))
       .finally(() => setSubLoading(false));
-  }, [selAssignment]);
+  }, [selAssignment, filteredAssignments]);
 
   /* â"€â"€ pre-fill grade form when switching submission â"€â"€ */
   const selSub = submissions[selSubIdx] || null;
+  const activeAssignment = selAssignment || selSub?._assignment || null;
   useEffect(() => {
     if (!selSub) return;
     setScore(selSub.graded ? String(selSub.grade) : '');
     setFeedback(selSub.feedback || '');
     setSaveMsg('');
   }, [selSubIdx, submissions]);
-
-  /* â"€â"€ filtered assignments list for the left sidebar selector â"€â"€ */
-  const filteredAssignments = useMemo(() => {
-    let list = assignments;
-    if (filterCourse) list = list.filter((a) => a.courseId === filterCourse);
-    return list;
-  }, [assignments, filterCourse]);
 
   /* â"€â"€ filtered submissions for student list â"€â"€ */
   const filteredSubs = useMemo(() => {
@@ -229,7 +241,7 @@ const TutorGrading = () => {
     setSaveMsg('');
     try {
       await gradingAPI.submitGrade({
-        assignment_id: selAssignment.id,
+        assignment_id: selSub._assignment?.id || selAssignment?.id,
         student_id: selSub.student_id,
         grade: gradeVal,
         feedback: feedback.trim(),
@@ -272,10 +284,10 @@ const TutorGrading = () => {
 
   /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <TutorSidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* â"€â"€ Top bar â"€â"€ */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
@@ -283,12 +295,7 @@ const TutorGrading = () => {
             <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Grading</h1>
             <p className="text-[#6b6f7d] text-[13px] mt-1">Review and grade student assignments</p>
           </div>
-          <button className="flex items-center gap-2 border border-[#d2d4d9] text-[#383a44] text-[13px] font-semibold px-4 py-2 rounded-[10px] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
-              <path d="M3 8v6M8 4v10M13 2v12" strokeLinecap="round" />
-            </svg>
-            Export Grades
-          </button>
+          <TopBarActions />
         </div>
 
         {/* â"€â"€ Filter row â"€â"€ */}
@@ -312,6 +319,7 @@ const TutorGrading = () => {
             <select
               value={selAssignment?.id || ''}
               onChange={(e) => {
+                if (!e.target.value) { setSelAssignment(null); return; }
                 const a = assignments.find((x) => x.id === e.target.value);
                 if (a) setSelAssignment(a);
               }}
@@ -406,9 +414,7 @@ const TutorGrading = () => {
                   </div>
                 ) : filteredSubs.length === 0 ? (
                   <div className="text-center py-10 px-4">
-                    <p className="text-[#6b6f7d] text-[13px]">
-                      {selAssignment ? 'No submissions yet' : 'Select an assignment'}
-                    </p>
+                    <p className="text-[#6b6f7d] text-[13px]">No submissions yet</p>
                   </div>
                 ) : (
                   filteredSubs.map((sub, idx) => {
@@ -441,7 +447,7 @@ const TutorGrading = () => {
                             </span>
                           </div>
                           <p className="text-[#6b6f7d] text-[11px] truncate mt-0.5">
-                            {selAssignment?.title || '-'}
+                            {sub._assignment?.title || selAssignment?.title || '-'}
                           </p>
                           <div className="mt-1.5">
                             {submitted ? (
@@ -506,14 +512,14 @@ const TutorGrading = () => {
                   {/* Assignment title + meta */}
                   <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6 mb-4">
                     <h3 className="text-[#0c0d12] text-[20px] font-bold mb-3">
-                      {selAssignment?.title || 'Assignment'}
+                      {activeAssignment?.title || 'Assignment'}
                     </h3>
                     <div className="flex items-center gap-4 text-[12px] text-[#6b6f7d] flex-wrap">
-                      {selAssignment?.due_at && (
+                      {activeAssignment?.due_at && (
                         <span>
                           Due:{' '}
                           <span className="text-[#383a44]">
-                            {new Date(selAssignment.due_at).toLocaleDateString('en-US', {
+                            {new Date(activeAssignment.due_at).toLocaleDateString('en-US', {
                               day: 'numeric', month: 'short', year: 'numeric',
                             })}
                           </span>
@@ -534,8 +540,8 @@ const TutorGrading = () => {
                   </div>
 
                   {/* Instructions */}
-                  {selAssignment?.description && (() => {
-                    const { plain, files } = parseAssignmentDescription(selAssignment.description);
+                  {activeAssignment?.description && (() => {
+                    const { plain, files } = parseAssignmentDescription(activeAssignment.description);
                     return (plain || files.length > 0) ? (
                       <div className="bg-white rounded-[16px] border border-[#ebebf0] p-6 mb-4">
                         <h4 className="text-[#0c0d12] text-[14px] font-bold mb-3">Instructions</h4>

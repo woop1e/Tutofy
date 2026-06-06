@@ -6,6 +6,7 @@ import { usersAPI } from '../../api/users';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { lessonsAPI } from '../../api/lessons';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 // ── Helpers (shared with public TutorProfile) ────────────────────────────────
 
@@ -36,8 +37,9 @@ function generateSlotsFromProfile(profile) {
         const day = new Date(today);
         day.setDate(today.getDate() + d);
         day.setHours(0, 0, 0, 0);
-        const dayName = JS_DAY_TO_NAME[day.getDay()];
-        const matching = parsed.filter(s => s.day === dayName);
+        const dayFull  = JS_DAY_TO_NAME[day.getDay()];
+        const dayShort = dayFull.slice(0, 3);
+        const matching = parsed.filter(s => s.day === dayFull || s.day === dayShort);
         if (!matching.length) continue;
         const nowH = today.getHours();
         const daySlots = [];
@@ -199,7 +201,7 @@ const StudentTutorProfile = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+      <div className="flex h-screen bg-[#f3f4f7] font-sans">
         <StudentSidebar />
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
@@ -210,7 +212,7 @@ const StudentTutorProfile = () => {
 
   if (!tutor) {
     return (
-      <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+      <div className="flex h-screen bg-[#f3f4f7] font-sans">
         <StudentSidebar />
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <p className="text-[#0c0d12] text-[20px] font-bold">Tutor not found</p>
@@ -232,7 +234,7 @@ const StudentTutorProfile = () => {
   const hasAvailability = parsedSlots.length > 0;
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -251,8 +253,11 @@ const StudentTutorProfile = () => {
             <span className="text-[#d2d4d9]">/</span>
             <span className="text-[#0c0d12] text-[14px] font-semibold">{tutor.name}</span>
           </div>
-          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
-            <span className="text-[#0d9488] text-[12px] font-bold">{initials}</span>
+          <div className="flex items-center gap-2">
+            <TopBarActions />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">{initials}</span>
+            </div>
           </div>
         </div>
 
@@ -509,7 +514,7 @@ const StudentTutorProfile = () => {
                   )}
 
                   <button
-                    onClick={() => navigate('/student/messages')}
+                    onClick={() => navigate(`/student/messages?with=${id}&name=${encodeURIComponent(tutor?.name || '')}`)}
                     className="w-full border border-[#d2d4d9] text-[#0c0d12] text-[13px] font-semibold py-2.5 rounded-[10px] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors mt-3"
                   >
                     Send message

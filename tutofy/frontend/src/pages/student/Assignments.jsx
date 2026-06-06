@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 import { coursesAPI } from '../../api/courses';
 import { assignmentsAPI } from '../../api/assignments';
 import { submissionsAPI } from '../../api/submissions';
+import { gradingAPI } from '../../api/grading';
 import { mediaAPI } from '../../api/media';
 
 // Parses "\n\n__file__:<id>:<name>" tokens from description text
@@ -76,8 +77,10 @@ const Assignments = () => {
   const [assignments, setAssignments]   = useState([]);
   const [courseMap, setCourseMap]       = useState({});
   const [submissions, setSubmissions]   = useState({});   // assignmentId → submission
+  const [gradesMap, setGradesMap]       = useState({});   // assignmentId → {grade, feedback}
   const [loading, setLoading]           = useState(true);
   const [filter, setFilter]             = useState('pending');
+  const [submittedSub, setSubmittedSub] = useState('all'); // 'all' | 'graded' | 'ungraded'
   const [submitting, setSubmitting]     = useState(null);
   const [textInput, setTextInput]       = useState({});
   const [fileInput, setFileInput]       = useState({});   // assignmentId → File
@@ -125,6 +128,13 @@ const Assignments = () => {
         const subMap = {};
         subResults.forEach(({ id, sub }) => { if (sub?.assignment_id) subMap[id] = sub; });
         setSubmissions(subMap);
+
+        // Load grades for this student
+        const gradeRes = await gradingAPI.getStudentGrades(userId).catch(() => ({}));
+        const grades = gradeRes?.grades || (Array.isArray(gradeRes) ? gradeRes : []);
+        const gMap = {};
+        grades.forEach((g) => { if (g.assignment_id) gMap[g.assignment_id] = g; });
+        setGradesMap(gMap);
       } finally {
         setLoading(false);
       }
@@ -149,14 +159,18 @@ const Assignments = () => {
   const filtered = useMemo(() => {
     let list = assignments;
     if (filter === 'pending')   list = assignments.filter((a) => !submissions[a.id]);
-    if (filter === 'submitted') list = assignments.filter((a) => !!submissions[a.id]);
     if (filter === 'overdue')   list = assignments.filter((a) => !submissions[a.id] && isPastDeadline(a.due_date));
+    if (filter === 'submitted') {
+      list = assignments.filter((a) => !!submissions[a.id]);
+      if (submittedSub === 'graded')   list = list.filter((a) => !!gradesMap[a.id]);
+      if (submittedSub === 'ungraded') list = list.filter((a) => !gradesMap[a.id]);
+    }
     return [...list].sort((a, b) => {
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
       return new Date(a.due_date) - new Date(b.due_date);
     });
-  }, [assignments, submissions, filter]);
+  }, [assignments, submissions, gradesMap, filter, submittedSub]);
 
   const handleSubmit = async (assignmentId, courseId) => {
     const text = textInput[assignmentId]?.trim() || '';
@@ -199,10 +213,10 @@ const Assignments = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-7 justify-between flex-shrink-0">
           <div>
@@ -210,7 +224,7 @@ const Assignments = () => {
             <p className="text-[#6b6f7d] text-[12px]">Assignments from your tutors</p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">
                 {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
@@ -219,7 +233,7 @@ const Assignments = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6 space-y-6">
+        <div className="flex-1 p-6 overflow-y-auto space-y-6">
 
           {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -238,22 +252,42 @@ const Assignments = () => {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-2">
-            {[
-              { key: 'pending',   label: 'Pending' },
-              { key: 'submitted', label: 'Submitted' },
-              { key: 'overdue',   label: 'Overdue' },
-              { key: 'all',       label: 'All' },
-            ].map((tab) => (
-              <button key={tab.key} onClick={() => setFilter(tab.key)}
-                className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
-                  filter === tab.key
-                    ? 'bg-[#0d9488] text-white'
-                    : 'bg-white text-[#6b6f7d] border border-[#f0f0f5] hover:text-[#0c0d12]'
-                }`}>
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              {[
+                { key: 'pending',   label: 'Pending' },
+                { key: 'submitted', label: 'Submitted' },
+                { key: 'overdue',   label: 'Overdue' },
+                { key: 'all',       label: 'All' },
+              ].map((tab) => (
+                <button key={tab.key} onClick={() => { setFilter(tab.key); if (tab.key !== 'submitted') setSubmittedSub('all'); }}
+                  className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
+                    filter === tab.key
+                      ? 'bg-[#0d9488] text-white'
+                      : 'bg-white text-[#6b6f7d] border border-[#f0f0f5] hover:text-[#0c0d12]'
+                  }`}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {filter === 'submitted' && (
+              <div className="flex items-center gap-1.5">
+                {[
+                  { key: 'all',      label: 'All submitted' },
+                  { key: 'graded',   label: 'Graded' },
+                  { key: 'ungraded', label: 'Ungraded' },
+                ].map((sub) => (
+                  <button key={sub.key} onClick={() => setSubmittedSub(sub.key)}
+                    className={`px-3 py-1 rounded-full text-[12px] font-medium transition-colors ${
+                      submittedSub === sub.key
+                        ? 'bg-[#935bf5] text-white'
+                        : 'bg-white text-[#6b6f7d] border border-[#f0f0f5] hover:text-[#0c0d12]'
+                    }`}>
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -280,9 +314,11 @@ const Assignments = () => {
                 const color     = course.color || '#0d9488';
                 const initial   = (course.title || 'C')[0].toUpperCase();
                 const sub       = submissions[a.id];
+                const gradeInfo = gradesMap[a.id];
                 const isSubmitted = !!sub;
+                const isGraded    = !!gradeInfo;
                 const isEditing   = editing[a.id];
-                const canEdit     = isSubmitted && !isPastDeadline(a.due_date) && sub?.status !== 'graded';
+                const canEdit     = isSubmitted && !isPastDeadline(a.due_date) && !isGraded;
                 const showForm    = !isSubmitted || isEditing;
                 const file        = fileInput[a.id];
                 const parsedDesc  = parseDescription(a.description);
@@ -298,7 +334,12 @@ const Assignments = () => {
                         <div className="flex items-start justify-between gap-3 mb-1">
                           <h3 className="text-[#0c0d12] text-[14px] font-bold">{a.title}</h3>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {isSubmitted && (
+                            {isGraded ? (
+                              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[rgba(34,190,112,0.12)] text-[#22be70] flex items-center gap-1">
+                                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                Graded: {gradeInfo.grade}/100
+                              </span>
+                            ) : isSubmitted && (
                               <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[rgba(13,148,136,0.08)] text-[#0d9488] flex items-center gap-1">
                                 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3"><path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 Submitted
@@ -344,6 +385,17 @@ const Assignments = () => {
                                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M13.5 7.5l-6 6a3.5 3.5 0 01-4.95-4.95l6-6a2 2 0 012.83 2.83l-6 6a.5.5 0 01-.71-.71l5.5-5.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 File attached
                               </p>
+                            )}
+                            {isGraded && (
+                              <div className="mt-3 bg-[#f0fdf8] border border-[#bbf7e0] rounded-[10px] px-4 py-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-[#22be70] text-[12px] font-bold">Tutor feedback</p>
+                                  <span className="text-[#22be70] text-[13px] font-bold">{gradeInfo.grade}/100</span>
+                                </div>
+                                {gradeInfo.feedback && (
+                                  <p className="text-[#383a44] text-[13px] leading-relaxed">{gradeInfo.feedback}</p>
+                                )}
+                              </div>
                             )}
                             {canEdit && (
                               <button onClick={() => startEdit(a.id)}

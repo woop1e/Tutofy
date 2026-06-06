@@ -11,10 +11,22 @@ import (
 
 var ErrNotFound = errors.New("user not found")
 
+type ParentLink struct {
+	ID          string
+	ParentID    string
+	StudentID   string
+	ParentEmail string
+	Token       string
+	Status      string
+	StudentName string
+	ParentName  string
+	CreatedAt   string
+}
+
 type UserRepository interface {
 	CreateUser(ctx context.Context, id, email, name, role string) error
 	GetByID(ctx context.Context, id string) (*model.User, error)
-	UpdateUser(ctx context.Context, id, name, email string) (*model.User, error)
+	UpdateUser(ctx context.Context, id, name, email, photoURL string) (*model.User, error)
 	GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error)
 	DeleteUser(ctx context.Context, id string) error
 	GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error)
@@ -24,6 +36,12 @@ type UserRepository interface {
 	RejectTutor(ctx context.Context, tutorID string) error
 	GetPendingTutors(ctx context.Context) ([]*model.TutorProfile, error)
 	GetTutorsByStatus(ctx context.Context, statusFilter string) ([]*model.TutorProfile, error)
+	CreateParentInvite(ctx context.Context, id, studentID, parentEmail, token string) (*ParentLink, error)
+	GetParentLinkByToken(ctx context.Context, token string) (*ParentLink, error)
+	GetParentLinks(ctx context.Context, studentID string) ([]*ParentLink, error)
+	GetChildrenLinks(ctx context.Context, parentID string) ([]*ParentLink, error)
+	AcceptParentInvite(ctx context.Context, token, parentID string) error
+	RemoveParentLink(ctx context.Context, linkID string) error
 }
 
 type postgresRepo struct {
@@ -45,8 +63,8 @@ func (r *postgresRepo) CreateUser(ctx context.Context, id, email, name, role str
 func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.User, error) {
 	u := &model.User{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, email, name, role FROM users WHERE id = $1 AND deleted_at IS NULL`, id,
-	).Scan(&u.ID, &u.Email, &u.Name, &u.Role)
+		`SELECT id, email, name, role, COALESCE(photo_url,'') FROM users WHERE id = $1 AND deleted_at IS NULL`, id,
+	).Scan(&u.ID, &u.Email, &u.Name, &u.Role, &u.PhotoURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -56,13 +74,17 @@ func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.User, err
 	return u, nil
 }
 
-func (r *postgresRepo) UpdateUser(ctx context.Context, id, name, email string) (*model.User, error) {
+func (r *postgresRepo) UpdateUser(ctx context.Context, id, name, email, photoURL string) (*model.User, error) {
 	u := &model.User{}
 	err := r.db.QueryRowContext(ctx,
-		`UPDATE users SET name = $1, email = $2 WHERE id = $3
-		 RETURNING id, email, name, role`,
-		name, email, id,
-	).Scan(&u.ID, &u.Email, &u.Name, &u.Role)
+		`UPDATE users SET
+		   name      = CASE WHEN $1 != '' THEN $1 ELSE name END,
+		   email     = CASE WHEN $2 != '' THEN $2 ELSE email END,
+		   photo_url = CASE WHEN $3 != '' THEN $3 ELSE photo_url END
+		 WHERE id = $4
+		 RETURNING id, email, name, role, COALESCE(photo_url,'')`,
+		name, email, photoURL, id,
+	).Scan(&u.ID, &u.Email, &u.Name, &u.Role, &u.PhotoURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -73,7 +95,7 @@ func (r *postgresRepo) UpdateUser(ctx context.Context, id, name, email string) (
 }
 
 func (r *postgresRepo) DeleteUser(ctx context.Context, id string) error {
-	res, err := r.db.ExecContext(ctx, `UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`, id)
+	res, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
@@ -85,7 +107,7 @@ func (r *postgresRepo) DeleteUser(ctx context.Context, id string) error {
 }
 
 func (r *postgresRepo) GetAllUsers(ctx context.Context, limit, offset int32) ([]*model.User, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, email, name, role FROM users WHERE deleted_at IS NULL ORDER BY id LIMIT $1 OFFSET $2`, limit, offset)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, email, name, role, COALESCE(photo_url,'') FROM users WHERE deleted_at IS NULL ORDER BY id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +116,7 @@ func (r *postgresRepo) GetAllUsers(ctx context.Context, limit, offset int32) ([]
 	var users []*model.User
 	for rows.Next() {
 		u := &model.User{}
-		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.Role); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.Role, &u.PhotoURL); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
@@ -160,9 +182,13 @@ func (r *postgresRepo) UpdateTutorProfile(ctx context.Context, tutorID string, i
 }
 
 func (r *postgresRepo) SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error) {
+	// Tutors are marketplace-visible only when approved AND availability is configured
 	q := `SELECT ` + tutorSelectCols + `
 	      FROM users
-	      WHERE role = 'tutor' AND deleted_at IS NULL AND COALESCE(status,'pending') = 'approved'`
+	      WHERE role = 'tutor' AND deleted_at IS NULL AND COALESCE(status,'pending') = 'approved'
+	        AND available_time_start IS NOT NULL
+	        AND available_time_start != ''
+	        AND available_time_start != '09:00'`
 	args := []any{}
 	n := 1
 	if subject != "" {
@@ -285,4 +311,113 @@ func (r *postgresRepo) RejectTutor(ctx context.Context, tutorID string) error {
 
 func itoa(n int) string {
 	return fmt.Sprintf("%d", n)
+}
+
+// ── Parent link repo ──────────────────────────────────────────────────────────
+
+func (r *postgresRepo) CreateParentInvite(ctx context.Context, id, studentID, parentEmail, token string) (*ParentLink, error) {
+	// Fetch student name
+	var studentName string
+	_ = r.db.QueryRowContext(ctx, `SELECT name FROM users WHERE id = $1`, studentID).Scan(&studentName)
+
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO parent_student_links (id, student_id, parent_email, token, status)
+		 VALUES ($1, $2, $3, $4, 'pending')
+		 ON CONFLICT (token) DO NOTHING`,
+		id, studentID, parentEmail, token,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &ParentLink{
+		ID: id, StudentID: studentID, ParentEmail: parentEmail,
+		Token: token, Status: "pending", StudentName: studentName,
+	}, nil
+}
+
+func (r *postgresRepo) GetParentLinkByToken(ctx context.Context, token string) (*ParentLink, error) {
+	row := r.db.QueryRowContext(ctx,
+		`SELECT l.id, COALESCE(l.parent_id,''), l.student_id, l.parent_email, l.token, l.status,
+		        COALESCE(s.name,''), COALESCE(p.name,'')
+		 FROM parent_student_links l
+		 LEFT JOIN users s ON s.id = l.student_id
+		 LEFT JOIN users p ON p.id = l.parent_id
+		 WHERE l.token = $1`, token)
+	var lnk ParentLink
+	if err := row.Scan(&lnk.ID, &lnk.ParentID, &lnk.StudentID, &lnk.ParentEmail,
+		&lnk.Token, &lnk.Status, &lnk.StudentName, &lnk.ParentName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &lnk, nil
+}
+
+func (r *postgresRepo) GetParentLinks(ctx context.Context, studentID string) ([]*ParentLink, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT l.id, COALESCE(l.parent_id,''), l.student_id, l.parent_email, l.token, l.status,
+		        COALESCE(s.name,''), COALESCE(p.name,''), to_char(l.created_at,'YYYY-MM-DD')
+		 FROM parent_student_links l
+		 LEFT JOIN users s ON s.id = l.student_id
+		 LEFT JOIN users p ON p.id = l.parent_id
+		 WHERE l.student_id = $1 ORDER BY l.created_at DESC`, studentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*ParentLink
+	for rows.Next() {
+		var lnk ParentLink
+		if err := rows.Scan(&lnk.ID, &lnk.ParentID, &lnk.StudentID, &lnk.ParentEmail,
+			&lnk.Token, &lnk.Status, &lnk.StudentName, &lnk.ParentName, &lnk.CreatedAt); err != nil {
+			continue
+		}
+		out = append(out, &lnk)
+	}
+	return out, nil
+}
+
+func (r *postgresRepo) GetChildrenLinks(ctx context.Context, parentID string) ([]*ParentLink, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT l.id, COALESCE(l.parent_id,''), l.student_id, l.parent_email, l.token, l.status,
+		        COALESCE(s.name,''), COALESCE(p.name,''), to_char(l.created_at,'YYYY-MM-DD')
+		 FROM parent_student_links l
+		 LEFT JOIN users s ON s.id = l.student_id
+		 LEFT JOIN users p ON p.id = l.parent_id
+		 WHERE l.parent_id = $1 AND l.status = 'accepted' ORDER BY l.created_at DESC`, parentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*ParentLink
+	for rows.Next() {
+		var lnk ParentLink
+		if err := rows.Scan(&lnk.ID, &lnk.ParentID, &lnk.StudentID, &lnk.ParentEmail,
+			&lnk.Token, &lnk.Status, &lnk.StudentName, &lnk.ParentName, &lnk.CreatedAt); err != nil {
+			continue
+		}
+		out = append(out, &lnk)
+	}
+	return out, nil
+}
+
+func (r *postgresRepo) AcceptParentInvite(ctx context.Context, token, parentID string) error {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE parent_student_links SET status='accepted', parent_id=$1, accepted_at=NOW()
+		 WHERE token=$2 AND status='pending'`, parentID, token)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *postgresRepo) RemoveParentLink(ctx context.Context, linkID string) error {
+	_, err := r.db.ExecContext(ctx,
+		`DELETE FROM parent_student_links WHERE id = $1`, linkID)
+	return err
 }

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { lessonsAPI } from '../../api/lessons';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 import { usersAPI } from '../../api/users';
 
 /* â"€â"€ Constants â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
@@ -396,6 +396,7 @@ function AddSlotModal({ existingSlots, profile, userId, onSave, onClose }) {
         available_time_start: JSON.stringify(updated),
         available_time_end:   '',
         timezone:             profile?.timezone             || '',
+        keep_status:          true,
       });
       onSave(updated);
       onClose();
@@ -645,6 +646,7 @@ const TutorSchedule = () => {
       available_time_start: JSON.stringify(slots),
       available_time_end:   '',
       timezone:             profile.timezone             || '',
+      keep_status:          true,
     });
   }, [user?.user_id, profile]);
 
@@ -705,7 +707,7 @@ const TutorSchedule = () => {
   const nowTop = (nowH - 7) * 64;
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <TutorSidebar />
 
       {modalLesson && (
@@ -743,16 +745,7 @@ const TutorSchedule = () => {
               </svg>
               Add availability
             </button>
-            <Link
-              to="/tutor/courses/new"
-              className="flex items-center gap-2 bg-[#0d9488] text-white text-[12px] font-bold px-4 py-2 rounded-[8px] hover:opacity-90 transition-opacity"
-            >
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
-                <path d="M7 2v10M2 7h10" strokeLinecap="round"/>
-              </svg>
-              Add lesson
-            </Link>
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">
                 {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
@@ -994,8 +987,29 @@ const TutorSchedule = () => {
               )}
             </div>
 
+            {/* Marketplace visibility card */}
+            <div className="px-5 pt-4 border-t border-[#ebebf0]">
+              <div className={`rounded-[10px] px-3 py-2.5 flex items-center gap-2.5 mb-4 ${
+                availSlots.length > 0
+                  ? 'bg-[#f0fdf4] border border-[#bbf7d0]'
+                  : 'bg-[#fff8f0] border border-[#ff8032]/30'
+              }`}>
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${availSlots.length > 0 ? 'bg-[#22c55e]' : 'bg-[#ff8032]'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[11px] font-bold ${availSlots.length > 0 ? 'text-[#15803d]' : 'text-[#c05e1a]'}`}>
+                    {availSlots.length > 0 ? 'Visible in Marketplace' : 'Not visible in Marketplace'}
+                  </p>
+                  <p className={`text-[10px] mt-0.5 ${availSlots.length > 0 ? 'text-[#15803d]/70' : 'text-[#c05e1a]/80'}`}>
+                    {availSlots.length > 0
+                      ? 'Students can find and book you.'
+                      : 'Add availability to appear in search results.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Availability slots summary */}
-            <div className="p-5 border-t border-[#ebebf0]">
+            <div className="px-5 pb-5">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] font-bold text-[#6b6f7d] uppercase tracking-wider">Availability</p>
                 <button onClick={() => setShowAvail(true)} className="text-[11px] text-[#22be70] font-semibold hover:underline">
@@ -1003,7 +1017,22 @@ const TutorSchedule = () => {
                 </button>
               </div>
               {availSlots.length === 0 ? (
-                <p className="text-[11px] text-[#6b6f7d]">No slots set yet.</p>
+                <div className="rounded-[10px] border border-dashed border-[#d2d4d9] p-4 text-center">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="#b0b3bc" strokeWidth="1.4" width={28} height={28} className="mx-auto mb-2">
+                    <rect x="2" y="3" width="16" height="14" rx="2"/>
+                    <path d="M6 2v3M14 2v3M2 8h16" strokeLinecap="round"/>
+                  </svg>
+                  <p className="text-[12px] font-semibold text-[#383a44] mb-1">No availability configured</p>
+                  <p className="text-[11px] text-[#6b6f7d] mb-3 leading-snug">
+                    Set your teaching hours so students can book lessons with you.
+                  </p>
+                  <button
+                    onClick={() => setShowAvail(true)}
+                    className="text-[11px] font-bold text-white bg-[#0d9488] px-3 py-1.5 rounded-[7px] hover:opacity-90"
+                  >
+                    Add Availability
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
                   {availSlots.map(slot => (
@@ -1030,5 +1059,6 @@ const TutorSchedule = () => {
     </div>
   );
 };
+
 
 export default TutorSchedule;

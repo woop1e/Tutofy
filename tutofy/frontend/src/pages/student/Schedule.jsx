@@ -6,7 +6,7 @@ import { enrollmentsAPI } from '../../api/enrollments';
 import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
 import { usersAPI } from '../../api/users';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const ACCENT_COLORS = [
@@ -100,10 +100,10 @@ const Schedule = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
         <div className="bg-white h-[68px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)] flex items-center px-7 justify-between flex-shrink-0">
           <div>
@@ -111,7 +111,7 @@ const Schedule = () => {
             <p className="text-muted text-[13px]">Manage your upcoming sessions</p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-primary text-[12px] font-semibold">
                 {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
@@ -138,7 +138,7 @@ const Schedule = () => {
           ))}
         </div>
 
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6overflow-y-auto ">
           {/* Week navigation */}
           <div className="flex items-center justify-between mb-4">
             <p className="text-body text-[15px] font-medium">{weekLabel}</p>
@@ -183,17 +183,23 @@ const Schedule = () => {
           </div>
 
           {/* Individual Lessons */}
-          {!loading && myLessons.length > 0 && (
-            <div className="mb-5">
-              <h2 className="text-dark text-[16px] font-bold mb-3">Individual Lessons</h2>
-              <div className="space-y-3">
-                {myLessons.map((lesson) => {
-                  const start = lesson.scheduled_at ? new Date(
-                    typeof lesson.scheduled_at === 'object' && lesson.scheduled_at.seconds
-                      ? lesson.scheduled_at.seconds * 1000
-                      : lesson.scheduled_at
-                  ) : null;
-                  const end = start ? new Date(start.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
+          {!loading && myLessons.length > 0 && (() => {
+            const now = Date.now();
+            const parseStart = (lesson) => lesson.scheduled_at
+              ? new Date(typeof lesson.scheduled_at === 'object' && lesson.scheduled_at.seconds
+                  ? lesson.scheduled_at.seconds * 1000
+                  : lesson.scheduled_at)
+              : null;
+            const lessonEnd = (lesson) => {
+              const s = parseStart(lesson);
+              return s ? new Date(s.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
+            };
+            const upcoming = myLessons.filter(l => { const e = lessonEnd(l); return !e || e.getTime() >= now; });
+            const past     = myLessons.filter(l => { const e = lessonEnd(l); return e && e.getTime() < now; });
+
+            const renderCard = (lesson, isPastCard = false) => {
+                  const start = parseStart(lesson);
+                  const end = lessonEnd(lesson);
                   const statusRaw = (lesson.status || '').toString().toLowerCase();
                   const statusNum = parseInt(lesson.status, 10);
                   const isPending       = statusRaw.includes('pending')  || statusNum === 4;
@@ -235,9 +241,13 @@ const Schedule = () => {
                     : 'bg-[#22be70]/10 text-[#22be70]';
 
                   return (
-                    <div key={lesson.id} className="bg-white rounded-[16px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.07)] p-5 flex items-center gap-4 border-l-4" style={{ borderColor }}>
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: iconColor + '20' }}>
-                        <svg viewBox="0 0 20 20" fill="none" stroke={iconColor} strokeWidth="1.5" className="w-6 h-6">
+                    <div key={lesson.id}
+                      className={`bg-white rounded-[16px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.07)] p-5 flex items-center gap-4 border-l-4 ${isPastCard ? 'opacity-50' : ''}`}
+                      style={{ borderColor: isPastCard ? '#9ca3af' : borderColor }}
+                    >
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: (isPastCard ? '#9ca3af' : iconColor) + '20' }}>
+                        <svg viewBox="0 0 20 20" fill="none" stroke={isPastCard ? '#9ca3af' : iconColor} strokeWidth="1.5" className="w-6 h-6">
                           <rect x="1" y="4" width="10" height="8" rx="1.5"/><path d="M11 7l4-2v6l-4-2"/>
                         </svg>
                       </div>
@@ -251,48 +261,77 @@ const Schedule = () => {
                           </p>
                         )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <span className={`inline-block text-[11px] font-semibold px-3 py-1 rounded-full ${statusColor}`}>
-                            {statusLabel}
-                          </span>
-                          {deadlineCountdown && (
-                            <span className="inline-block text-[11px] font-semibold px-3 py-1 rounded-full bg-[#f59e0b]/10 text-[#92400e]">
-                              {deadlineCountdown}
+                          {isPastCard ? (
+                            <span className="inline-block text-[11px] font-semibold px-3 py-1 rounded-full bg-[#9ca3af]/10 text-[#9ca3af]">
+                              Past lesson
                             </span>
+                          ) : (
+                            <>
+                              <span className={`inline-block text-[11px] font-semibold px-3 py-1 rounded-full ${statusColor}`}>
+                                {statusLabel}
+                              </span>
+                              {deadlineCountdown && (
+                                <span className="inline-block text-[11px] font-semibold px-3 py-1 rounded-full bg-[#f59e0b]/10 text-[#92400e]">
+                                  {deadlineCountdown}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        {isExpired ? (
-                          <span className="text-[13px] font-semibold px-5 py-2.5 rounded-[10px] bg-[#ef4444]/10 text-[#ef4444]">
-                            Expired
-                          </span>
-                        ) : canJoin ? (
-                          <a
-                            href={lesson.video_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-[#22be70] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
-                          >
-                            Join
-                          </a>
-                        ) : isAwaitPay ? (
-                          <Link
-                            to={(() => {
-                              const lessonPrice = lesson.price || tutorProfileMap[lesson.tutor_id]?.hourly_price || 0;
-                              return `/payment?lesson_mode=true&lesson_id=${lesson.id}&amount=${lessonPrice}&title=${encodeURIComponent(lesson.title || '')}`;
-                            })()}
-                            className="bg-[#f59e0b] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
-                          >
-                            Pay
-                          </Link>
-                        ) : null}
-                      </div>
+                      {!isPastCard && (
+                        <div className="flex-shrink-0">
+                          {isExpired ? (
+                            <span className="text-[13px] font-semibold px-5 py-2.5 rounded-[10px] bg-[#ef4444]/10 text-[#ef4444]">
+                              Expired
+                            </span>
+                          ) : canJoin ? (
+                            <a
+                              href={lesson.video_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-[#22be70] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
+                            >
+                              Join
+                            </a>
+                          ) : isAwaitPay ? (
+                            <Link
+                              to={(() => {
+                                const lessonPrice = lesson.price || tutorProfileMap[lesson.tutor_id]?.hourly_price || 0;
+                                return `/payment?lesson_mode=true&lesson_id=${lesson.id}&amount=${lessonPrice}&title=${encodeURIComponent(lesson.title || '')}`;
+                              })()}
+                              className="bg-[#f59e0b] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
+                            >
+                              Pay
+                            </Link>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   );
-                })}
+            };
+
+            return (
+              <div className="mb-5">
+                {upcoming.length > 0 && (
+                  <>
+                    <h2 className="text-dark text-[16px] font-bold mb-3">Upcoming Lessons</h2>
+                    <div className="space-y-3 mb-4">
+                      {upcoming.map(l => renderCard(l, false))}
+                    </div>
+                  </>
+                )}
+                {past.length > 0 && (
+                  <>
+                    <h2 className="text-dark text-[14px] font-semibold text-muted mb-3 mt-2">Past Lessons</h2>
+                    <div className="space-y-3">
+                      {past.map(l => renderCard(l, true))}
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Sessions List */}
           {loading ? (

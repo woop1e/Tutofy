@@ -48,30 +48,29 @@ type UpdateUserRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Name   string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Email  string `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	UserId   string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Name     string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Email    string `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	PhotoUrl string `protobuf:"bytes,4,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
 }
 
 func (x *UpdateUserRequest) Reset()        { *x = UpdateUserRequest{} }
 func (x *UpdateUserRequest) String() string { return x.UserId }
 func (x *UpdateUserRequest) ProtoMessage() {}
 func (x *UpdateUserRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
+	if x != nil { return x.UserId }
 	return ""
 }
 func (x *UpdateUserRequest) GetName() string {
-	if x != nil {
-		return x.Name
-	}
+	if x != nil { return x.Name }
 	return ""
 }
 func (x *UpdateUserRequest) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
+	if x != nil { return x.Email }
+	return ""
+}
+func (x *UpdateUserRequest) GetPhotoUrl() string {
+	if x != nil { return x.PhotoUrl }
 	return ""
 }
 
@@ -79,10 +78,11 @@ type UserResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	Id    string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Name  string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Role  string `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
+	Id       string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email    string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Name     string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Role     string `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
+	PhotoUrl string `protobuf:"bytes,5,opt,name=photo_url,json=photoUrl,proto3" json:"photo_url,omitempty"`
 }
 
 func (x *UserResponse) Reset()        { *x = UserResponse{} }
@@ -109,6 +109,12 @@ func (x *UserResponse) GetName() string {
 func (x *UserResponse) GetRole() string {
 	if x != nil {
 		return x.Role
+	}
+	return ""
+}
+func (x *UserResponse) GetPhotoUrl() string {
+	if x != nil {
+		return x.PhotoUrl
 	}
 	return ""
 }
@@ -169,6 +175,8 @@ type UpdateTutorProfileRequest struct {
 	AvailableTimeStart string   `protobuf:"bytes,16,opt,name=available_time_start,json=availableTimeStart,proto3" json:"available_time_start,omitempty"`
 	AvailableTimeEnd   string   `protobuf:"bytes,17,opt,name=available_time_end,json=availableTimeEnd,proto3" json:"available_time_end,omitempty"`
 	Timezone           string   `protobuf:"bytes,18,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	// When true the review status is NOT reset to 'pending' (used by schedule/availability saves).
+	KeepStatus         bool     `protobuf:"varint,19,opt,name=keep_status,json=keepStatus,proto3" json:"keep_status,omitempty"`
 }
 
 func (x *UpdateTutorProfileRequest) Reset()               { *x = UpdateTutorProfileRequest{} }
@@ -192,6 +200,7 @@ func (x *UpdateTutorProfileRequest) GetAvailableDays() []string  { return x.Avai
 func (x *UpdateTutorProfileRequest) GetAvailableTimeStart() string { return x.AvailableTimeStart }
 func (x *UpdateTutorProfileRequest) GetAvailableTimeEnd() string   { return x.AvailableTimeEnd }
 func (x *UpdateTutorProfileRequest) GetTimezone() string           { return x.Timezone }
+func (x *UpdateTutorProfileRequest) GetKeepStatus() bool           { return x.KeepStatus }
 
 type GetTutorProfileRequest struct {
 	state         protoimpl.MessageState
@@ -344,6 +353,12 @@ type UserServiceServer interface {
 	RejectTutor(context.Context, *RejectTutorRequest) (*Empty, error)
 	GetPendingTutors(context.Context, *Empty) (*PendingTutorsList, error)
 	GetTutorsByStatus(context.Context, *GetTutorsByStatusRequest) (*PendingTutorsList, error)
+	InviteParent(context.Context, *InviteParentRequest) (*InviteParentResponse, error)
+	AcceptParentInvite(context.Context, *AcceptParentInviteRequest) (*AcceptParentInviteResponse, error)
+	GetParentLinks(context.Context, *GetParentLinksRequest) (*ParentLinksList, error)
+	GetChildren(context.Context, *GetChildrenRequest) (*ParentLinksList, error)
+	RemoveParentLink(context.Context, *RemoveParentLinkRequest) (*Empty, error)
+	GetInviteInfo(context.Context, *GetInviteInfoRequest) (*ParentLink, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -385,6 +400,24 @@ func (UnimplementedUserServiceServer) GetPendingTutors(context.Context, *Empty) 
 func (UnimplementedUserServiceServer) GetTutorsByStatus(context.Context, *GetTutorsByStatusRequest) (*PendingTutorsList, error) {
 	return nil, nil
 }
+func (UnimplementedUserServiceServer) InviteParent(context.Context, *InviteParentRequest) (*InviteParentResponse, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) AcceptParentInvite(context.Context, *AcceptParentInviteRequest) (*AcceptParentInviteResponse, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) GetParentLinks(context.Context, *GetParentLinksRequest) (*ParentLinksList, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) GetChildren(context.Context, *GetChildrenRequest) (*ParentLinksList, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) RemoveParentLink(context.Context, *RemoveParentLinkRequest) (*Empty, error) {
+	return nil, nil
+}
+func (UnimplementedUserServiceServer) GetInviteInfo(context.Context, *GetInviteInfoRequest) (*ParentLink, error) {
+	return nil, nil
+}
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -409,9 +442,81 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "RejectTutor", Handler: _UserService_RejectTutor_Handler},
 		{MethodName: "GetPendingTutors", Handler: _UserService_GetPendingTutors_Handler},
 		{MethodName: "GetTutorsByStatus", Handler: _UserService_GetTutorsByStatus_Handler},
+		{MethodName: "InviteParent", Handler: _UserService_InviteParent_Handler},
+		{MethodName: "AcceptParentInvite", Handler: _UserService_AcceptParentInvite_Handler},
+		{MethodName: "GetParentLinks", Handler: _UserService_GetParentLinks_Handler},
+		{MethodName: "GetChildren", Handler: _UserService_GetChildren_Handler},
+		{MethodName: "RemoveParentLink", Handler: _UserService_RemoveParentLink_Handler},
+		{MethodName: "GetInviteInfo", Handler: _UserService_GetInviteInfo_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "user.proto",
+}
+
+func _UserService_InviteParent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteParentRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(UserServiceServer).InviteParent(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/InviteParent"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).InviteParent(ctx, req.(*InviteParentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_AcceptParentInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptParentInviteRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(UserServiceServer).AcceptParentInvite(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/AcceptParentInvite"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AcceptParentInvite(ctx, req.(*AcceptParentInviteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetParentLinks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetParentLinksRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(UserServiceServer).GetParentLinks(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/GetParentLinks"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetParentLinks(ctx, req.(*GetParentLinksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetChildren_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChildrenRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(UserServiceServer).GetChildren(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/GetChildren"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetChildren(ctx, req.(*GetChildrenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_RemoveParentLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveParentLinkRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(UserServiceServer).RemoveParentLink(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/RemoveParentLink"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).RemoveParentLink(ctx, req.(*RemoveParentLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetInviteInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInviteInfoRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(UserServiceServer).GetInviteInfo(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/user.UserService/GetInviteInfo"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetInviteInfo(ctx, req.(*GetInviteInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -609,6 +714,12 @@ type UserServiceClient interface {
 	RejectTutor(ctx context.Context, in *RejectTutorRequest, opts ...grpc.CallOption) (*Empty, error)
 	GetPendingTutors(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*PendingTutorsList, error)
 	GetTutorsByStatus(ctx context.Context, in *GetTutorsByStatusRequest, opts ...grpc.CallOption) (*PendingTutorsList, error)
+	InviteParent(ctx context.Context, in *InviteParentRequest, opts ...grpc.CallOption) (*InviteParentResponse, error)
+	AcceptParentInvite(ctx context.Context, in *AcceptParentInviteRequest, opts ...grpc.CallOption) (*AcceptParentInviteResponse, error)
+	GetParentLinks(ctx context.Context, in *GetParentLinksRequest, opts ...grpc.CallOption) (*ParentLinksList, error)
+	GetChildren(ctx context.Context, in *GetChildrenRequest, opts ...grpc.CallOption) (*ParentLinksList, error)
+	RemoveParentLink(ctx context.Context, in *RemoveParentLinkRequest, opts ...grpc.CallOption) (*Empty, error)
+	GetInviteInfo(ctx context.Context, in *GetInviteInfoRequest, opts ...grpc.CallOption) (*ParentLink, error)
 }
 
 type userServiceClient struct{ cc grpc.ClientConnInterface }
@@ -683,6 +794,150 @@ func (c *userServiceClient) GetTutorsByStatus(ctx context.Context, in *GetTutors
 	return out, err
 }
 
+// ── Parent link messages ──────────────────────────────────────────────────────
+
+type ParentLink struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ParentId    string `protobuf:"bytes,2,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	StudentId   string `protobuf:"bytes,3,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
+	ParentEmail string `protobuf:"bytes,4,opt,name=parent_email,json=parentEmail,proto3" json:"parent_email,omitempty"`
+	Status      string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	StudentName string `protobuf:"bytes,6,opt,name=student_name,json=studentName,proto3" json:"student_name,omitempty"`
+	ParentName  string `protobuf:"bytes,7,opt,name=parent_name,json=parentName,proto3" json:"parent_name,omitempty"`
+	Token       string `protobuf:"bytes,8,opt,name=token,proto3" json:"token,omitempty"`
+	CreatedAt   string `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+}
+
+func (x *ParentLink) Reset()         { *x = ParentLink{} }
+func (x *ParentLink) String() string  { return x.Id }
+func (x *ParentLink) ProtoMessage()  {}
+func (x *ParentLink) GetId() string          { return x.Id }
+func (x *ParentLink) GetParentId() string    { return x.ParentId }
+func (x *ParentLink) GetStudentId() string   { return x.StudentId }
+func (x *ParentLink) GetParentEmail() string { return x.ParentEmail }
+func (x *ParentLink) GetStatus() string      { return x.Status }
+func (x *ParentLink) GetStudentName() string { return x.StudentName }
+func (x *ParentLink) GetParentName() string  { return x.ParentName }
+func (x *ParentLink) GetToken() string       { return x.Token }
+func (x *ParentLink) GetCreatedAt() string   { return x.CreatedAt }
+
+type InviteParentRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	StudentId   string `protobuf:"bytes,1,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
+	ParentEmail string `protobuf:"bytes,2,opt,name=parent_email,json=parentEmail,proto3" json:"parent_email,omitempty"`
+}
+
+func (x *InviteParentRequest) Reset()               { *x = InviteParentRequest{} }
+func (x *InviteParentRequest) String() string        { return x.StudentId }
+func (x *InviteParentRequest) ProtoMessage()         {}
+func (x *InviteParentRequest) GetStudentId() string  { return x.StudentId }
+func (x *InviteParentRequest) GetParentEmail() string { return x.ParentEmail }
+
+type InviteParentResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Link *ParentLink `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
+}
+
+func (x *InviteParentResponse) Reset()          { *x = InviteParentResponse{} }
+func (x *InviteParentResponse) String() string   { return "" }
+func (x *InviteParentResponse) ProtoMessage()   {}
+func (x *InviteParentResponse) GetLink() *ParentLink { return x.Link }
+
+type AcceptParentInviteRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Token    string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	ParentId string `protobuf:"bytes,2,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+}
+
+func (x *AcceptParentInviteRequest) Reset()          { *x = AcceptParentInviteRequest{} }
+func (x *AcceptParentInviteRequest) String() string   { return x.Token }
+func (x *AcceptParentInviteRequest) ProtoMessage()   {}
+func (x *AcceptParentInviteRequest) GetToken() string    { return x.Token }
+func (x *AcceptParentInviteRequest) GetParentId() string { return x.ParentId }
+
+type AcceptParentInviteResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Link *ParentLink `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
+}
+
+func (x *AcceptParentInviteResponse) Reset()          { *x = AcceptParentInviteResponse{} }
+func (x *AcceptParentInviteResponse) String() string   { return "" }
+func (x *AcceptParentInviteResponse) ProtoMessage()   {}
+func (x *AcceptParentInviteResponse) GetLink() *ParentLink { return x.Link }
+
+type GetParentLinksRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	StudentId string `protobuf:"bytes,1,opt,name=student_id,json=studentId,proto3" json:"student_id,omitempty"`
+}
+
+func (x *GetParentLinksRequest) Reset()           { *x = GetParentLinksRequest{} }
+func (x *GetParentLinksRequest) String() string    { return x.StudentId }
+func (x *GetParentLinksRequest) ProtoMessage()    {}
+func (x *GetParentLinksRequest) GetStudentId() string { return x.StudentId }
+
+type ParentLinksList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Links []*ParentLink `protobuf:"bytes,1,rep,name=links,proto3" json:"links,omitempty"`
+}
+
+func (x *ParentLinksList) Reset()         { *x = ParentLinksList{} }
+func (x *ParentLinksList) String() string  { return "" }
+func (x *ParentLinksList) ProtoMessage()  {}
+func (x *ParentLinksList) GetLinks() []*ParentLink { return x.Links }
+
+type GetChildrenRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	ParentId string `protobuf:"bytes,1,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+}
+
+func (x *GetChildrenRequest) Reset()          { *x = GetChildrenRequest{} }
+func (x *GetChildrenRequest) String() string   { return x.ParentId }
+func (x *GetChildrenRequest) ProtoMessage()   {}
+func (x *GetChildrenRequest) GetParentId() string { return x.ParentId }
+
+type RemoveParentLinkRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	LinkId   string `protobuf:"bytes,1,opt,name=link_id,json=linkId,proto3" json:"link_id,omitempty"`
+	CallerId string `protobuf:"bytes,2,opt,name=caller_id,json=callerId,proto3" json:"caller_id,omitempty"`
+}
+
+func (x *RemoveParentLinkRequest) Reset()          { *x = RemoveParentLinkRequest{} }
+func (x *RemoveParentLinkRequest) String() string   { return x.LinkId }
+func (x *RemoveParentLinkRequest) ProtoMessage()   {}
+func (x *RemoveParentLinkRequest) GetLinkId() string   { return x.LinkId }
+func (x *RemoveParentLinkRequest) GetCallerId() string { return x.CallerId }
+
+type GetInviteInfoRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+}
+
+func (x *GetInviteInfoRequest) Reset()       { *x = GetInviteInfoRequest{} }
+func (x *GetInviteInfoRequest) String() string { return x.Token }
+func (x *GetInviteInfoRequest) ProtoMessage() {}
+func (x *GetInviteInfoRequest) GetToken() string { return x.Token }
+
 // ── SearchTutors ──────────────────────────────────────────────────────────────
 
 type SearchTutorsRequest struct {
@@ -722,5 +977,41 @@ func (x *TutorCardsList) GetTutors() []*TutorProfileResponse { return x.Tutors }
 func (c *userServiceClient) SearchTutors(ctx context.Context, in *SearchTutorsRequest, opts ...grpc.CallOption) (*TutorCardsList, error) {
 	out := new(TutorCardsList)
 	err := c.cc.Invoke(ctx, "/user.UserService/SearchTutors", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) InviteParent(ctx context.Context, in *InviteParentRequest, opts ...grpc.CallOption) (*InviteParentResponse, error) {
+	out := new(InviteParentResponse)
+	err := c.cc.Invoke(ctx, "/user.UserService/InviteParent", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) AcceptParentInvite(ctx context.Context, in *AcceptParentInviteRequest, opts ...grpc.CallOption) (*AcceptParentInviteResponse, error) {
+	out := new(AcceptParentInviteResponse)
+	err := c.cc.Invoke(ctx, "/user.UserService/AcceptParentInvite", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) GetParentLinks(ctx context.Context, in *GetParentLinksRequest, opts ...grpc.CallOption) (*ParentLinksList, error) {
+	out := new(ParentLinksList)
+	err := c.cc.Invoke(ctx, "/user.UserService/GetParentLinks", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) GetChildren(ctx context.Context, in *GetChildrenRequest, opts ...grpc.CallOption) (*ParentLinksList, error) {
+	out := new(ParentLinksList)
+	err := c.cc.Invoke(ctx, "/user.UserService/GetChildren", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) RemoveParentLink(ctx context.Context, in *RemoveParentLinkRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/user.UserService/RemoveParentLink", in, out, opts...)
+	return out, err
+}
+
+func (c *userServiceClient) GetInviteInfo(ctx context.Context, in *GetInviteInfoRequest, opts ...grpc.CallOption) (*ParentLink, error) {
+	out := new(ParentLink)
+	err := c.cc.Invoke(ctx, "/user.UserService/GetInviteInfo", in, out, opts...)
 	return out, err
 }

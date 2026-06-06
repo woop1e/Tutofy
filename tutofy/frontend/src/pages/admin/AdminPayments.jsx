@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { usersAPI } from '../../api/users';
 import { paymentsAPI } from '../../api/payments';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const STATUS_STYLE = {
   completed: 'bg-[#22be70]/10 text-[#22be70]',
@@ -94,10 +95,10 @@ const AdminPayments = () => {
   const fmt = (v) => `$${(v || 0).toFixed(2)}`;
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <AdminSidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Payments</h1>
@@ -107,6 +108,7 @@ const AdminPayments = () => {
           </div>
           {/* Summary chips */}
           <div className="flex items-center gap-3">
+            <TopBarActions />
             <div className="text-center px-4 py-2 bg-[#22be70]/10 rounded-xl">
               <p className="text-[18px] font-bold text-[#22be70]">{fmt(revenue)}</p>
               <p className="text-[11px] text-[#22be70]/80">Collected</p>

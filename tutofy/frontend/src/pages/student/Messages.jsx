@@ -1,9 +1,10 @@
 ﻿﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { messagingAPI } from '../../api/messaging';
 import { enrollmentsAPI } from '../../api/enrollments';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const ACCENT_COLORS = [
   { bg: 'bg-primary/20', initial: 'text-primary' },
@@ -19,6 +20,7 @@ const initials = (name) =>
 const Messages = () => {
   const { isAuthenticated, role, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
   const searchWrapRef = useRef(null);
 
@@ -50,7 +52,23 @@ const Messages = () => {
   // Load conversations
   useEffect(() => {
     messagingAPI.getConversations()
-      .then((data) => setConversations(data?.conversations || []))
+      .then((data) => {
+        const convs = data?.conversations || [];
+        setConversations(convs);
+        // Auto-open chat if ?with= param is present
+        const withId = searchParams.get('with');
+        const withName = searchParams.get('name') || '';
+        if (withId) {
+          const existing = convs.find((c) => c.other_user_id === withId);
+          setSelectedConv(existing || {
+            other_user_id: withId,
+            other_user_name: withName,
+            other_user_role: 'tutor',
+            last_message: '',
+            unread_count: 0,
+          });
+        }
+      })
       .catch(() => setConversations([]))
       .finally(() => setLoading(false));
   }, []);
@@ -180,7 +198,7 @@ const Messages = () => {
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -198,6 +216,7 @@ const Messages = () => {
             )}
           </div>
           <div className="flex items-center gap-3">
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-primary text-[12px] font-semibold">
                 {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
@@ -462,7 +481,7 @@ const Messages = () => {
                         <span className="text-[10px] font-bold text-teal bg-teal/10 px-2 py-0.5 rounded-full">Student</span>
                       )}
                     </div>
-                    <p className="text-[#22be70] text-[13px]">â— Online</p>
+                    <p className="text-[#22be70] text-[13px] flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22be70] inline-block" />Online</p>
                   </div>
                 </div>
               </div>
@@ -507,7 +526,7 @@ const Messages = () => {
                     placeholder="Type a message..."
                     className="flex-1 bg-transparent text-[14px] text-body placeholder-muted outline-none"
                   />
-                  <span className="text-muted text-[14px] ml-2 cursor-pointer">ðŸ˜Š</span>
+                  
                 </div>
                 <button
                   onClick={handleSend}

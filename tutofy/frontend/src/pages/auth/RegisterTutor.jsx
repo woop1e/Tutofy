@@ -55,8 +55,10 @@ const RegisterTutor = () => {
   const [apiErr,      setApiErr]      = useState('');
   const [done,        setDone]        = useState(false);
   const [verifyEmail, setVerifyEmail] = useState('');
+  const [customSubject, setCustomSubject] = useState('');
 
-  const fileRef    = useRef(null);
+  const fileRef       = useRef(null);
+  const customInputRef = useRef(null);
   const { login, user } = useAuth();
   const navigate   = useNavigate();
 
@@ -64,6 +66,17 @@ const RegisterTutor = () => {
     setSubjects(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
     setStepErr('');
   };
+
+  const addCustomSubject = () => {
+    const val = customSubject.trim();
+    if (!val || subjects.includes(val)) { setCustomSubject(''); return; }
+    setSubjects(s => [...s, val]);
+    setCustomSubject('');
+    setStepErr('');
+    customInputRef.current?.focus();
+  };
+
+  const removeSubject = (id) => setSubjects(s => s.filter(x => x !== id));
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -83,8 +96,10 @@ const RegisterTutor = () => {
       else if (data.bio.trim().length < 20) e.bio        = 'At least 20 characters';
       if (!data.experience)                 e.experience = 'Years of experience is required';
       else if (isNaN(data.experience) || Number(data.experience) < 0) e.experience = 'Enter a valid number';
+      else if (Number(data.experience) > 60) e.experience = 'Cannot exceed 60 years';
       if (!data.hourlyRate)                 e.hourlyRate = 'Hourly rate is required';
       else if (isNaN(data.hourlyRate) || Number(data.hourlyRate) <= 0) e.hourlyRate = 'Enter a valid rate';
+      else if (Number(data.hourlyRate) > 100000) e.hourlyRate = 'Cannot exceed 100,000 KZT';
     }
     if (step === 2) {
       if (!data.name.trim())               e.name            = 'Full name is required';
@@ -232,30 +247,79 @@ const RegisterTutor = () => {
 
     /* STEP 0 — Subjects grid */
     if (step === 0) return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-        {SUBJECTS.map(s => {
-          const sel = subjects.includes(s.id);
-          return (
-            <button key={s.id} onClick={() => toggleSubject(s.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '12px 14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
-                border: sel ? '2px solid var(--accent)' : '2px solid var(--border)',
-                background: sel ? 'var(--accent-soft)' : 'var(--surface)',
-                transition: 'all var(--t-fast)',
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+          {SUBJECTS.map(s => {
+            const sel = subjects.includes(s.id);
+            return (
+              <button key={s.id} onClick={() => toggleSubject(s.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '12px 14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                  border: sel ? '2px solid var(--accent)' : '2px solid var(--border)',
+                  background: sel ? 'var(--accent-soft)' : 'var(--surface)',
+                  transition: 'all var(--t-fast)',
+                }}>
+                <span style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700, letterSpacing: '-0.02em',
+                  background: sel ? 'var(--accent)' : 'var(--surface-hover)',
+                  color: sel ? '#fff' : 'var(--muted)',
+                  transition: 'background var(--t-fast), color var(--t-fast)',
+                }}>{s.abbr}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: sel ? 'var(--accent)' : 'var(--text)' }}>{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Custom subject input */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            ref={customInputRef}
+            className="form-input"
+            value={customSubject}
+            onChange={e => setCustomSubject(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomSubject(); } }}
+            placeholder="Add your own subject…"
+            style={{ flex: 1 }}
+          />
+          <button
+            type="button"
+            onClick={addCustomSubject}
+            disabled={!customSubject.trim()}
+            style={{
+              padding: '0 18px', borderRadius: 12, border: 'none',
+              background: customSubject.trim() ? 'var(--accent)' : 'var(--border)',
+              color: customSubject.trim() ? '#fff' : 'var(--muted)',
+              fontSize: 13, fontWeight: 700, cursor: customSubject.trim() ? 'pointer' : 'default',
+              transition: 'all var(--t-fast)', flexShrink: 0,
+            }}
+          >
+            + Add
+          </button>
+        </div>
+
+        {/* Selected custom subjects as removable chips */}
+        {subjects.filter(s => !SUBJECTS.find(x => x.id === s)).length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {subjects.filter(s => !SUBJECTS.find(x => x.id === s)).map(s => (
+              <span key={s} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
+                border: '1.5px solid var(--accent)', borderRadius: 99,
+                padding: '4px 12px 4px 14px', fontSize: 13, fontWeight: 600,
               }}>
-              <span style={{
-                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 700, letterSpacing: '-0.02em',
-                background: sel ? 'var(--accent)' : 'var(--surface-hover)',
-                color: sel ? '#fff' : 'var(--muted)',
-                transition: 'background var(--t-fast), color var(--t-fast)',
-              }}>{s.abbr}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: sel ? 'var(--accent)' : 'var(--text)' }}>{s.label}</span>
-            </button>
-          );
-        })}
+                {s}
+                <button type="button" onClick={() => removeSubject(s)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', padding: '0 2px', fontWeight: 700, fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center' }}>
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     );
 
@@ -269,14 +333,16 @@ const RegisterTutor = () => {
         )}
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>About you</label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>
+            About you <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
           <textarea
             className="form-input"
             name="bio"
             value={form.bio}
             placeholder="Tell students about your background and teaching style… (min. 20 characters)"
             rows={4}
-            style={{ resize: 'none' }}
+            style={{ resize: 'none', borderColor: touched.bio && errors.bio ? 'var(--danger)' : undefined }}
             onChange={handleChange}
             onBlur={() => handleBlur('bio')}
           />
@@ -285,7 +351,9 @@ const RegisterTutor = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Years of experience</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>
+              Years of experience <span style={{ color: 'var(--danger)' }}>*</span>
+            </label>
             <input
               className="form-input"
               type="number"
@@ -293,13 +361,17 @@ const RegisterTutor = () => {
               value={form.experience}
               placeholder="e.g. 5"
               min="0"
+              max="60"
+              style={{ borderColor: touched.experience && errors.experience ? 'var(--danger)' : undefined }}
               onChange={handleChange}
               onBlur={() => handleBlur('experience')}
             />
             {touched.experience && errors.experience && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{errors.experience}</p>}
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Hourly rate (KZT)</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>
+              Hourly rate (KZT) <span style={{ color: 'var(--danger)' }}>*</span>
+            </label>
             <input
               className="form-input"
               type="number"
@@ -307,6 +379,8 @@ const RegisterTutor = () => {
               value={form.hourlyRate}
               placeholder="e.g. 5000"
               min="1"
+              max="100000"
+              style={{ borderColor: touched.hourlyRate && errors.hourlyRate ? 'var(--danger)' : undefined }}
               onChange={handleChange}
               onBlur={() => handleBlur('hourlyRate')}
             />
@@ -326,12 +400,15 @@ const RegisterTutor = () => {
         )}
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Full name</label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>
+            Full name <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
           <input
             className="form-input"
             name="name"
             value={form.name}
             placeholder="Jane Smith"
+            style={{ borderColor: touched.name && errors.name ? 'var(--danger)' : undefined }}
             onChange={handleChange}
             onBlur={() => handleBlur('name')}
           />
@@ -339,13 +416,16 @@ const RegisterTutor = () => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Email</label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>
+            Email <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
           <input
             className="form-input"
             type="email"
             name="email"
             value={form.email}
             placeholder="you@example.com"
+            style={{ borderColor: touched.email && errors.email ? 'var(--danger)' : undefined }}
             onChange={handleChange}
             onBlur={() => handleBlur('email')}
           />
@@ -353,13 +433,16 @@ const RegisterTutor = () => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Password</label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>
+            Password <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
           <input
             className="form-input"
             type="password"
             name="password"
             value={form.password}
             placeholder="At least 8 characters"
+            style={{ borderColor: touched.password && errors.password ? 'var(--danger)' : undefined }}
             onChange={handleChange}
             onBlur={() => handleBlur('password')}
           />
@@ -377,13 +460,16 @@ const RegisterTutor = () => {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>Confirm password</label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 7 }}>
+            Confirm password <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
           <input
             className="form-input"
             type="password"
             name="confirmPassword"
             value={form.confirmPassword}
             placeholder="Repeat your password"
+            style={{ borderColor: touched.confirmPassword && errors.confirmPassword ? 'var(--danger)' : undefined }}
             onChange={handleChange}
             onBlur={() => handleBlur('confirmPassword')}
           />

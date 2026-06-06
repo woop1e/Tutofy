@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { usersAPI } from '../../api/users';
 import { coursesAPI } from '../../api/courses';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const COLORS = ['#0d9488', '#935bf5', '#00beb7', '#ff8032', '#22c55e', '#ef4444'];
 function avatarColor(id) { return COLORS[(id?.charCodeAt(0) || 0) % COLORS.length]; }
@@ -74,19 +75,20 @@ const TutorPublicProfile = () => {
   const minPrice = coursePrices.length > 0 ? Math.min(...coursePrices) : 0;
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <div className="bg-white h-[68px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)] flex items-center px-7 flex-shrink-0">
           <div>
             <p className="text-[#0c0d12] text-[20px] font-bold">Public Profile</p>
             <p className="text-[#6b6f7d] text-[13px]">This is how students see you in the marketplace</p>
           </div>
+          <TopBarActions />
         </div>
 
-        <div className="flex-1 p-6 flex flex-col items-center">
+        <div className="flex-1 p-6overflow-y-auto  flex flex-col items-center">
           <div className="w-full max-w-[780px]">
 
             {loading ? (

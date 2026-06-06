@@ -36,6 +36,28 @@ func userIDFromToken(r *http.Request) string {
 	return claims.UserID
 }
 
+func userNameFromToken(r *http.Request) string {
+	auth := r.Header.Get("Authorization")
+	if !strings.HasPrefix(auth, "Bearer ") {
+		return ""
+	}
+	parts := strings.Split(auth[7:], ".")
+	if len(parts) != 3 {
+		return ""
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return ""
+	}
+	return claims.Name
+}
+
 func userIDFromQueryToken(token string) string {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { quizzesAPI } from '../../api/quizzes';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -75,9 +76,9 @@ const QuizResults = () => {
   const passCount = attempts.filter(a => (a.percentage || 0) >= 70).length;
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <TutorSidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] h-[60px] flex items-center px-6 gap-4 flex-shrink-0">
@@ -95,13 +96,16 @@ const QuizResults = () => {
             </h1>
             <p className="text-[#6b6f7d] text-[11px]">Student submissions</p>
           </div>
-          <Link to={`/tutor/courses/${courseId}/quizzes/${quizId}/edit`}
-            className="ml-auto flex items-center gap-1.5 text-[13px] font-semibold text-[#0d9488] px-3 py-1.5 rounded-[8px] hover:bg-[rgba(13,148,136,0.08)] transition-colors">
+          <div className="ml-auto flex items-center gap-2">
+            <TopBarActions />
+            <Link to={`/tutor/courses/${courseId}/quizzes/${quizId}/edit`}
+              className="flex items-center gap-1.5 text-[13px] font-semibold text-[#0d9488] px-3 py-1.5 rounded-[8px] hover:bg-[rgba(13,148,136,0.08)] transition-colors">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
               <path d="M11 2l3 3-8 8H3v-3l8-8z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             Edit quiz
           </Link>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">

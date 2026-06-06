@@ -30,4 +30,5 @@ type Lesson struct {
 	Price           float64 // price for individual lessons; 0 for course lessons
 	PaymentDeadline time.Time
 	CalendarEventID string
+	StudentRating   int32 // 0 = not rated, 1-5 = star rating from student
 }

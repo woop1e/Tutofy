@@ -53,7 +53,7 @@ type AttendanceEntry struct {
 type LessonService interface {
 	CreateLesson(ctx context.Context, callerID, callerRole, courseID, title, videoLink, description string, scheduledAt time.Time, durationMinutes int32) (*model.Lesson, error)
 	// BookIndividualLesson creates a 1-on-1 lesson request (status=PENDING_CONFIRMATION). studentID is stored so tutors can mark attendance later.
-	BookIndividualLesson(ctx context.Context, tutorID, studentID, title string, scheduledAt time.Time, durationMinutes int32, price float64) (*model.Lesson, error)
+	BookIndividualLesson(ctx context.Context, tutorID, studentID, title, studentName string, scheduledAt time.Time, durationMinutes int32, price float64) (*model.Lesson, error)
 	// ConfirmLesson lets the tutor accept a PENDING_CONFIRMATION lesson → moves it to AWAITING_PAYMENT.
 	ConfirmLesson(ctx context.Context, callerID, callerRole, lessonID string) (*model.Lesson, error)
 	// DeclineLesson lets the tutor reject a PENDING_CONFIRMATION lesson → moves it to CANCELLED.
@@ -76,6 +76,7 @@ type LessonService interface {
 	ExpireOverduePayments(ctx context.Context) (int64, error)
 	GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error)
 	GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error)
+	RateLesson(ctx context.Context, lessonID, studentID string, rating int32) (*model.Lesson, error)
 }
 
 type lessonService struct {
@@ -141,7 +142,7 @@ func (s *lessonService) CreateLesson(
 
 func (s *lessonService) BookIndividualLesson(
 	ctx context.Context,
-	tutorID, studentID, title string,
+	tutorID, studentID, title, studentName string,
 	scheduledAt time.Time,
 	durationMinutes int32,
 	price float64,
@@ -152,6 +153,7 @@ func (s *lessonService) BookIndividualLesson(
 		TutorID:         tutorID,
 		StudentID:       studentID,
 		Title:           title,
+		Description:     studentName, // store student name so tutor can display it
 		ScheduledAt:     scheduledAt,
 		DurationMinutes: durationMinutes,
 		VideoLink:       "",
@@ -538,6 +540,13 @@ func (s *lessonService) GetTutorIndividualLessons(ctx context.Context, tutorID s
 
 func (s *lessonService) GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error) {
 	return s.repo.GetCourseDescriptions(ctx, courseID)
+}
+
+func (s *lessonService) RateLesson(ctx context.Context, lessonID, studentID string, rating int32) (*model.Lesson, error) {
+	if rating < 1 || rating > 5 {
+		return nil, errors.New("rating must be 1-5")
+	}
+	return s.repo.RateLesson(ctx, lessonID, studentID, rating)
 }
 
 func (s *lessonService) GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error) {

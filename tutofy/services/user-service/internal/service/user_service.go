@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"user-service/internal/model"
@@ -17,16 +18,22 @@ var ErrForbidden = errors.New("forbidden")
 type UserService interface {
 	CreateUser(ctx context.Context, id, email, name, role string) error
 	GetUser(ctx context.Context, id string) (*model.User, error)
-	UpdateUser(ctx context.Context, callerID, callerRole, targetID, name, email string) (*model.User, error)
+	UpdateUser(ctx context.Context, callerID, callerRole, targetID, name, email, photoURL string) (*model.User, error)
 	GetAllUsers(ctx context.Context, callerRole string, limit, offset int32) ([]*model.User, error)
 	DeleteUser(ctx context.Context, callerRole, targetID string) error
-	UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID string, in model.TutorProfile) (*model.TutorProfile, error)
+	UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID string, in model.TutorProfile, keepStatus bool) (*model.TutorProfile, error)
 	GetTutorProfile(ctx context.Context, tutorID string) (*model.TutorProfile, error)
 	SearchTutors(ctx context.Context, subject, location string, minAge, maxAge, limit, offset int32) ([]*model.TutorProfile, error)
 	ApproveTutor(ctx context.Context, callerRole, tutorID string) error
 	RejectTutor(ctx context.Context, callerRole, tutorID string) error
 	GetPendingTutors(ctx context.Context, callerRole string) ([]*model.TutorProfile, error)
 	GetTutorsByStatus(ctx context.Context, callerRole, statusFilter string) ([]*model.TutorProfile, error)
+	InviteParent(ctx context.Context, studentID, parentEmail string) (*repository.ParentLink, error)
+	GetInviteInfo(ctx context.Context, token string) (*repository.ParentLink, error)
+	AcceptParentInvite(ctx context.Context, token, parentID string) (*repository.ParentLink, error)
+	GetParentLinks(ctx context.Context, studentID string) ([]*repository.ParentLink, error)
+	GetChildrenLinks(ctx context.Context, parentID string) ([]*repository.ParentLink, error)
+	RemoveParentLink(ctx context.Context, callerID, linkID string) error
 }
 
 type userService struct {
@@ -63,11 +70,11 @@ func (s *userService) GetUser(ctx context.Context, id string) (*model.User, erro
 	return u, nil
 }
 
-func (s *userService) UpdateUser(ctx context.Context, callerID, callerRole, targetID, name, email string) (*model.User, error) {
+func (s *userService) UpdateUser(ctx context.Context, callerID, callerRole, targetID, name, email, photoURL string) (*model.User, error) {
 	if callerRole != "admin" && callerID != targetID {
 		return nil, ErrForbidden
 	}
-	u, err := s.repo.UpdateUser(ctx, targetID, name, email)
+	u, err := s.repo.UpdateUser(ctx, targetID, name, email, photoURL)
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "user:"+targetID).Err()
 	}
@@ -92,7 +99,7 @@ func (s *userService) DeleteUser(ctx context.Context, callerRole, targetID strin
 	return err
 }
 
-func (s *userService) UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID string, in model.TutorProfile) (*model.TutorProfile, error) {
+func (s *userService) UpdateTutorProfile(ctx context.Context, callerID, callerRole, tutorID string, in model.TutorProfile, keepStatus bool) (*model.TutorProfile, error) {
 	if callerRole != "admin" && callerID != tutorID {
 		return nil, ErrForbidden
 	}
@@ -103,7 +110,9 @@ func (s *userService) UpdateTutorProfile(ctx context.Context, callerID, callerRo
 	in.Certificates = string(certsJSON)
 	in.AvailableDays = string(daysJSON)
 
-	p, err := s.repo.UpdateTutorProfile(ctx, tutorID, in, callerRole != "admin")
+	// Reset status to 'pending' only for full profile updates, not for availability-only saves.
+	resetStatus := callerRole != "admin" && !keepStatus
+	p, err := s.repo.UpdateTutorProfile(ctx, tutorID, in, resetStatus)
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "tutor:"+tutorID).Err()
 	}
@@ -172,6 +181,37 @@ func (s *userService) GetTutorsByStatus(ctx context.Context, callerRole, statusF
 		return nil, ErrForbidden
 	}
 	return s.repo.GetTutorsByStatus(ctx, statusFilter)
+}
+
+// ── Parent link service methods ───────────────────────────────────────────────
+
+func (s *userService) InviteParent(ctx context.Context, studentID, parentEmail string) (*repository.ParentLink, error) {
+	id    := fmt.Sprintf("pl_%d", time.Now().UnixNano())
+	token := fmt.Sprintf("tok_%d_%s", time.Now().UnixNano(), studentID)
+	return s.repo.CreateParentInvite(ctx, id, studentID, parentEmail, token)
+}
+
+func (s *userService) GetInviteInfo(ctx context.Context, token string) (*repository.ParentLink, error) {
+	return s.repo.GetParentLinkByToken(ctx, token)
+}
+
+func (s *userService) AcceptParentInvite(ctx context.Context, token, parentID string) (*repository.ParentLink, error) {
+	if err := s.repo.AcceptParentInvite(ctx, token, parentID); err != nil {
+		return nil, err
+	}
+	return s.repo.GetParentLinkByToken(ctx, token)
+}
+
+func (s *userService) GetParentLinks(ctx context.Context, studentID string) ([]*repository.ParentLink, error) {
+	return s.repo.GetParentLinks(ctx, studentID)
+}
+
+func (s *userService) GetChildrenLinks(ctx context.Context, parentID string) ([]*repository.ParentLink, error) {
+	return s.repo.GetChildrenLinks(ctx, parentID)
+}
+
+func (s *userService) RemoveParentLink(ctx context.Context, callerID, linkID string) error {
+	return s.repo.RemoveParentLink(ctx, linkID)
 }
 
 // mustParseStringSlice parses a JSON string slice or returns the raw value as a slice if it's already parsed.

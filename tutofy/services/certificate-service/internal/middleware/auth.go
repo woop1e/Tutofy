@@ -12,9 +12,8 @@ import (
 )
 
 var publicMethods = map[string]bool{
-	"/certificate.CertificateService/IssueCertificate":    true,
-	"/certificate.CertificateService/GetUserCertificates": true,
-	"/certificate.CertificateService/GetCertificate":      true,
+	// GetCertificate is intentionally public for verification (e.g. by employers)
+	"/certificate.CertificateService/GetCertificate": true,
 }
 
 func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterceptor {

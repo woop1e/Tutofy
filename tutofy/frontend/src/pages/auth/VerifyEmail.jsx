@@ -26,10 +26,17 @@ const VerifyEmail = () => {
           catch { return null; }
         })();
 
+        // Decode role directly from JWT — don't rely on localStorage
+        let tokenRole = 'student';
+        try {
+          const decoded = JSON.parse(atob(res.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          tokenRole = decoded.role || 'student';
+        } catch {}
+
         login(res.token, pending?.name || '');
 
         // If tutor registration — apply saved profile data.
-        if (pending?.role === 'tutor' && res.token) {
+        if ((pending?.role === 'tutor' || tokenRole === 'tutor') && res.token) {
           try {
             const decoded = JSON.parse(atob(res.token.split('.')[1]));
             const userId = decoded.user_id || decoded.id || decoded.sub;
@@ -52,9 +59,26 @@ const VerifyEmail = () => {
 
         setStatus('success');
 
-        setTimeout(() => {
-          navigate(pending?.role === 'tutor' ? '/tutor/dashboard' : '/student/dashboard', { replace: true });
-        }, 2000);
+        // Always show the onboarding tour on first dashboard visit after verification.
+        if (pending?.role === 'tutor' || tokenRole === 'tutor') {
+          localStorage.removeItem('tutofy_tutor_tour_seen');
+          localStorage.removeItem('tutofy_tutor_tour_done');
+        } else {
+          localStorage.removeItem('tutofy_student_tour_seen');
+          localStorage.removeItem('tutofy_student_tour_done');
+        }
+
+        const parentToken = localStorage.getItem('pendingParentInvite');
+        if (parentToken) {
+          localStorage.removeItem('pendingParentInvite');
+          setTimeout(() => navigate(`/join-parent?token=${parentToken}`, { replace: true }), 1500);
+        } else {
+          const role = pending?.role || tokenRole;
+          const dest = role === 'tutor' ? '/tutor/dashboard'
+                     : role === 'parent' ? '/parent/dashboard'
+                     : '/student/dashboard';
+          setTimeout(() => navigate(dest, { replace: true }), 2000);
+        }
       })
       .catch((err) => {
         setStatus('error');

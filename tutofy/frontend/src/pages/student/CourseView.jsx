@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { lessonsAPI } from '../../api/lessons';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 import { assignmentsAPI } from '../../api/assignments';
 import { coursesAPI } from '../../api/courses';
 import { submissionsAPI } from '../../api/submissions';
@@ -363,7 +363,7 @@ const CourseView = () => {
   };
 
   if (loading) return (
-    <div className="flex min-h-screen bg-[#f3f4f7]">
+    <div className="flex h-screen bg-[#f3f4f7]">
       <StudentSidebar />
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
@@ -372,7 +372,7 @@ const CourseView = () => {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -389,7 +389,7 @@ const CourseView = () => {
             <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{course?.title || 'Course'}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">{initials}</span>
             </div>
@@ -857,9 +857,17 @@ const CourseView = () => {
               <h2 className="text-[#0c0d12] text-[16px] font-bold">Reviews</h2>
             </div>
 
-            {/* Write a review form */}
+            {/* Write a review form — only after 100% completion */}
             <div className="px-6 py-5 border-b border-[#f0f0f5]">
-              {reviewSubmitted ? (
+              {completionPct < 100 ? (
+                <div className="flex items-center gap-3 py-2">
+                  <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 flex-shrink-0 text-[#b0b5c4]">
+                    <circle cx="10" cy="10" r="8.5" stroke="currentColor" strokeWidth="1.3"/>
+                    <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                  </svg>
+                  <p className="text-[#6b6f7d] text-[13px]">Complete the course to leave a review ({Math.round(completionPct)}% done)</p>
+                </div>
+              ) : reviewSubmitted ? (
                 <div className="flex items-start gap-3 bg-[#edfbf4] rounded-[12px] p-4">
                   <div className="w-5 h-5 rounded-full bg-[#22be70] flex items-center justify-center flex-shrink-0 mt-0.5">
                     <svg viewBox="0 0 10 10" fill="none" className="w-3 h-3">

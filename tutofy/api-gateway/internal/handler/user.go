@@ -87,6 +87,8 @@ func (h *UserHandler) UpdateTutorProfile(w http.ResponseWriter, r *http.Request)
 		AvailableTimeStart string   `json:"available_time_start"`
 		AvailableTimeEnd   string   `json:"available_time_end"`
 		Timezone           string   `json:"timezone"`
+		// When true the review status is NOT reset (used for availability-only saves).
+		KeepStatus         bool     `json:"keep_status"`
 	}
 	if err := decode(r, &body); err != nil {
 		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
@@ -112,6 +114,7 @@ func (h *UserHandler) UpdateTutorProfile(w http.ResponseWriter, r *http.Request)
 		AvailableTimeStart: body.AvailableTimeStart,
 		AvailableTimeEnd:   body.AvailableTimeEnd,
 		Timezone:           body.Timezone,
+		KeepStatus:         body.KeepStatus,
 	}
 	resp, err := h.client.UpdateTutorProfile(tokenCtx(r), req)
 	if err != nil {

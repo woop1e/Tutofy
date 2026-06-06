@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { lessonsAPI } from '../../api/lessons';
 import { messagingAPI } from '../../api/messaging';
@@ -125,10 +125,10 @@ const TutorStudents = () => {
   }, [allStudents, selectedCourse, search]);
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
         <div className="bg-white h-[68px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)] flex items-center px-7 justify-between flex-shrink-0">
           <div>
@@ -136,7 +136,7 @@ const TutorStudents = () => {
             <p className="text-muted text-[13px]">Course enrollments & private lessons</p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">
                 {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
@@ -145,7 +145,7 @@ const TutorStudents = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 overflow-y-auto">
           {/* Filters */}
           <div className="flex items-center gap-4 mb-6">
             <div className="flex items-center bg-white border border-light-muted rounded-[10px] px-3 h-[40px] w-[300px] shadow-sm">

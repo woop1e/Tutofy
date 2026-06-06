@@ -9,6 +9,7 @@ import { submissionsAPI } from '../../api/submissions';
 import { mediaAPI } from '../../api/media';
 import { progressAPI } from '../../api/progress';
 import { quizzesAPI } from '../../api/quizzes';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 function getVideoEmbed(url) {
   if (!url) return null;
@@ -247,7 +248,7 @@ const LessonView = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f3f4f7]">
+      <div className="flex h-screen bg-[#f3f4f7]">
         <StudentSidebar />
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
@@ -257,7 +258,7 @@ const LessonView = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -274,6 +275,7 @@ const LessonView = () => {
             <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{course?.title || `Course`}</p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
+            <TopBarActions />
             <div className="hidden sm:flex items-center gap-2 text-[12px] text-[#6b6f7d]">
               <div className="w-28 bg-[#f0f0f5] rounded-full h-[5px]">
                 <div className="h-[5px] rounded-full bg-[#0d9488]" style={{ width: `${overallPct}%` }} />

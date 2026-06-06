@@ -17,8 +17,6 @@ const LANGUAGE_OPTIONS = [
   'English', 'Russian', 'Kazakh', 'German', 'French', 'Spanish', 'Chinese', 'Arabic', 'Turkish',
 ];
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
 const ID_DOC_TYPES = [
   { value: 'passport',       label: 'Passport' },
   { value: 'id_card',        label: 'National ID Card (Удостоверение)' },
@@ -219,12 +217,13 @@ const TutorProfileSetup = () => {
 
   const [subjects,  setSubjects]  = useState([]);
   const [languages, setLanguages] = useState([]);
+  // Schedule data is managed in the Schedule tab — preserved here but not edited
+  const [schedulePassthrough, setSchedulePassthrough] = useState(null);
 
   const [form, setForm] = useState({
     name: '', phone: '', location: '', photo_url: '', bio: '',
     student_level: '', lesson_type: '',
     experience_years: '', hourly_price: '', education: '', certificates: '',
-    available_days: [], available_time_start: '09:00', available_time_end: '18:00', timezone: 'UTC+5',
   });
 
   useEffect(() => {
@@ -273,22 +272,25 @@ const TutorProfileSetup = () => {
           catch { return null; }
         })();
 
+        // Preserve schedule fields as-is — not edited here, managed in Schedule tab
+        setSchedulePassthrough({
+          available_days:       data.available_days       || [],
+          available_time_start: data.available_time_start || '',
+          available_time_end:   data.available_time_end   || '',
+          timezone:             data.timezone             || 'UTC+5',
+        });
         setForm({
-          name:                 data.name || user?.name || '',
-          phone:                data.phone || '',
-          location:             data.location || '',
-          photo_url:            data.photo_url || '',
-          bio:                  data.bio || draft?.bio || '',
-          student_level:        data.student_level || '',
-          lesson_type:          data.lesson_type || '',
-          experience_years:     data.experience_years ? String(data.experience_years) : (draft?.experience ? String(draft.experience) : ''),
-          hourly_price:         data.hourly_price ? String(data.hourly_price) : (draft?.hourlyRate ? String(draft.hourlyRate) : ''),
-          education:            data.education || '',
-          certificates:         textCerts.join(', '),
-          available_days:       data.available_days || [],
-          available_time_start: data.available_time_start || '09:00',
-          available_time_end:   data.available_time_end || '18:00',
-          timezone:             data.timezone || 'UTC+5',
+          name:             data.name || user?.name || '',
+          phone:            data.phone || '',
+          location:         data.location || '',
+          photo_url:        data.photo_url || '',
+          bio:              data.bio || draft?.bio || '',
+          student_level:    data.student_level || '',
+          lesson_type:      data.lesson_type || '',
+          experience_years: data.experience_years ? String(data.experience_years) : (draft?.experience ? String(draft.experience) : ''),
+          hourly_price:     data.hourly_price ? String(data.hourly_price) : (draft?.hourlyRate ? String(draft.hourlyRate) : ''),
+          education:        data.education || '',
+          certificates:     textCerts.join(', '),
         });
         if (!subs.length && draft?.subjects?.length) setSubjects(draft.subjects);
       })
@@ -316,15 +318,6 @@ const TutorProfileSetup = () => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
     if (fieldErrors[name]) setFieldErrors(f => ({ ...f, [name]: '' }));
-  };
-
-  const toggleDay = day => {
-    setForm(f => ({
-      ...f,
-      available_days: f.available_days.includes(day)
-        ? f.available_days.filter(d => d !== day)
-        : [...f.available_days, day],
-    }));
   };
 
   const handlePhotoUpload = async file => {
@@ -423,10 +416,11 @@ const TutorProfileSetup = () => {
         lesson_type:          form.lesson_type,
         hourly_price:         parseInt(form.hourly_price) || 0,
         education:            form.education,
-        available_days:       form.available_days,
-        available_time_start: form.available_time_start,
-        available_time_end:   form.available_time_end,
-        timezone:             form.timezone,
+        // Pass through existing schedule data unchanged — availability is managed in the Schedule tab
+        available_days:       schedulePassthrough?.available_days       || [],
+        available_time_start: schedulePassthrough?.available_time_start || '',
+        available_time_end:   schedulePassthrough?.available_time_end   || '',
+        timezone:             schedulePassthrough?.timezone             || '',
       });
       localStorage.removeItem('pendingVerify');
       setSaved(true);
@@ -466,12 +460,29 @@ const TutorProfileSetup = () => {
             <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: 0 }}>My Profile</h1>
             <p style={{ fontSize: 13, color: 'var(--muted)', margin: '4px 0 0' }}>Complete your profile to appear in the marketplace</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 12, background: isFirstTime ? 'rgba(13,148,136,0.08)' : statusBg, border: `1px solid ${isFirstTime ? 'rgba(13,148,136,0.2)' : statusBorder}`, fontSize: 13, fontWeight: 600, color: isFirstTime ? 'var(--accent)' : statusColor }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: isFirstTime ? 'var(--accent)' : statusColor }} />
-            {isFirstTime ? 'Profile not submitted yet'
-              : profileStatus === 'approved' ? 'Approved - visible in marketplace'
-              : profileStatus === 'rejected' ? 'Rejected - update and resubmit'
-              : 'Pending admin review'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => {
+                localStorage.removeItem('tutofy_tutor_tour_seen');
+                localStorage.removeItem('tutofy_tutor_tour_done');
+                navigate('/tutor/dashboard');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 10, border: '1px solid var(--border)', background: 'white', fontSize: 12, color: 'var(--muted)', cursor: 'pointer', fontWeight: 500 }}
+              title="Restart the platform onboarding tour"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width={13} height={13}>
+                <path d="M2 8a6 6 0 1 0 1-3.3" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 4.5V8h3.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Restart Tour
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 12, background: isFirstTime ? 'rgba(13,148,136,0.08)' : statusBg, border: `1px solid ${isFirstTime ? 'rgba(13,148,136,0.2)' : statusBorder}`, fontSize: 13, fontWeight: 600, color: isFirstTime ? 'var(--accent)' : statusColor }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: isFirstTime ? 'var(--accent)' : statusColor }} />
+              {isFirstTime ? 'Profile not submitted yet'
+                : profileStatus === 'approved' ? 'Profile Approved'
+                : profileStatus === 'rejected' ? 'Rejected - update and resubmit'
+                : 'Pending admin review'}
+            </div>
           </div>
         </div>
 
@@ -505,7 +516,7 @@ const TutorProfileSetup = () => {
                   ))}
                 </ol>
                 <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--muted)' }}>
-                  After submission an admin will review your profile. Once approved your profile goes live in the marketplace.
+                  After submission an admin will review your profile. Once approved, set your availability in the Schedule tab to appear in the marketplace.
                 </p>
               </div>
             )}
@@ -539,8 +550,8 @@ const TutorProfileSetup = () => {
                   <circle cx="10" cy="10" r="8"/><path d="M6.5 10.5l2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#16a34a' }}>Your profile is live in the marketplace</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#16a34a', opacity: 0.8 }}>Students can find and contact you.</p>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#16a34a' }}>Profile approved</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#16a34a', opacity: 0.8 }}>Now set your availability in the Schedule tab to become visible in the marketplace.</p>
                 </div>
               </div>
             )}
@@ -683,47 +694,6 @@ const TutorProfileSetup = () => {
                       <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--muted)', fontWeight: 500, pointerEvents: 'none' }}>KZT</span>
                     </div>
                     {fieldErrors.hourly_price && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--danger)' }}>{fieldErrors.hourly_price}</p>}
-                  </Field>
-                </div>
-              </Section>
-
-              {/* Availability */}
-              <Section title="Availability">
-                <Field label="Available Days" hint="Select the days you are available for lessons">
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {DAYS.map(day => {
-                      const sel = form.available_days.includes(day);
-                      return (
-                        <button key={day} type="button" onClick={() => toggleDay(day)}
-                          style={{
-                            padding: '7px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                            border: `1.5px solid ${sel ? 'var(--accent)' : 'var(--border)'}`,
-                            background: sel ? 'var(--accent-soft)' : 'white',
-                            color: sel ? 'var(--accent)' : 'var(--muted)',
-                            transition: 'all 120ms',
-                          }}>
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 0 }}>
-                  <Field label="Start Time" style={{ marginBottom: 0 }}>
-                    <input type="time" name="available_time_start" value={form.available_time_start} onChange={handleChange}
-                      style={getInputStyle(false)} />
-                  </Field>
-                  <Field label="End Time" style={{ marginBottom: 0 }}>
-                    <input type="time" name="available_time_end" value={form.available_time_end} onChange={handleChange}
-                      style={getInputStyle(false)} />
-                  </Field>
-                  <Field label="Timezone" style={{ marginBottom: 0 }}>
-                    <select name="timezone" value={form.timezone} onChange={handleChange} style={getInputStyle(false)}>
-                      {['UTC+5', 'UTC+6', 'UTC+3', 'UTC+0', 'UTC+1', 'UTC+2', 'UTC+4', 'UTC+7', 'UTC+8'].map(tz => (
-                        <option key={tz} value={tz}>{tz}</option>
-                      ))}
-                    </select>
                   </Field>
                 </div>
               </Section>
@@ -873,7 +843,7 @@ const TutorProfileSetup = () => {
                           Your Google account is linked. Meet links will be generated automatically when you confirm lesson bookings.
                         </p>
                         <a
-                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/google/connect?token=${localStorage.getItem('token') || ''}`}
+                          href={`${import.meta.env.VITE_API_BASE_URL ?? ''}/auth/google/connect?token=${localStorage.getItem('token') || ''}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
@@ -892,7 +862,7 @@ const TutorProfileSetup = () => {
                           Without it, you'll need to add a link manually.
                         </p>
                         <a
-                          href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/google/connect?token=${localStorage.getItem('token') || ''}`}
+                          href={`${import.meta.env.VITE_API_BASE_URL ?? ''}/auth/google/connect?token=${localStorage.getItem('token') || ''}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{

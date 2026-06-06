@@ -121,11 +121,16 @@ func (s *mediaService) GetDownloadURL(ctx context.Context, callerID, callerRole,
 	}
 
 	// Tutors, admins, and parents can always download.
-	// Students must be enrolled in the course the file belongs to.
+	// Students can download their own user documents without enrollment check,
+	// but must be enrolled in the course for assignment/course_material files.
 	switch callerRole {
 	case "tutor", "admin", "parent":
 		// allowed
 	case "student":
+		if f.FileType == model.FileTypeUserDocument && f.UploaderID == callerID {
+			// own profile/certificate file — allowed
+			break
+		}
 		enrolled, err := s.enrollment.IsEnrolled(ctx, callerID, f.CourseID)
 		if err != nil {
 			return "", "", err

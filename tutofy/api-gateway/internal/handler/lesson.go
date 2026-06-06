@@ -53,16 +53,11 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 		}
 		t = parsed
 	}
-	auth := r.Header.Get("Authorization")
-	lessonMD := metadata.Pairs(
-		"authorization", auth,
-		"x-description-bin", body.Description,
-	)
-	lessonCtx := metadata.NewOutgoingContext(r.Context(), lessonMD)
-	resp, err := h.client.CreateLesson(lessonCtx, &lessonpb.CreateLessonRequest{
+	resp, err := h.client.CreateLesson(tokenCtx(r), &lessonpb.CreateLessonRequest{
 		CourseId:        body.CourseId,
 		Title:           body.Title,
 		VideoLink:       body.VideoLink,
+		Description:     body.Description,
 		ScheduledAt:     timestamppb.New(t),
 		DurationMinutes: body.DurationMinutes,
 	})
@@ -78,7 +73,8 @@ func (h *LessonHandler) CreateLesson(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-			msg := fmt.Sprintf("New lesson scheduled: \"%s\" on %s", body.Title, t.Format("Jan 2, 2006 at 15:04"))
+			almatyTZ := time.FixedZone("UTC+5", 5*60*60)
+			msg := fmt.Sprintf("New lesson scheduled: \"%s\" on %s", body.Title, t.In(almatyTZ).Format("Jan 2, 2006 at 15:04 (UTC+5)"))
 			for _, enr := range enrResp.GetEnrollments() {
 				uid := enr.GetUserId()
 				if uid == "" {
@@ -198,9 +194,26 @@ func (h *LessonHandler) BookLesson(w http.ResponseWriter, r *http.Request) {
 		durationMinutes = 60
 	}
 
-	resp, err := h.client.BookIndividualLesson(tokenCtx(r), &lessonpb.BookIndividualLessonRequest{
+	// Extract student ID directly from JWT (lesson service's auth middleware may return
+	// empty user_id due to a protobuf version mismatch with the shared authpb).
+	studentID   := userIDFromToken(r)
+	studentName := userNameFromToken(r)
+	auth := r.Header.Get("Authorization")
+	bookCtx := metadata.NewOutgoingContext(r.Context(), metadata.New(map[string]string{
+		"authorization": auth,
+		"x-student-id":  studentID,
+	}))
+
+	// Title stores student name so tutor dashboard can display it without extra API calls.
+	// The original student-facing title is stored as a suffix after "|" separator.
+	title := studentName
+	if body.Title != "" {
+		title = studentName + "|" + body.Title
+	}
+
+	resp, err := h.client.BookIndividualLesson(bookCtx, &lessonpb.BookIndividualLessonRequest{
 		TutorId:         body.TutorId,
-		Title:           body.Title,
+		Title:           title,
 		ScheduledAt:     timestamppb.New(t),
 		DurationMinutes: durationMinutes,
 		Price:           body.Price,
@@ -213,7 +226,8 @@ func (h *LessonHandler) BookLesson(w http.ResponseWriter, r *http.Request) {
 	// Notify the tutor: new booking request awaits their confirmation.
 	if h.notifClient != nil {
 		go func() {
-			msg := fmt.Sprintf("New lesson booking request: \"%s\" on %s. Please confirm or decline.", body.Title, t.Format("Jan 2, 2006 at 15:04"))
+			almatyTZ := time.FixedZone("UTC+5", 5*60*60)
+			msg := fmt.Sprintf("New lesson booking request: \"%s\" on %s. Please confirm or decline.", body.Title, t.In(almatyTZ).Format("Jan 2, 2006 at 15:04 (UTC+5)"))
 			_, _ = h.notifClient.NotifyUser(context.Background(), &notificationpb.NotifyUserRequest{
 				UserId:  body.TutorId,
 				Type:    8, // NOTIFICATION_TYPE_BOOKING_REQUEST
@@ -376,6 +390,25 @@ func (h *LessonHandler) GetTutorBookedSlots(w http.ResponseWriter, r *http.Reque
 // GetMyLessons returns the authenticated student's individual (non-course) lessons.
 func (h *LessonHandler) GetMyLessons(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.client.GetStudentLessons(tokenCtx(r), &lessonpb.GetStudentLessonsRequest{})
+	if err != nil {
+		errResp(w, err)
+		return
+	}
+	jsonResp(w, http.StatusOK, resp)
+}
+
+func (h *LessonHandler) RateLesson(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Rating int32 `json:"rating"`
+	}
+	if err := decode(r, &body); err != nil || body.Rating < 1 || body.Rating > 5 {
+		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "rating must be 1-5"})
+		return
+	}
+	resp, err := h.client.RateLesson(tokenCtx(r), &lessonpb.RateLessonRequest{
+		LessonId: r.PathValue("id"),
+		Rating:   body.Rating,
+	})
 	if err != nil {
 		errResp(w, err)
 		return

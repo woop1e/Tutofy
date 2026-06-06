@@ -84,6 +84,16 @@ func main() {
 		`UPDATE users SET subjects = '[]' WHERE subjects = '' OR subjects IS NULL`,
 		`UPDATE users SET certificates = '[]' WHERE certificates = '' OR certificates IS NULL`,
 		`UPDATE users SET available_days = '[]' WHERE available_days = '' OR available_days IS NULL`,
+		`CREATE TABLE IF NOT EXISTS parent_student_links (
+			id           TEXT PRIMARY KEY,
+			parent_id    TEXT NOT NULL DEFAULT '',
+			student_id   TEXT NOT NULL,
+			parent_email TEXT NOT NULL,
+			token        TEXT NOT NULL UNIQUE,
+			status       TEXT NOT NULL DEFAULT 'pending',
+			created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			accepted_at  TIMESTAMPTZ
+		)`,
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

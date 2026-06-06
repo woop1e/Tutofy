@@ -5,6 +5,7 @@ import AdminSidebar from '../../components/layout/AdminSidebar';
 import { usersAPI } from '../../api/users';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const StatCard = ({ label, value, sub, color, icon }) => (
   <div className="bg-white rounded-2xl p-6 flex items-start gap-4 shadow-sm border border-[#f0f0f5]">
@@ -49,16 +50,17 @@ const AdminDashboard = () => {
   const recentCourses = [...courses].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 5);
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <AdminSidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Dashboard</h1>
             <p className="text-[#6b6f7d] text-[13px] mt-1">Platform overview</p>
           </div>
+          <TopBarActions />
         </div>
 
         <div className="flex-1 p-8 overflow-y-auto">

@@ -7,7 +7,7 @@ import { enrollmentsAPI } from '../../api/enrollments';
 import { lessonsAPI } from '../../api/lessons';
 import { assignmentsAPI } from '../../api/assignments';
 import { usersAPI } from '../../api/users';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 // â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -265,10 +265,10 @@ const TutorCourses = () => {
   const totalStudents = Object.values(extraData).reduce((s, d) => s + (d.students || 0), 0);
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top bar */}
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-7 justify-between flex-shrink-0">
@@ -277,7 +277,7 @@ const TutorCourses = () => {
             <p className="text-[#6b6f7d] text-[12px]">{courses.length} courses · {totalStudents} students total</p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">
                 {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}

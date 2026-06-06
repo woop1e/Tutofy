@@ -89,7 +89,7 @@ const Landing = () => {
           </Link>
 
           {/* Nav center */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1, justifyContent: 'center' }}>
+          <nav className="topnav-links" style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1, justifyContent: 'center' }}>
             <Link to="/tutors" style={{ color: 'var(--text-2)', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}
               onMouseEnter={e => e.currentTarget.style.color='var(--accent)'}
               onMouseLeave={e => e.currentTarget.style.color='var(--text-2)'}>
@@ -100,11 +100,18 @@ const Landing = () => {
               onMouseLeave={e => e.currentTarget.style.color='var(--text-2)'}>
               Become a tutor
             </Link>
-            <a style={{ color: 'var(--text-2)', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>How it works</a>
+            <a
+              href="#how-it-works"
+              onClick={e => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }}
+              style={{ color: 'var(--text-2)', fontSize: 14, fontWeight: 500, cursor: 'pointer', textDecoration: 'none' }}
+              onMouseEnter={e => e.currentTarget.style.color='var(--accent)'}
+              onMouseLeave={e => e.currentTarget.style.color='var(--text-2)'}>
+              How it works
+            </a>
           </nav>
 
           {/* Auth right */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div className="topnav-cta-group" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {isAuthenticated ? (
               <>
                 <Link to="/tutors" style={{ color: 'var(--text-2)', fontSize: 13, fontWeight: 500, textDecoration: 'none', padding: '7px 12px' }}>Find tutors</Link>
@@ -136,7 +143,7 @@ const Landing = () => {
             ⚡ New: Group classes are now live
           </span>
 
-          <h1 style={{ fontSize: 54, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.03em', color: 'var(--text)', margin: '0 0 20px', maxWidth: 740, marginLeft: 'auto', marginRight: 'auto' }}>
+          <h1 className="landing-hero-title" style={{ fontSize: 54, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.03em', color: 'var(--text)', margin: '0 0 20px', maxWidth: 740, marginLeft: 'auto', marginRight: 'auto' }}>
             Live 1-on-1 learning with{' '}
             <span style={{ color: 'var(--accent)' }}>experts</span>{' '}
             you can trust
@@ -192,8 +199,7 @@ const Landing = () => {
                 onMouseEnter={e => { e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.boxShadow='0 4px 12px rgba(13,148,136,0.12)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.boxShadow='none'; }}>
                 <div style={{ fontSize: 22, marginBottom: 8, color: 'var(--accent)' }}>{s.mark}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{s.label}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{s.n} tutors</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{s.label}</div>
               </Link>
             ))}
           </div>
@@ -201,7 +207,7 @@ const Landing = () => {
       </section>
 
       {/* ── How it works ── */}
-      <section style={{ background: 'var(--surface)', padding: '64px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+      <section id="how-it-works" style={{ background: 'var(--surface)', padding: '64px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ ...section, textAlign: 'center' }}>
           <h2 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>How it works</h2>
           <p style={{ margin: '0 0 48px', fontSize: 14, color: 'var(--muted)' }}>From signup to first lesson in under five minutes</p>

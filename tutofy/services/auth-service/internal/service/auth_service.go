@@ -58,9 +58,7 @@ func (s *AuthService) Register(email_, password, name, role string) (setupToken 
 		return "", err
 	}
 
-	if err := s.sendVerificationEmail(user.ID, email_); err != nil {
-		_ = err
-	}
+	go func() { _ = s.sendVerificationEmail(user.ID, email_) }()
 
 	return s.GenerateJWT(user.ID, user.Role, user.Name)
 }
@@ -146,7 +144,7 @@ func (s *AuthService) GenerateJWT(userID, role, name string) (string, error) {
 		"user_id": userID,
 		"role":    role,
 		"name":    name,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"exp":     time.Now().Add(2 * time.Hour).Unix(),
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString([]byte(s.jwtSecret))

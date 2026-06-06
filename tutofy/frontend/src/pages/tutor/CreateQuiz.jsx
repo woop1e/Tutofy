@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { quizzesAPI } from '../../api/quizzes';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 /* â"€â"€ question type definitions â"€â"€ */
 const QUESTION_TYPES = [
@@ -375,10 +376,10 @@ const CreateQuiz = () => {
 
   /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <TutorSidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* â"€â"€ Top bar â"€â"€ */}
         <div className="bg-white border-b border-[#ebebf0] h-[60px] flex items-center px-6 gap-4 flex-shrink-0">
@@ -396,6 +397,7 @@ const CreateQuiz = () => {
           <span className="text-[11px] font-semibold text-[#6b6f7d] bg-[#f0f0f5] px-2.5 py-1 rounded-full">Draft</span>
 
           <div className="ml-auto flex items-center gap-2">
+            <TopBarActions />
             <button className="border border-[#d2d4d9] text-[#383a44] text-[13px] font-semibold px-4 py-2 rounded-[9px] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors">
               Preview quiz
             </button>

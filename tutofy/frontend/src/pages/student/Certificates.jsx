@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { certificatesAPI } from '../../api/certificates';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 function formatDate(val) {
   if (!val) return '';
@@ -175,13 +176,16 @@ const Certificates = () => {
   const initials = user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S';
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-6 justify-between flex-shrink-0">
           <h1 className="text-[#0c0d12] text-[16px] font-bold">My Certificates</h1>
-          <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
-            <span className="text-[#0d9488] text-[12px] font-bold">{initials}</span>
+          <div className="flex items-center gap-2">
+            <TopBarActions />
+            <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
+              <span className="text-[#0d9488] text-[12px] font-bold">{initials}</span>
+            </div>
           </div>
         </div>
 

@@ -115,7 +115,7 @@ type CertificatesList struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
-	Certificates []*CertificateResponse `protobuf:"bytes,1,rep,name=certificates,proto3" json:"certificates,omitempty"`
+	Certificates []*CertificateResponse `protobuf:"bytes,1,rep,name=certificates,proto3" json:"certificates"`
 }
 
 func (x *CertificatesList) Reset()                                   { *x = CertificatesList{} }

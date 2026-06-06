@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const CourseOverview = () => {
   const { isAuthenticated, role, user } = useAuth();
@@ -47,10 +48,10 @@ const CourseOverview = () => {
     (name || '??').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
         <div className="bg-white h-[68px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)] flex items-center px-7 justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -84,6 +85,7 @@ const CourseOverview = () => {
                 </button>
               </>
             )}
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-primary text-[12px] font-semibold">
                 {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
@@ -107,7 +109,7 @@ const CourseOverview = () => {
             </div>
           </div>
         ) : (
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-6overflow-y-auto ">
             <div className="grid grid-cols-3 gap-6">
               {/* Course Details */}
               <div className="col-span-2 space-y-5">

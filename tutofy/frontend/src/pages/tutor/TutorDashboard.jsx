@@ -2,13 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
+import TutorTour from '../../components/onboarding/TutorTour';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { assignmentsAPI } from '../../api/assignments';
 import { submissionsAPI } from '../../api/submissions';
 import { lessonsAPI } from '../../api/lessons';
 import { usersAPI } from '../../api/users';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const STATUS_AWAITING_PAYMENT = 5;
 const STATUS_PAYMENT_EXPIRED = 6;
@@ -115,7 +116,22 @@ const TutorDashboard = () => {
   const [dayFilter, setDayFilter]       = useState(7);
   const [profileStatus, setProfileStatus] = useState(null);
   const [isFirstTime, setIsFirstTime]   = useState(false);
+  const [profileData,  setProfileData]  = useState(null);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(
+    () => localStorage.getItem('tutor_onboarding_dismissed') === 'true'
+  );
+  const [showTour, setShowTour] = useState(
+    () => localStorage.getItem('tutofy_tutor_tour_seen') !== 'true'
+  );
   const [modalLesson, setModalLesson]   = useState(null);
+
+  // Show tour for brand-new tutors even if the flag was set during a previous test run.
+  // isFirstTime = true means the profile is still blank → guaranteed first-time user.
+  useEffect(() => {
+    if (isFirstTime && localStorage.getItem('tutofy_tutor_tour_done') !== 'true') {
+      setShowTour(true);
+    }
+  }, [isFirstTime]);
   const [bookingRequests, setBookingRequests]   = useState([]);
   const [awaitingPayment, setAwaitingPayment]   = useState([]);
   const [reqLoading, setReqLoading]             = useState(false);
@@ -142,6 +158,7 @@ const TutorDashboard = () => {
         if (profileRes) {
           setProfileStatus(profileRes.status || 'pending');
           setIsFirstTime(!profileRes.phone || !profileRes.student_level);
+          setProfileData(profileRes);
         }
         const tutorCourses = (coursesRes?.courses || []).filter((c) => c.tutor_id === uid);
         setCourses(tutorCourses);
@@ -190,7 +207,9 @@ const TutorDashboard = () => {
         setLessons(allLessons);
 
         // Fetch student info for individual lessons (tutor can't call getAllUsers — admin only)
-        const studentIds = [...new Set(allLessons.map(l => l.student_id).filter(Boolean))];
+        // Exclude the tutor's own ID — if student_id equals the tutor's ID it's a data error.
+        const tutorOwnId = uid;
+        const studentIds = [...new Set(allLessons.map(l => l.student_id).filter(id => id && id !== tutorOwnId))];
         const studentResults = await Promise.all(
           studentIds.map(id => usersAPI.getUserById(id).catch(() => null))
         );
@@ -228,7 +247,7 @@ const TutorDashboard = () => {
     if (!user?.user_id) return;
     setReqLoading(true);
     lessonsAPI.getTutorIndividualLessons()
-      .then((res) => {
+      .then(async (res) => {
         const all = res?.lessons || (Array.isArray(res) ? res : []);
         setBookingRequests(all.filter((l) => {
           const s = (l.status || '').toString().toLowerCase();
@@ -238,6 +257,17 @@ const TutorDashboard = () => {
           const n = parseInt(l.status, 10);
           return n === STATUS_AWAITING_PAYMENT;
         }));
+        // Fetch student names for booking/payment lessons
+        const tutorOwnId = user.user_id;
+        const ids = [...new Set(all.map(l => l.student_id).filter(id => id && id !== tutorOwnId))];
+        if (ids.length > 0) {
+          const results = await Promise.all(ids.map(id => usersAPI.getUserById(id).catch(() => null)));
+          setUsersMap(prev => {
+            const next = { ...prev };
+            ids.forEach((id, i) => { if (results[i]) next[id] = results[i]; });
+            return next;
+          });
+        }
       })
       .catch(() => {})
       .finally(() => setReqLoading(false));
@@ -301,8 +331,10 @@ const TutorDashboard = () => {
   const firstName = user?.name?.split(' ')[0] || 'Tutor';
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg)] font-sans">
+    <div className="flex h-screen bg-[var(--bg)] font-sans">
       <TutorSidebar />
+
+      {showTour && <TutorTour onDismiss={() => setShowTour(false)} />}
 
       {modalLesson && (
         <MeetingLinkModal
@@ -312,7 +344,7 @@ const TutorDashboard = () => {
         />
       )}
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-4 flex items-center justify-between flex-shrink-0">
           <div>
@@ -320,7 +352,7 @@ const TutorDashboard = () => {
             <p className="text-[#6b6f7d] text-[13px] mt-1">Welcome back, {firstName}!</p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">
                 {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
@@ -328,6 +360,42 @@ const TutorDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Post-approval next-step banner — shown when approved but availability not yet configured */}
+        {profileStatus === 'approved' && profileData && !loading && (() => {
+          const hasSchedule = !!(profileData?.available_time_start &&
+                                 profileData?.available_time_start !== '' &&
+                                 profileData?.available_time_start !== '09:00');
+          if (hasSchedule) return null;
+          return (
+            <div className="mx-6 mt-4 rounded-2xl px-5 py-4 flex items-center gap-4 bg-[#0d9488]/8 border border-[#0d9488]/20">
+              {/* Checkmark icon */}
+              <div className="w-10 h-10 rounded-full bg-[#0d9488] flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="2" width={18} height={18}>
+                  <path d="M4 10l4 4 8-8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-bold text-[#0d9488] leading-snug">
+                  Your profile has been approved!
+                </p>
+                <p className="text-[12px] text-[#0d9488]/80 mt-0.5 leading-snug">
+                  Next step: configure your availability so students can find and book lessons with you.
+                </p>
+              </div>
+              <Link
+                to="/tutor/schedule"
+                className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-[13px] font-bold text-white bg-[#0d9488] hover:opacity-90 transition-opacity whitespace-nowrap"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" width={14} height={14}>
+                  <rect x="1" y="2" width="14" height="12" rx="1.5"/>
+                  <path d="M5 1v3M11 1v3M1 7h14" strokeLinecap="round"/>
+                </svg>
+                Set Availability
+              </Link>
+            </div>
+          );
+        })()}
 
         {/* Profile status banner */}
         {profileStatus && profileStatus !== 'approved' && (
@@ -369,17 +437,130 @@ const TutorDashboard = () => {
           </div>
         )}
 
-        <div className="flex-1 p-6 flex gap-6 min-h-0">
+        {/* Setup checklist — marketplace readiness (3 steps) */}
+        {!onboardingDismissed && (() => {
+          const isApproved  = profileStatus === 'approved';
+          const hasSchedule = !!(profileData?.available_time_start &&
+                                 profileData?.available_time_start !== '' &&
+                                 profileData?.available_time_start !== '09:00');
+          const hasCourse   = courses.length > 0;
+          const allDone     = isApproved && hasSchedule && hasCourse;
+          if (allDone) return null;
+
+          const steps = [
+            {
+              done: isApproved,
+              label: 'Get profile approved',
+              desc: profileStatus === 'rejected'
+                ? 'Your profile was rejected. Update and resubmit for review.'
+                : profileData?.bio
+                  ? 'Your profile is under admin review. You will be notified once approved.'
+                  : 'Complete your professional profile and submit for admin review.',
+              link: '/tutor/profile',
+              cta: profileStatus === 'rejected' ? 'Update profile' : 'View profile',
+            },
+            {
+              done: hasSchedule,
+              label: 'Set your availability',
+              desc: 'Configure when you are available for lessons. Students can only book you once availability is set.',
+              link: '/tutor/schedule',
+              cta: 'Set Availability',
+            },
+            {
+              done: hasCourse,
+              label: 'Create your first course',
+              desc: 'Build a group course with lessons, assignments and quizzes for your students.',
+              link: '/tutor/courses/new',
+              cta: 'Create course',
+            },
+          ];
+          const completedCount = steps.filter(s => s.done).length;
+          return (
+            <div className="mx-6 mt-4 bg-white rounded-[16px] border border-[#ebebf0] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#f5f6fa]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#0d9488] flex items-center justify-center text-white text-[12px] font-bold">
+                    {completedCount}/{steps.length}
+                  </div>
+                  <div>
+                    <p className="text-[#0c0d12] text-[14px] font-bold">Tutor Setup Progress</p>
+                    <p className="text-[#6b6f7d] text-[11px]">Complete these steps to appear in the marketplace</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setOnboardingDismissed(true); localStorage.setItem('tutor_onboarding_dismissed','true'); }}
+                  className="text-[#6b6f7d] text-[11px] hover:text-[#0c0d12] px-2 py-1"
+                >
+                  Dismiss
+                </button>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1 bg-[#f3f4f7]">
+                <div className="h-1 bg-[#0d9488] transition-all"
+                  style={{ width: `${(completedCount / steps.length) * 100}%` }} />
+              </div>
+              <div className="grid grid-cols-3 gap-0 divide-x divide-[#f5f6fa]">
+                {steps.map((step, i) => (
+                  <div key={i} className={`p-4 flex items-start gap-3 ${step.done ? 'opacity-60' : ''}`}>
+                    {step.done ? (
+                      <div className="w-7 h-7 rounded-full bg-[#0d9488] flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="1.8" width={10} height={10}>
+                          <path d="M2 6l2.5 2.5L10 3" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="w-7 h-7 rounded-full border-2 border-[#d2d4d9] flex items-center justify-center flex-shrink-0 mt-0.5 text-[11px] font-bold text-[#6b6f7d]">
+                        {i + 1}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[13px] font-semibold mb-0.5 ${step.done ? 'text-[#6b6f7d] line-through' : 'text-[#0c0d12]'}`}>
+                        {step.label}
+                      </p>
+                      <p className="text-[11px] text-[#6b6f7d] leading-snug mb-2">{step.desc}</p>
+                      {!step.done && (
+                        <Link to={step.link}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0d9488] hover:underline">
+                          {step.cta} →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Warning: approved but no availability configured */}
+              {isApproved && !hasSchedule && (
+                <div className="mx-4 mb-4 mt-1 bg-[#fff8f0] border border-[#ff8032]/30 rounded-[12px] px-4 py-3 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#ff8032" strokeWidth="1.6" width={18} height={18} className="flex-shrink-0">
+                      <path d="M10 3l8 14H2L10 3z" strokeLinejoin="round"/><path d="M10 9v4M10 15v.5" strokeLinecap="round"/>
+                    </svg>
+                    <p className="text-[12px] text-[#c05e1a] font-medium leading-snug">
+                      Students cannot book lessons until you configure your availability.
+                    </p>
+                  </div>
+                  <Link to="/tutor/schedule"
+                    className="flex-shrink-0 text-[11px] font-bold text-white bg-[#ff8032] px-3 py-1.5 rounded-[7px] hover:opacity-90 whitespace-nowrap">
+                    Set Availability
+                  </Link>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        <div className="flex-1 p-6 flex gap-6 min-h-0 overflow-y-auto">
 
           {/* Main column */}
           <div className="flex-1 min-w-0 flex flex-col gap-5">
 
             {/* Stat cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div id="tour-stats" className="grid grid-cols-4 gap-4">
               {[
                 {
                   label: 'Total Students', value: totalStudents ?? '-', color: '#0d9488',
-                  icon: 'M9 7a4 4 0 11-8 0 4 4 0 018 0zM1 18a8 8 0 1116 0',
+                  icon: 'M7 7a3 3 0 006 0a3 3 0 00-6 0M3 19a7 7 0 0114 0',
                 },
                 {
                   label: 'Active Courses', value: courses.length || '-', color: '#7c3aed',
@@ -446,7 +627,9 @@ const TutorDashboard = () => {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{req.title || 'Individual lesson'}</p>
+                            <p className="text-[#0c0d12] text-[14px] font-semibold truncate">
+                              {usersMap[req.student_id]?.name || req.description || 'Individual lesson'}
+                            </p>
                             <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                               {start && (
                                 <span className="text-[#6b6f7d] text-[12px] flex items-center gap-1">
@@ -458,9 +641,6 @@ const TutorDashboard = () => {
                               )}
                               {req.duration_minutes > 0 && (
                                 <span className="text-[#6b6f7d] text-[12px]">{req.duration_minutes} min</span>
-                              )}
-                              {req.price > 0 && (
-                                <span className="text-[#0d9488] text-[12px] font-semibold">{req.price.toLocaleString()} ₸</span>
                               )}
                             </div>
                           </div>
@@ -517,15 +697,14 @@ const TutorDashboard = () => {
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{lesson.title || 'Individual lesson'}</p>
+                          <p className="text-[#0c0d12] text-[14px] font-semibold truncate">
+                            {usersMap[lesson.student_id]?.name || lesson.description || 'Individual lesson'}
+                          </p>
                           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                             {start && (
                               <span className="text-[#6b6f7d] text-[12px]">
                                 {fmtDayLabel(start)}, {fmtTime(start)} – {fmtTime(end)}
                               </span>
-                            )}
-                            {lesson.price > 0 && (
-                              <span className="text-[#0d9488] text-[12px] font-semibold">{lesson.price.toLocaleString()} ₸</span>
                             )}
                             <span className="text-[#f59e0b] text-[12px] font-semibold">Awaiting payment</span>
                           </div>
@@ -593,28 +772,44 @@ const TutorDashboard = () => {
                         className="flex items-center gap-4 p-4 rounded-[12px] border border-[#ebebf0] hover:border-[#0d9488]/30 transition-colors"
                       >
                         {(() => {
-                          const rawName = usersMap[lesson.student_id]?.name
-                            || lesson.title?.replace(/^lesson with\s+/i, '')
-                            || 'Student';
-                          const initials = rawName.split(/\s+/).map(w => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
+                          const studentData = usersMap[lesson.student_id];
+                          const studentName = studentData?.name;
+                          const displayName = studentName || lesson.description || null;
+                          const photoUrl = studentData?.photo_url;
+                          const initials = displayName
+                            ? displayName.split(/\s+/).map(w => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()
+                            : '?';
+                          const fallbackStyle = { background: avatarColor(lesson.student_id || lesson.id) };
                           return (
-                            <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
-                              style={{ background: color }}
-                            >
-                              {initials}
-                            </div>
+                            <>
+                              {photoUrl && (
+                                <img
+                                  src={photoUrl}
+                                  alt={displayName || ''}
+                                  className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                              )}
+                              <div
+                                className="w-10 h-10 rounded-full items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
+                                style={{ ...fallbackStyle, display: photoUrl ? 'none' : 'flex' }}
+                              >
+                                {initials}
+                              </div>
+                            </>
                           );
                         })()}
 
                         <div className="flex-1 min-w-0">
                           {(() => {
-                            const studentName = usersMap[lesson.student_id]?.name
-                              || lesson.title?.replace(/^lesson with\s+/i, '');
+                            const studentName = usersMap[lesson.student_id]?.name;
                             return (
                               <>
                                 <p className="text-[#0c0d12] text-[14px] font-semibold truncate">
-                                  {studentName || 'Individual lesson'}
+                                  {studentName || lesson.description || 'Individual lesson'}
                                 </p>
                                 <p className="text-[#6b6f7d] text-[11px] truncate">Individual lesson</p>
                               </>

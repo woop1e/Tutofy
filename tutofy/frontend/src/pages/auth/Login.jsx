@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authAPI } from '../../api/auth';
 import CheckEmailScreen from './CheckEmailScreen';
+import { useTranslation } from 'react-i18next';
 
 const Login = () => {
   const [formData,     setFormData]     = useState({ email: '', password: '' });
@@ -11,6 +12,7 @@ const Login = () => {
   const [verifyEmail,  setVerifyEmail]  = useState('');
   const { login } = useAuth();
   const navigate  = useNavigate();
+  const { t } = useTranslation();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -48,7 +50,7 @@ const Login = () => {
     <div className="page-fade" style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* Left — quote panel */}
-      <div style={{
+      <div className="auth-split-left" style={{
         flex: 1,
         background: 'var(--surface-2)',
         borderRight: '1px solid var(--border)',
@@ -90,7 +92,7 @@ const Login = () => {
       </div>
 
       {/* Right — form */}
-      <div style={{
+      <div className="auth-split-right" style={{
         width: 480,
         flexShrink: 0,
         background: 'var(--bg)',
@@ -101,10 +103,10 @@ const Login = () => {
       }}>
         <div style={{ marginBottom: 36 }}>
           <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em' }}>
-            Welcome back
+            {t('auth.welcomeBack')}
           </h1>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>
-            Sign in to continue where you left off.
+            {t('auth.signInToContinue')}
           </p>
         </div>
 
@@ -123,7 +125,7 @@ const Login = () => {
           )}
 
           <div>
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('auth.email')}</label>
             <input
               className="form-input"
               type="email"
@@ -136,7 +138,7 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="form-label">Password</label>
+            <label className="form-label">{t('auth.password')}</label>
             <input
               className="form-input"
               type="password"
@@ -151,9 +153,9 @@ const Login = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-2)', cursor: 'pointer' }}>
               <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent)' }} />
-              Remember me
+              {t('auth.rememberMe')}
             </label>
-            <a style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 500 }}>Forgot password?</a>
+            <a style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 500 }}>{t('auth.forgotPassword')}</a>
           </div>
 
           <button
@@ -172,15 +174,15 @@ const Login = () => {
               marginTop: 4,
             }}
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? `${t('auth.signIn')}…` : t('auth.signIn')}
           </button>
         </form>
 
         <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'center' }}>
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>
-            Don't have an account?{' '}
+            {t('auth.dontHaveAccount')}{' '}
             <Link to={`/register${window.location.search}`} style={{ color: 'var(--accent)', fontWeight: 700, textDecoration: 'none' }}>
-              Create one
+              {t('auth.createOne')}
             </Link>
           </p>
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>

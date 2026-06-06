@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"notification-service/internal/config"
 	"notification-service/internal/email"
@@ -127,7 +128,12 @@ func main() {
 			}
 
 			// In-app + email: booking confirmed for student
-			notifMsg := fmt.Sprintf("Your lesson \"%s\" has been confirmed by your tutor! It starts at %s.", ev.Title, ev.ScheduledAt)
+			almatyTZ := time.FixedZone("UTC+5", 5*60*60)
+			timeStr := ev.ScheduledAt
+			if t, err2 := time.Parse(time.RFC3339, ev.ScheduledAt); err2 == nil {
+				timeStr = t.In(almatyTZ).Format("Mon, Jan 2 at 15:04 (UTC+5)")
+			}
+			notifMsg := fmt.Sprintf("Your lesson \"%s\" has been confirmed by your tutor! It starts on %s.", ev.Title, timeStr)
 			_ = svc.NotifyUser(context.Background(), ev.StudentID, 9, notifMsg) // BOOKING_CONFIRMED
 
 			// Schedule a 1-hour-before reminder

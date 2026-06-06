@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { usersAPI } from '../../api/users';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const ROLE_STYLE = {
   tutor:   'bg-[#935bf5]/10 text-[#935bf5]',
@@ -61,10 +62,10 @@ const AdminUsers = () => {
   const studentCount = users.filter((u) => u.role === 'student').length;
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <AdminSidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
@@ -73,6 +74,7 @@ const AdminUsers = () => {
               {users.length} total · {tutorCount} tutors · {studentCount} students
             </p>
           </div>
+          <TopBarActions />
         </div>
 
         {/* Filters */}

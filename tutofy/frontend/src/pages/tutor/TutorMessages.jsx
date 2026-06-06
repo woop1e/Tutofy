@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { messagingAPI } from '../../api/messaging';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const ACCENT_COLORS = [
   { bg: 'bg-primary/20', initial: 'text-primary' },
@@ -118,7 +119,7 @@ const TutorMessages = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -129,6 +130,7 @@ const TutorMessages = () => {
             <p className="text-muted text-[13px]">Chat with your students</p>
           </div>
           <div className="flex items-center gap-3">
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-primary text-[12px] font-semibold">
                 {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}

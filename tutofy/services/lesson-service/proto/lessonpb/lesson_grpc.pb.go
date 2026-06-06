@@ -42,6 +42,7 @@ type LessonServiceClient interface {
 	ActivateLesson(ctx context.Context, in *ActivateLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
 	GetCourseAttendanceSummary(ctx context.Context, in *GetCourseAttendanceSummaryRequest, opts ...grpc.CallOption) (*CourseAttendanceSummary, error)
 	GetLessonDescriptions(ctx context.Context, in *GetLessonDescriptionsRequest, opts ...grpc.CallOption) (*LessonDescriptionsList, error)
+	RateLesson(ctx context.Context, in *RateLessonRequest, opts ...grpc.CallOption) (*Lesson, error)
 }
 
 type lessonServiceClient struct {
@@ -121,6 +122,7 @@ type LessonServiceServer interface {
 	ActivateLesson(context.Context, *ActivateLessonRequest) (*Lesson, error)
 	GetCourseAttendanceSummary(context.Context, *GetCourseAttendanceSummaryRequest) (*CourseAttendanceSummary, error)
 	GetLessonDescriptions(context.Context, *GetLessonDescriptionsRequest) (*LessonDescriptionsList, error)
+	RateLesson(context.Context, *RateLessonRequest) (*Lesson, error)
 	mustEmbedUnimplementedLessonServiceServer()
 }
 
@@ -151,6 +153,9 @@ func (UnimplementedLessonServiceServer) GetCourseAttendanceSummary(context.Conte
 }
 func (UnimplementedLessonServiceServer) GetLessonDescriptions(context.Context, *GetLessonDescriptionsRequest) (*LessonDescriptionsList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLessonDescriptions not implemented")
+}
+func (UnimplementedLessonServiceServer) RateLesson(context.Context, *RateLessonRequest) (*Lesson, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RateLesson not implemented")
 }
 func (UnimplementedLessonServiceServer) mustEmbedUnimplementedLessonServiceServer() {}
 
@@ -325,6 +330,10 @@ var LessonService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetLessonDescriptions",
 			Handler:    _LessonService_GetLessonDescriptions_Handler,
+		},
+		{
+			MethodName: "RateLesson",
+			Handler:    _LessonService_RateLesson_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -542,6 +551,23 @@ func (c *lessonServiceClient) GetLessonDescriptions(ctx context.Context, in *Get
 	out := new(LessonDescriptionsList)
 	err := c.cc.Invoke(ctx, "/lesson.LessonService/GetLessonDescriptions", in, out, opts...)
 	return out, err
+}
+
+func (c *lessonServiceClient) RateLesson(ctx context.Context, in *RateLessonRequest, opts ...grpc.CallOption) (*Lesson, error) {
+	out := new(Lesson)
+	err := c.cc.Invoke(ctx, "/lesson.LessonService/RateLesson", in, out, opts...)
+	return out, err
+}
+
+func _LessonService_RateLesson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RateLessonRequest)
+	if err := dec(in); err != nil { return nil, err }
+	if interceptor == nil { return srv.(LessonServiceServer).RateLesson(ctx, in) }
+	info := &grpc.UnaryServerInfo{Server: srv, FullMethod: "/lesson.LessonService/RateLesson"}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LessonServiceServer).RateLesson(ctx, req.(*RateLessonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _LessonService_GetLessonDescriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {

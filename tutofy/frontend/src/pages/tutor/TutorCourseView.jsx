@@ -9,6 +9,7 @@ import { enrollmentsAPI } from '../../api/enrollments';
 import { quizzesAPI } from '../../api/quizzes';
 import { mediaAPI } from '../../api/media';
 import { authAPI } from '../../api/auth';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 // â"€â"€ date helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -410,7 +411,7 @@ const LessonForm = ({ draft, setDraft, saveError, saving, onSave, onCancel, week
               onChange={e => setDraft(p => ({ ...p, video_link: e.target.value }))} />
             {googleConnected === false ? (
               <a
-                href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/google/connect?token=${localStorage.getItem('token')}`}
+                href={`${import.meta.env.VITE_API_BASE_URL ?? ''}/auth/google/connect?token=${localStorage.getItem('token')}`}
                 target="_blank" rel="noopener noreferrer"
                 title="Connect Google Calendar to auto-generate Meet links"
                 className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-[7px] border border-[#e2e4ea] text-[#6b6f7d] hover:border-[#4285F4] hover:text-[#4285F4] transition-colors whitespace-nowrap flex-shrink-0">
@@ -1131,7 +1132,7 @@ const TutorCourseView = () => {
   // â"€â"€ loading â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   if (loading) return (
-    <div className="flex min-h-screen bg-[#f3f4f7]">
+    <div className="flex h-screen bg-[#f3f4f7]">
       <TutorSidebar />
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
@@ -1142,7 +1143,7 @@ const TutorCourseView = () => {
   // â"€â"€ render â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -1160,6 +1161,7 @@ const TutorCourseView = () => {
             <p className="text-[#0c0d12] text-[14px] font-semibold truncate">{course?.title || 'Course'}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <TopBarActions />
             <Link to={`/tutor/courses/${courseId}/students`}
               className="text-[#6b6f7d] text-[12px] font-medium px-3.5 py-2 rounded-[8px] border border-[#e8eaef] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors flex items-center gap-1.5">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-3.5 h-3.5">

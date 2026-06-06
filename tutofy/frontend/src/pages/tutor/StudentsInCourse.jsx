@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { usersAPI } from '../../api/users';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const StudentsInCourse = () => {
   const { isAuthenticated, role, user } = useAuth();
@@ -45,10 +46,10 @@ const StudentsInCourse = () => {
     (name || '??').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="bg-white h-[68px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)] flex items-center px-7 justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <Link
@@ -63,14 +64,17 @@ const StudentsInCourse = () => {
               <p className="text-muted text-[12px]">{course?.title || `Course #${id}`}</p>
             </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
-            <span className="text-primary text-[12px] font-semibold">
-              {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
-            </span>
+          <div className="flex items-center gap-2">
+            <TopBarActions />
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
+              <span className="text-primary text-[12px] font-semibold">
+                {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'T'}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6overflow-y-auto ">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { coursesAPI } from '../../api/courses';
 import { usersAPI } from '../../api/users';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const AdminCourses = () => {
   const { isAuthenticated, role } = useAuth();
@@ -65,10 +66,10 @@ const AdminCourses = () => {
   const published = courses.filter((c) => c.is_published).length;
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <AdminSidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-[#0c0d12] text-[22px] font-bold leading-none">Courses</h1>
@@ -76,6 +77,7 @@ const AdminCourses = () => {
               {courses.length} total · {published} published · {courses.length - published} drafts
             </p>
           </div>
+          <TopBarActions />
         </div>
 
         <div className="bg-white border-b border-[#ebebf0] px-8 py-3 flex items-center gap-3 flex-shrink-0">

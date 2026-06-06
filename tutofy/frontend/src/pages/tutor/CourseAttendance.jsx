@@ -6,6 +6,7 @@ import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { usersAPI } from '../../api/users';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 // â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -172,7 +173,7 @@ const CourseAttendance = () => {
   const excusedCount = Object.values(attendance).filter(s => s === 'excused').length;
 
   if (loading) return (
-    <div className="flex min-h-screen bg-[#f3f4f7]">
+    <div className="flex h-screen bg-[#f3f4f7]">
       <TutorSidebar />
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
@@ -181,7 +182,7 @@ const CourseAttendance = () => {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -199,6 +200,7 @@ const CourseAttendance = () => {
             <div className="w-px h-4 bg-[#e8eaef]" />
             <p className="text-[#0c0d12] text-[14px] font-semibold">Attendance</p>
           </div>
+          <TopBarActions />
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">

@@ -98,6 +98,11 @@ func main() {
 		lessonpb.NewLessonServiceClient(lessonConn),
 		progresspb.NewProgressServiceClient(progressConn),
 	)
+	parh := handler.NewParentHandler(
+		userpb.NewUserServiceClient(userConn),
+		enrollmentpb.NewEnrollmentServiceClient(enrollmentConn),
+		lessonpb.NewLessonServiceClient(lessonConn),
+	)
 
 	mux := http.NewServeMux()
 
@@ -171,6 +176,7 @@ func main() {
 	mux.HandleFunc("PATCH /lessons/{id}/status",        lh.UpdateLessonStatus)
 	mux.HandleFunc("PATCH /lessons/{id}/meeting-link",  lh.SetVideoLink)
 	mux.HandleFunc("DELETE /lessons/{id}",              lh.DeleteLesson)
+	mux.HandleFunc("POST /lessons/{id}/rate",            lh.RateLesson)
 
 	// Assignments
 	mux.HandleFunc("POST /assignments",             ash.CreateAssignment)
@@ -210,6 +216,15 @@ func main() {
 
 	// Student profile (tutor view — scoped to tutor's courses/assignments/lessons)
 	mux.HandleFunc("GET /tutor/students/{student_id}/profile", sph.GetStudentProfile)
+
+	// Parent access
+	mux.HandleFunc("POST /parent/invite",                          parh.InviteParent)
+	mux.HandleFunc("GET /parent/invite/info",                      parh.GetInviteInfo)
+	mux.HandleFunc("POST /parent/invite/accept",                   parh.AcceptParentInvite)
+	mux.HandleFunc("GET /parent/my-parents",                       parh.GetMyParents)
+	mux.HandleFunc("GET /parent/my-children",                      parh.GetMyChildren)
+	mux.HandleFunc("DELETE /parent/links/{id}",                    parh.RemoveParentLink)
+	mux.HandleFunc("GET /parent/children/{student_id}/overview",   parh.GetChildOverview)
 
 	// Media
 	mux.HandleFunc("POST /media/upload",            mdh.UploadFile)

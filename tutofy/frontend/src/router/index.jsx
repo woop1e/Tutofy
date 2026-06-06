@@ -47,11 +47,15 @@ import QuizCoverView from '../pages/student/QuizCoverView';
 import Certificates from '../pages/student/Certificates';
 import StudentMarketplace from '../pages/student/StudentMarketplace';
 import StudentTutorProfile from '../pages/student/StudentTutorProfile';
+import StudentSettings from '../pages/student/StudentSettings';
+import JoinParent from '../pages/auth/JoinParent';
+import ParentDashboard from '../pages/parent/ParentDashboard';
 
-const s = (el) => <ProtectedRoute role="student">{el}</ProtectedRoute>;
-const t = (el) => <ProtectedRoute role="tutor">{el}</ProtectedRoute>;
-const a = (el) => <ProtectedRoute role="admin">{el}</ProtectedRoute>;
-const p = (el) => <ProtectedRoute>{el}</ProtectedRoute>;
+const s  = (el) => <ProtectedRoute role="student">{el}</ProtectedRoute>;
+const t  = (el) => <ProtectedRoute role="tutor">{el}</ProtectedRoute>;
+const a  = (el) => <ProtectedRoute role="admin">{el}</ProtectedRoute>;
+const p  = (el) => <ProtectedRoute>{el}</ProtectedRoute>;
+const par = (el) => <ProtectedRoute role="parent">{el}</ProtectedRoute>;
 
 const router = createBrowserRouter([
   { path: '/',                  element: <Landing /> },
@@ -61,6 +65,7 @@ const router = createBrowserRouter([
   { path: '/register',          element: <RegisterStudent /> },
   { path: '/become-tutor',      element: <RegisterTutor /> },
   { path: '/verify-email',      element: <VerifyEmail /> },
+  { path: '/join-parent',       element: <JoinParent /> },
 
   { path: '/payment',                                element: p(<PaymentPage />) },
 
@@ -77,6 +82,7 @@ const router = createBrowserRouter([
   { path: '/student/messages',                       element: s(<Messages />) },
   { path: '/student/progress',                       element: s(<Progress />) },
   { path: '/student/certificates',                   element: s(<Certificates />) },
+  { path: '/student/settings',                       element: s(<StudentSettings />) },
 
   { path: '/tutor/dashboard',                        element: t(<TutorDashboard />) },
   { path: '/tutor/profile',                          element: t(<TutorProfileSetup />) },
@@ -98,6 +104,8 @@ const router = createBrowserRouter([
   { path: '/tutor/history',                          element: t(<TutorDashboard />) },
   { path: '/tutor/public-profile',                   element: t(<TutorPublicProfile />) },
   { path: '/tutor/certificates',                     element: t(<TutorCertificates />) },
+
+  { path: '/parent/dashboard',  element: p(<ParentDashboard />) },
 
   { path: '/admin/dashboard',  element: a(<AdminDashboard />) },
   { path: '/admin/users',      element: a(<AdminUsers />) },

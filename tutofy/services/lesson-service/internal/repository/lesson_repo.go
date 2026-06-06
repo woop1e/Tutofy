@@ -33,6 +33,7 @@ type LessonRepository interface {
 	ExpireOverduePayments(ctx context.Context) ([]*model.Lesson, error)
 	GetCourseAttendanceSummary(ctx context.Context, courseID string) (map[string][2]int32, error)
 	GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error)
+	RateLesson(ctx context.Context, lessonID, studentID string, rating int32) (*model.Lesson, error)
 }
 
 type postgresRepo struct {
@@ -56,7 +57,7 @@ func NewPostgresRepo(db *sql.DB) LessonRepository {
 	return &postgresRepo{db: db}
 }
 
-const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, COALESCE(price, 0), payment_deadline, COALESCE(calendar_event_id, ''), COALESCE(description, '')`
+const lessonColumns = `id, course_id, tutor_id, student_id, title, scheduled_at, duration_minutes, video_link, status, COALESCE(price, 0), payment_deadline, COALESCE(calendar_event_id, ''), COALESCE(description, ''), COALESCE(student_rating, 0)`
 
 func (r *postgresRepo) CreateLesson(ctx context.Context, lesson *model.Lesson) error {
 	var deadline *time.Time
@@ -208,7 +209,7 @@ func scanLesson(s scanner) (*model.Lesson, error) {
 	err := s.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
-		&deadline, &l.CalendarEventID, &l.Description,
+		&deadline, &l.CalendarEventID, &l.Description, &l.StudentRating,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -230,7 +231,7 @@ func scanLessonRow(rows *sql.Rows) (*model.Lesson, error) {
 	err := rows.Scan(
 		&l.ID, &l.CourseID, &l.TutorID, &l.StudentID, &l.Title,
 		&l.ScheduledAt, &l.DurationMinutes, &l.VideoLink, &status, &l.Price,
-		&deadline, &l.CalendarEventID, &l.Description,
+		&deadline, &l.CalendarEventID, &l.Description, &l.StudentRating,
 	)
 	if err != nil {
 		return nil, err
@@ -451,6 +452,20 @@ func (r *postgresRepo) GetAttendance(ctx context.Context, lessonID, callerID, ca
 }
 
 // GetCourseDescriptions returns id→description map for all lessons in a course.
+func (r *postgresRepo) RateLesson(ctx context.Context, lessonID, studentID string, rating int32) (*model.Lesson, error) {
+	row := r.db.QueryRowContext(ctx,
+		`UPDATE lessons SET student_rating = $1
+		 WHERE id = $2 AND student_id = $3 AND course_id = '' AND status = 2 AND deleted_at IS NULL
+		 RETURNING `+lessonColumns,
+		rating, lessonID, studentID,
+	)
+	l, err := scanLesson(row)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return l, nil
+}
+
 func (r *postgresRepo) GetCourseDescriptions(ctx context.Context, courseID string) (map[string]string, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, COALESCE(description,'') FROM lessons WHERE course_id=$1 AND deleted_at IS NULL`,

@@ -5,6 +5,7 @@ import TutorSidebar from '../../components/layout/TutorSidebar';
 import { coursesAPI } from '../../api/courses';
 import { enrollmentsAPI } from '../../api/enrollments';
 import { usersAPI } from '../../api/users';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 // â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
@@ -145,7 +146,7 @@ const EditCourse = () => {
   };
 
   if (loading) return (
-    <div className="flex min-h-screen bg-[#f3f4f7]">
+    <div className="flex h-screen bg-[#f3f4f7]">
       <TutorSidebar />
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
@@ -159,7 +160,7 @@ const EditCourse = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <TutorSidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -182,6 +183,7 @@ const EditCourse = () => {
                 : 'bg-[#f0f0f5] text-[#6b6f7d]'
             }`}>{form.status}</span>
           </div>
+          <TopBarActions />
           {activeTab === 'info' && (
             <button onClick={handleSave} disabled={saving}
               className="bg-[#0d9488] text-white text-[12px] font-semibold px-4 py-2 rounded-[8px] hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5">

@@ -109,4 +109,8 @@ export const lessonsAPI = {
     const response = await apiClient.post(`/lessons/${lessonId}/attendance`, { records });
     return response.data;
   },
+  rateLesson: async (lessonId, rating) => {
+    const response = await apiClient.post(`/lessons/${lessonId}/rate`, { rating });
+    return response.data;
+  },
 };

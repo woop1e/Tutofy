@@ -48,20 +48,10 @@ func (h *UserHandler) GetUser(ctx context.Context, req *userpb.GetUserRequest) (
 }
 
 func (h *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequest) (*userpb.UserResponse, error) {
-	if req.GetName() == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	if req.GetEmail() == "" {
-		return nil, status.Error(codes.InvalidArgument, "email is required")
-	}
-	if !emailRE.MatchString(req.GetEmail()) {
-		return nil, status.Error(codes.InvalidArgument, "invalid email format")
-	}
-
 	callerID := middleware.UserIDFromContext(ctx)
 	callerRole := middleware.RoleFromContext(ctx)
 
-	user, err := h.svc.UpdateUser(ctx, callerID, callerRole, req.GetUserId(), req.GetName(), req.GetEmail())
+	user, err := h.svc.UpdateUser(ctx, callerID, callerRole, req.GetUserId(), req.GetName(), req.GetEmail(), req.GetPhotoUrl())
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			return nil, status.Error(codes.PermissionDenied, "forbidden")
@@ -118,10 +108,11 @@ func pageParams(limit, offset int32) (int32, int32) {
 
 func toProto(u *model.User) *userpb.UserResponse {
 	return &userpb.UserResponse{
-		Id:    u.ID,
-		Email: u.Email,
-		Name:  u.Name,
-		Role:  u.Role,
+		Id:       u.ID,
+		Email:    u.Email,
+		Name:     u.Name,
+		Role:     u.Role,
+		PhotoUrl: u.PhotoURL,
 	}
 }
 
@@ -156,7 +147,7 @@ func (h *UserHandler) UpdateTutorProfile(ctx context.Context, req *userpb.Update
 		Timezone:           req.GetTimezone(),
 	}
 
-	p, err := h.svc.UpdateTutorProfile(ctx, callerID, callerRole, req.GetUserId(), in)
+	p, err := h.svc.UpdateTutorProfile(ctx, callerID, callerRole, req.GetUserId(), in, req.GetKeepStatus())
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			return nil, status.Error(codes.PermissionDenied, "forbidden")
@@ -290,4 +281,92 @@ func (h *UserHandler) GetTutorsByStatus(ctx context.Context, req *userpb.GetTuto
 		list = append(list, toTutorProto(p))
 	}
 	return &userpb.PendingTutorsList{Tutors: list}, nil
+}
+
+// ── Parent link gRPC handlers ─────────────────────────────────────────────────
+
+func toParentLinkProto(l *repository.ParentLink) *userpb.ParentLink {
+	if l == nil {
+		return nil
+	}
+	return &userpb.ParentLink{
+		Id: l.ID, ParentId: l.ParentID, StudentId: l.StudentID,
+		ParentEmail: l.ParentEmail, Token: l.Token, Status: l.Status,
+		StudentName: l.StudentName, ParentName: l.ParentName, CreatedAt: l.CreatedAt,
+	}
+}
+
+func (h *UserHandler) InviteParent(ctx context.Context, req *userpb.InviteParentRequest) (*userpb.InviteParentResponse, error) {
+	callerID   := middleware.UserIDFromContext(ctx)
+	callerRole := middleware.RoleFromContext(ctx)
+	if callerID == "" {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+	if callerRole != "student" && callerID != req.GetStudentId() {
+		return nil, status.Error(codes.PermissionDenied, "forbidden")
+	}
+	if !emailRE.MatchString(req.GetParentEmail()) {
+		return nil, status.Error(codes.InvalidArgument, "invalid email")
+	}
+	lnk, err := h.svc.InviteParent(ctx, req.GetStudentId(), req.GetParentEmail())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &userpb.InviteParentResponse{Link: toParentLinkProto(lnk)}, nil
+}
+
+func (h *UserHandler) GetInviteInfo(ctx context.Context, req *userpb.GetInviteInfoRequest) (*userpb.ParentLink, error) {
+	lnk, err := h.svc.GetInviteInfo(ctx, req.GetToken())
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "invite not found")
+	}
+	return toParentLinkProto(lnk), nil
+}
+
+func (h *UserHandler) AcceptParentInvite(ctx context.Context, req *userpb.AcceptParentInviteRequest) (*userpb.AcceptParentInviteResponse, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	if callerID == "" {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+	parentID := req.GetParentId()
+	if parentID == "" {
+		parentID = callerID
+	}
+	lnk, err := h.svc.AcceptParentInvite(ctx, req.GetToken(), parentID)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "invite not found or already accepted")
+	}
+	return &userpb.AcceptParentInviteResponse{Link: toParentLinkProto(lnk)}, nil
+}
+
+func (h *UserHandler) GetParentLinks(ctx context.Context, req *userpb.GetParentLinksRequest) (*userpb.ParentLinksList, error) {
+	links, err := h.svc.GetParentLinks(ctx, req.GetStudentId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	var out []*userpb.ParentLink
+	for _, l := range links {
+		out = append(out, toParentLinkProto(l))
+	}
+	return &userpb.ParentLinksList{Links: out}, nil
+}
+
+func (h *UserHandler) GetChildren(ctx context.Context, req *userpb.GetChildrenRequest) (*userpb.ParentLinksList, error) {
+	links, err := h.svc.GetChildrenLinks(ctx, req.GetParentId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	var out []*userpb.ParentLink
+	for _, l := range links {
+		out = append(out, toParentLinkProto(l))
+	}
+	return &userpb.ParentLinksList{Links: out}, nil
+}
+
+func (h *UserHandler) RemoveParentLink(ctx context.Context, req *userpb.RemoveParentLinkRequest) (*userpb.Empty, error) {
+	callerID := middleware.UserIDFromContext(ctx)
+	if err := h.svc.RemoveParentLink(ctx, callerID, req.GetLinkId()); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &userpb.Empty{}, nil
 }

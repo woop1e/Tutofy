@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSidebar from '../../components/layout/StudentSidebar';
 import { enrollmentsAPI } from '../../api/enrollments';
-import NotificationBell from '../../components/ui/NotificationBell';
+import TopBarActions from '../../components/ui/TopBarActions';
 import { coursesAPI } from '../../api/courses';
 import { lessonsAPI } from '../../api/lessons';
 import { progressAPI } from '../../api/progress';
@@ -66,6 +66,8 @@ const MyCourses = () => {
   const [privateLessons, setPrivateLessons]   = useState([]);
   const [loading, setLoading]                 = useState(true);
   const [tab, setTab]                         = useState('all');
+  const [lessonRatings, setLessonRatings]     = useState({});   // lessonId -> submitted rating
+  const [ratingHover, setRatingHover]         = useState({});   // lessonId -> hovered star
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
@@ -83,7 +85,11 @@ const MyCourses = () => {
 
         // Individual lessons = lessons without a course_id
         const allStudentLessons = privateRes?.lessons || (Array.isArray(privateRes) ? privateRes : []);
-        setPrivateLessons(allStudentLessons.filter(l => !l.course_id && !l.courseId));
+        const individual = allStudentLessons.filter(l => !l.course_id && !l.courseId);
+        setPrivateLessons(individual);
+        const initialRatings = {};
+        individual.forEach(l => { if (l.student_rating > 0) initialRatings[l.id] = l.student_rating; });
+        setLessonRatings(initialRatings);
 
         const joined = enrollments.map((enr, i) => ({
           ...enr,
@@ -176,10 +182,10 @@ const MyCourses = () => {
   const hasAny = enrolledCourses.length > 0 || privateTutors.length > 0;
 
   return (
-    <div className="flex min-h-screen bg-[#f3f4f7] font-sans">
+    <div className="flex h-screen bg-[#f3f4f7] font-sans">
       <StudentSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <div className="bg-white h-[64px] border-b border-[#f0f0f5] flex items-center px-7 justify-between flex-shrink-0">
           <div>
@@ -187,7 +193,7 @@ const MyCourses = () => {
             <p className="text-[#6b6f7d] text-[12px]">Manage your courses and private lessons</p>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <TopBarActions />
             <div className="w-9 h-9 rounded-full bg-[rgba(13,148,136,0.12)] flex items-center justify-center">
               <span className="text-[#0d9488] text-[12px] font-bold">
                 {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S'}
@@ -196,7 +202,7 @@ const MyCourses = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6 space-y-6">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
 
           {/* Stat cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -361,17 +367,18 @@ const MyCourses = () => {
                         <div className="space-y-2 mb-4">
                           {sortedLessons.slice(0, 3).map(lesson => {
                             const d        = parseDate(lesson.scheduled_at);
+                            const endTime  = d ? new Date(d.getTime() + (lesson.duration_minutes || 60) * 60000) : null;
                             const hasLink  = !!(lesson.video_link);
-                            const isPast   = d && d < new Date();
+                            const isPast   = endTime && endTime < new Date();
                             const isNow    = d && isDateToday(d);
                             const isDone   = lesson.status === 2 || lesson.status === 'completed';
                             const isCxl    = lesson.status === 3 || lesson.status === 'cancelled';
 
-                            const statusCfg = isDone ? { label: 'Completed', bg: 'rgba(34,190,112,0.1)',   fg: '#22c55e' }
-                              : isCxl        ? { label: 'Cancelled',  bg: 'rgba(242,69,69,0.1)',   fg: '#ef4444' }
-                              : hasLink      ? { label: 'Link ready', bg: 'rgba(34,190,112,0.1)',   fg: '#22c55e' }
-                              : isPast       ? { label: 'Pending link',bg: 'rgba(255,128,50,0.1)', fg: '#ff8032' }
-                              :                { label: 'Pending link',bg: 'rgba(255,128,50,0.1)', fg: '#ff8032' };
+                            const statusCfg = isDone ? { label: 'Completed',   bg: 'rgba(34,190,112,0.1)',  fg: '#22c55e' }
+                              : isCxl        ? { label: 'Cancelled',   bg: 'rgba(242,69,69,0.1)',   fg: '#ef4444' }
+                              : isPast       ? { label: 'Past',         bg: 'rgba(156,163,175,0.15)', fg: '#9ca3af' }
+                              : hasLink      ? { label: 'Link ready',   bg: 'rgba(34,190,112,0.1)',   fg: '#22c55e' }
+                              :                { label: 'Pending link', bg: 'rgba(255,128,50,0.1)',  fg: '#ff8032' };
 
                             return (
                               <div key={lesson.id}
@@ -391,6 +398,35 @@ const MyCourses = () => {
                                     style={{ backgroundColor: statusCfg.bg, color: statusCfg.fg }}>
                                     {statusCfg.label}
                                   </span>
+                                  {isDone && (
+                                    <div className="flex items-center gap-0.5">
+                                      {[1,2,3,4,5].map(s => {
+                                        const submitted = lessonRatings[lesson.id];
+                                        const hovered   = ratingHover[lesson.id] || 0;
+                                        const filled    = submitted ? s <= submitted : s <= hovered;
+                                        return (
+                                          <button
+                                            key={s}
+                                            type="button"
+                                            disabled={!!submitted}
+                                            onClick={async () => {
+                                              try {
+                                                await lessonsAPI.rateLesson(lesson.id, s);
+                                                setLessonRatings(r => ({ ...r, [lesson.id]: s }));
+                                              } catch {}
+                                            }}
+                                            onMouseEnter={() => !submitted && setRatingHover(h => ({ ...h, [lesson.id]: s }))}
+                                            onMouseLeave={() => setRatingHover(h => ({ ...h, [lesson.id]: 0 }))}
+                                            className={submitted ? 'cursor-default' : 'hover:scale-110 transition-transform'}
+                                          >
+                                            <svg viewBox="0 0 14 14" className="w-3.5 h-3.5" fill={filled ? '#f59e0b' : 'none'} stroke="#f59e0b" strokeWidth="1.2">
+                                              <path d="M7 1l1.5 3.1 3.4.5-2.5 2.4.6 3.4L7 8.8l-3 1.6.6-3.4L2.1 4.6l3.4-.5z"/>
+                                            </svg>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                   {hasLink && (isNow || !isPast) && !isDone && !isCxl && (
                                     <a href={lesson.video_link} target="_blank" rel="noopener noreferrer"
                                       className="text-[11px] font-semibold px-2.5 py-1 rounded-[7px] border transition-colors"
@@ -410,11 +446,15 @@ const MyCourses = () => {
                         </div>
 
                         <div className="flex gap-2">
-                          <Link to="/student/messages"
+                          <Link to={(() => {
+                              const t = sortedLessons[0]?.title || '';
+                              const name = t.startsWith('Lesson with ') ? t.replace('Lesson with ', '') : '';
+                              return `/student/messages?with=${tutorGroup.tutor_id}${name ? `&name=${encodeURIComponent(name)}` : ''}`;
+                            })()}
                             className="flex-1 text-center text-[12px] font-semibold px-3 py-1.5 rounded-[8px] border border-[#f0f0f5] text-[#383a44] hover:border-[#0d9488] hover:text-[#0d9488] transition-colors">
                             Message
                           </Link>
-                          <Link to="/tutors"
+                          <Link to={`/student/tutors/${tutorGroup.tutor_id}`}
                             className="flex-1 text-center text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors"
                             style={{ backgroundColor: 'rgba(147,91,245,0.08)', color }}>
                             Book lesson →

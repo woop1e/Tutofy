@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { usersAPI } from '../../api/users';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const STATUS_TABS = [
   { key: 'all',      label: 'All' },
@@ -78,10 +79,10 @@ const AdminTutorApplications = () => {
   const pendingCount = tutors.filter((t) => (t.status || 'pending') === 'pending').length;
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <AdminSidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] px-8 py-5 flex items-center justify-between flex-shrink-0">
           <div>
@@ -94,6 +95,7 @@ const AdminTutorApplications = () => {
                 : `${tutors.length} ${activeTab} tutor${tutors.length !== 1 ? 's' : ''}`}
             </p>
           </div>
+          <TopBarActions />
         </div>
 
         {/* Status filter tabs */}
@@ -379,16 +381,6 @@ const AdminTutorApplications = () => {
                   </>
                 );
               })()}
-
-              <DetailSection title="Availability">
-                <Row label="Days">{(selected.available_days || []).join(', ') || '-'}</Row>
-                <Row label="Hours">
-                  {selected.available_time_start && selected.available_time_end
-                    ? `${selected.available_time_start} - ${selected.available_time_end}`
-                    : '-'}
-                </Row>
-                <Row label="Timezone">{selected.timezone || '-'}</Row>
-              </DetailSection>
 
               {/* Bottom actions — only for pending */}
               {(selected.status || 'pending') === 'pending' && (

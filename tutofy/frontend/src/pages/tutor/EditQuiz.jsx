@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import TutorSidebar from '../../components/layout/TutorSidebar';
 import { quizzesAPI } from '../../api/quizzes';
+import TopBarActions from '../../components/ui/TopBarActions';
 
 const inputCls = 'w-full border border-[#e2e4ea] rounded-[9px] px-3 py-2.5 text-[14px] text-[#0c0d12] placeholder-[#b0b5c4] focus:outline-none focus:border-[#0d9488] focus:ring-2 focus:ring-[rgba(13,148,136,0.08)] transition-all bg-white';
 
@@ -154,7 +155,7 @@ const EditQuiz = () => {
   }, []);
 
   if (loading) return (
-    <div className="flex min-h-screen bg-[#f5f6fa]">
+    <div className="flex h-screen bg-[#f5f6fa]">
       <TutorSidebar />
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
@@ -163,9 +164,9 @@ const EditQuiz = () => {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa] font-sans">
+    <div className="flex h-screen bg-[#f5f6fa] font-sans">
       <TutorSidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 
         {/* Top bar */}
         <div className="bg-white border-b border-[#ebebf0] h-[60px] flex items-center px-6 gap-4 flex-shrink-0">
@@ -178,13 +179,16 @@ const EditQuiz = () => {
           </Link>
           <div className="w-px h-5 bg-[#e8eaef]" />
           <h1 className="text-[#0c0d12] text-[16px] font-bold truncate">{quiz?.title || 'Edit Quiz'}</h1>
-          <Link to={`/tutor/courses/${courseId}/quizzes/${quizId}/results`}
-            className="ml-auto flex items-center gap-1.5 text-[13px] font-semibold text-[#935bf5] px-3 py-1.5 rounded-[8px] hover:bg-[rgba(147,91,245,0.08)] transition-colors">
+          <div className="ml-auto flex items-center gap-2">
+            <TopBarActions />
+            <Link to={`/tutor/courses/${courseId}/quizzes/${quizId}/results`}
+              className="flex items-center gap-1.5 text-[13px] font-semibold text-[#935bf5] px-3 py-1.5 rounded-[8px] hover:bg-[rgba(147,91,245,0.08)] transition-colors">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
               <path d="M3 12V5M7 12V2M11 12V7M15 12V9" strokeLinecap="round"/>
             </svg>
             View results
           </Link>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">

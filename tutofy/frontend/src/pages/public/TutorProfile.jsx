@@ -84,8 +84,9 @@ function generateSlotsFromProfile(profile) {
         const day = new Date(today);
         day.setDate(today.getDate() + d);
         day.setHours(0, 0, 0, 0);
-        const dayName = JS_DAY_TO_NAME[day.getDay()];
-        const matchingSlots = parsed.filter((s) => s.day === dayName);
+        const dayFull  = JS_DAY_TO_NAME[day.getDay()];
+        const dayShort = dayFull.slice(0, 3);
+        const matchingSlots = parsed.filter((s) => s.day === dayFull || s.day === dayShort);
         if (matchingSlots.length === 0) continue;
         const nowH = today.getHours();
         const daySlots = [];
@@ -425,7 +426,7 @@ const TutorProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f5f6fa] flex items-center justify-center font-sans">
+      <div className="h-screen bg-[#f5f6fa] flex items-center justify-center font-sans">
         <div className="w-8 h-8 border-4 border-[#0d9488] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -433,7 +434,7 @@ const TutorProfile = () => {
 
   if (!tutor) {
     return (
-      <div className="min-h-screen bg-[#f5f6fa] flex flex-col items-center justify-center font-sans gap-4">
+      <div className="h-screen bg-[#f5f6fa] flex flex-col items-center justify-center font-sans gap-4">
         <div className="w-14 h-14 rounded-full bg-[#f0f0f5] flex items-center justify-center">
           <svg viewBox="0 0 20 20" fill="none" stroke="#8a90a1" strokeWidth="1.5" className="w-7 h-7">
             <circle cx="8" cy="8" r="5.5"/><path d="M13 13l4 4" strokeLinecap="round"/>
