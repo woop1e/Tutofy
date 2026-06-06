@@ -44,7 +44,12 @@ func main() {
 
 	authClient := authpb.NewAuthServiceClient(authConn)
 
-	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	var rdb *redis.Client
+	if opt, err := redis.ParseURL(cfg.RedisAddr); err == nil {
+		rdb = redis.NewClient(opt)
+	} else {
+		rdb = redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	}
 	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		log.Printf("warn: redis unavailable — caching disabled: %v", err)
 		rdb = nil
