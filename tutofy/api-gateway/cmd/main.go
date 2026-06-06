@@ -25,12 +25,22 @@ import (
 	"review-service/proto/reviewpb"
 	"certificate-service/proto/certificatepb"
 
+	"crypto/tls"
+	"os"
+
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func dial(addr string) *grpc.ClientConn {
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	var cred grpc.DialOption
+	if os.Getenv("GRPC_TLS") == "true" {
+		cred = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
+	} else {
+		cred = grpc.WithTransportCredentials(insecure.NewCredentials())
+	}
+	conn, err := grpc.NewClient(addr, cred)
 	if err != nil {
 		log.Fatalf("dial %s: %v", addr, err)
 	}
