@@ -114,7 +114,7 @@ const CreateCourse = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6overflow-y-auto ">
+        <div className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-[680px] mx-auto">
 
             {/* Approval warning */}
