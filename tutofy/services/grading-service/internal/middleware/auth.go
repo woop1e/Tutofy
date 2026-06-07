@@ -11,9 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var publicMethods = map[string]bool{
-	"/grading.GradingService/GetStudentGrades": true,
-}
+var publicMethods = map[string]bool{}
 
 func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterceptor {
 	return func(
