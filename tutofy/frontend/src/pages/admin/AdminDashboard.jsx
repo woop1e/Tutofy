@@ -153,7 +153,7 @@ const AdminDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-medium text-[#0c0d12] truncate">{c.title}</p>
-                          <p className="text-[11px] text-[#6b6f7d]">{c.price > 0 ? `$${c.price}` : 'Free'}</p>
+                          <p className="text-[11px] text-[#6b6f7d]">{c.price > 0 ? `${c.price.toLocaleString()} KZT` : 'Free'}</p>
                         </div>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                           c.is_published ? 'bg-[#22be70]/10 text-[#22be70]' : 'bg-[#f0f0f5] text-[#6b6f7d]'

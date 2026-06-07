@@ -12,8 +12,9 @@ import (
 )
 
 var publicMethods = map[string]bool{
-	"/course.CourseService/GetCourse":    true,
+	"/course.CourseService/GetCourse":     true,
 	"/course.CourseService/GetAllCourses": true,
+	"/course.CourseService/SearchCourses": true,
 }
 
 func AuthInterceptor(authClient authpb.AuthServiceClient) grpc.UnaryServerInterceptor {

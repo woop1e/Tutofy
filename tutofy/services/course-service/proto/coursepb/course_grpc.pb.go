@@ -26,6 +26,8 @@ type CreateCourseRequest struct {
 	EndDate                 string  `protobuf:"bytes,11,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
 	CompletionAttendancePct int32   `protobuf:"varint,12,opt,name=completion_attendance_pct,json=completionAttendancePct,proto3" json:"completion_attendance_pct,omitempty"`
 	CompletionGradePct      int32   `protobuf:"varint,13,opt,name=completion_grade_pct,json=completionGradePct,proto3" json:"completion_grade_pct,omitempty"`
+	Subject                 string  `protobuf:"bytes,14,opt,name=subject,proto3" json:"subject,omitempty"`
+	Level                   string  `protobuf:"bytes,15,opt,name=level,proto3" json:"level,omitempty"`
 }
 
 func (x *CreateCourseRequest) Reset()         { *x = CreateCourseRequest{} }
@@ -44,6 +46,8 @@ func (x *CreateCourseRequest) GetStartDate() string          { return x.StartDat
 func (x *CreateCourseRequest) GetEndDate() string            { return x.EndDate }
 func (x *CreateCourseRequest) GetCompletionAttendancePct() int32 { return x.CompletionAttendancePct }
 func (x *CreateCourseRequest) GetCompletionGradePct() int32      { return x.CompletionGradePct }
+func (x *CreateCourseRequest) GetSubject() string                { return x.Subject }
+func (x *CreateCourseRequest) GetLevel() string                  { return x.Level }
 
 type GetCourseRequest struct {
 	state         protoimpl.MessageState
@@ -75,6 +79,8 @@ type UpdateCourseRequest struct {
 	Price                   float64 `protobuf:"fixed64,12,opt,name=price,proto3" json:"price,omitempty"`
 	CompletionAttendancePct int32   `protobuf:"varint,13,opt,name=completion_attendance_pct,json=completionAttendancePct,proto3" json:"completion_attendance_pct,omitempty"`
 	CompletionGradePct      int32   `protobuf:"varint,14,opt,name=completion_grade_pct,json=completionGradePct,proto3" json:"completion_grade_pct,omitempty"`
+	Subject                 string  `protobuf:"bytes,15,opt,name=subject,proto3" json:"subject,omitempty"`
+	Level                   string  `protobuf:"bytes,16,opt,name=level,proto3" json:"level,omitempty"`
 }
 
 func (x *UpdateCourseRequest) Reset()         { *x = UpdateCourseRequest{} }
@@ -94,6 +100,8 @@ func (x *UpdateCourseRequest) GetEndDate() string            { return x.EndDate 
 func (x *UpdateCourseRequest) GetPrice() float64             { return x.Price }
 func (x *UpdateCourseRequest) GetCompletionAttendancePct() int32 { return x.CompletionAttendancePct }
 func (x *UpdateCourseRequest) GetCompletionGradePct() int32      { return x.CompletionGradePct }
+func (x *UpdateCourseRequest) GetSubject() string                { return x.Subject }
+func (x *UpdateCourseRequest) GetLevel() string                  { return x.Level }
 
 type PublishCourseRequest struct {
 	state         protoimpl.MessageState
@@ -140,6 +148,8 @@ type CourseResponse struct {
 	CompletionAttendancePct int32   `protobuf:"varint,15,opt,name=completion_attendance_pct,json=completionAttendancePct,proto3" json:"completion_attendance_pct"`
 	CompletionGradePct      int32   `protobuf:"varint,16,opt,name=completion_grade_pct,json=completionGradePct,proto3" json:"completion_grade_pct"`
 	CourseStatus            string  `protobuf:"bytes,17,opt,name=course_status,json=courseStatus,proto3" json:"course_status,omitempty"`
+	Subject                 string  `protobuf:"bytes,18,opt,name=subject,proto3" json:"subject,omitempty"`
+	Level                   string  `protobuf:"bytes,19,opt,name=level,proto3" json:"level,omitempty"`
 }
 
 func (x *CourseResponse) Reset()         { *x = CourseResponse{} }
@@ -162,6 +172,8 @@ func (x *CourseResponse) GetEndDate() string                 { return x.EndDate 
 func (x *CourseResponse) GetCompletionAttendancePct() int32  { return x.CompletionAttendancePct }
 func (x *CourseResponse) GetCompletionGradePct() int32       { return x.CompletionGradePct }
 func (x *CourseResponse) GetCourseStatus() string            { return x.CourseStatus }
+func (x *CourseResponse) GetSubject() string                 { return x.Subject }
+func (x *CourseResponse) GetLevel() string                   { return x.Level }
 
 type CompleteCourseRequest struct {
 	state         protoimpl.MessageState

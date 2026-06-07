@@ -15,13 +15,13 @@ const cols = `id, title, description, tutor_id, price, course_type, max_students
               COALESCE(enrollment_deadline::TEXT, ''), is_published, total_lessons, total_weeks, release_type,
               COALESCE(start_date::TEXT, ''), COALESCE(end_date::TEXT, ''),
               COALESCE(completion_attendance_pct,0), COALESCE(completion_grade_pct,0),
-              COALESCE(course_status,'draft')`
+              COALESCE(course_status,'draft'), COALESCE(subject,''), COALESCE(level,'beginner')`
 
 type CourseRepository interface {
 	CreateCourse(ctx context.Context, course *model.Course) error
 	GetCourseByID(ctx context.Context, id string) (*model.Course, error)
 	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
-	UpdateCourse(ctx context.Context, id, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32) (*model.Course, error)
+	UpdateCourse(ctx context.Context, id, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32, subject, level string) (*model.Course, error)
 	SetCourseStatus(ctx context.Context, id, status string) (*model.Course, error)
 	PublishCourse(ctx context.Context, id, tutorID, callerRole string) (*model.Course, error)
 	SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error)
@@ -43,7 +43,8 @@ func scanCourse(row interface{ Scan(...any) error }) (*model.Course, error) {
 		&c.CourseType, &c.MaxStudents, &c.EnrollmentDeadline, &c.IsPublished,
 		&c.TotalLessons, &c.TotalWeeks, &c.ReleaseType,
 		&c.StartDate, &c.EndDate,
-		&c.CompletionAttendancePct, &c.CompletionGradePct, &c.CourseStatus)
+		&c.CompletionAttendancePct, &c.CompletionGradePct, &c.CourseStatus,
+		&c.Subject, &c.Level)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -58,7 +59,8 @@ func scanCourses(rows *sql.Rows) ([]*model.Course, error) {
 			&c.CourseType, &c.MaxStudents, &c.EnrollmentDeadline, &c.IsPublished,
 			&c.TotalLessons, &c.TotalWeeks, &c.ReleaseType,
 			&c.StartDate, &c.EndDate,
-			&c.CompletionAttendancePct, &c.CompletionGradePct, &c.CourseStatus); err != nil {
+			&c.CompletionAttendancePct, &c.CompletionGradePct, &c.CourseStatus,
+			&c.Subject, &c.Level); err != nil {
 			return nil, err
 		}
 		result = append(result, c)
@@ -79,12 +81,13 @@ func (r *postgresRepo) CreateCourse(ctx context.Context, course *model.Course) e
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO courses (id, title, description, tutor_id, price, course_type, max_students,
 		 enrollment_deadline, total_lessons, total_weeks, release_type, start_date, end_date,
-		 completion_attendance_pct, completion_grade_pct, course_status)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+		 completion_attendance_pct, completion_grade_pct, course_status, subject, level)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
 		course.ID, course.Title, course.Description, course.TutorID, course.Price,
 		courseType, course.MaxStudents, deadline, course.TotalLessons, course.TotalWeeks, releaseType,
 		startDate, endDate,
 		course.CompletionAttendancePct, course.CompletionGradePct, courseStatus,
+		course.Subject, course.Level,
 	)
 	return err
 }
@@ -105,18 +108,18 @@ func (r *postgresRepo) GetAllCourses(ctx context.Context, limit, offset int32) (
 	return scanCourses(rows)
 }
 
-func (r *postgresRepo) UpdateCourse(ctx context.Context, id, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32) (*model.Course, error) {
+func (r *postgresRepo) UpdateCourse(ctx context.Context, id, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32, subject, level string) (*model.Course, error) {
 	deadline  := sql.NullString{String: enrollmentDeadline, Valid: enrollmentDeadline != ""}
 	startNull := sql.NullString{String: startDate, Valid: startDate != ""}
 	endNull   := sql.NullString{String: endDate,   Valid: endDate != ""}
 	return scanCourse(r.db.QueryRowContext(ctx,
 		`UPDATE courses SET title=$1, description=$2, course_type=$3, max_students=$4, enrollment_deadline=$5,
 		 total_lessons=$6, total_weeks=$7, release_type=$8, start_date=$9, end_date=$10, price=$11,
-		 completion_attendance_pct=$12, completion_grade_pct=$13
+		 completion_attendance_pct=$12, completion_grade_pct=$13, subject=$15, level=$16
 		 WHERE id=$14 AND deleted_at IS NULL
 		 RETURNING `+cols,
 		title, description, courseType, maxStudents, deadline, totalLessons, totalWeeks, releaseType,
-		startNull, endNull, price, completionAttendancePct, completionGradePct, id,
+		startNull, endNull, price, completionAttendancePct, completionGradePct, id, subject, level,
 	))
 }
 

@@ -18,4 +18,6 @@ type Course struct {
 	CompletionAttendancePct int32  // min attendance % for certificate (0 = not checked)
 	CompletionGradePct      int32  // min average grade % for certificate (0 = not checked)
 	CourseStatus            string // "draft" | "active" | "completed"
+	Subject                 string
+	Level                   string // "beginner" | "intermediate" | "advanced"
 }

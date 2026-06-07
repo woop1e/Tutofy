@@ -411,7 +411,7 @@ const RegisterStudent = () => {
       {step === 0 && (
         <div style={{ textAlign: 'center', position: 'fixed', bottom: 72, left: 0, right: 0, fontSize: 13, color: 'var(--muted)' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Sign in</Link>
+          <Link to={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : '/login'} style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Sign in</Link>
         </div>
       )}
     </div>

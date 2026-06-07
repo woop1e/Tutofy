@@ -92,7 +92,7 @@ const AdminPayments = () => {
     finally { setActing(null); }
   };
 
-  const fmt = (v) => `$${(v || 0).toFixed(2)}`;
+  const fmt = (v) => `${Math.round(v || 0).toLocaleString()} KZT`;
 
   return (
     <div className="flex h-screen bg-[#f5f6fa] font-sans">

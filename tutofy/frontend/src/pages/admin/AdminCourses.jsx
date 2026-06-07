@@ -142,7 +142,7 @@ const AdminCourses = () => {
                           <p className="text-[11px] text-[#b0b5c4]">{tutor?.email || ''}</p>
                         </td>
                         <td className="px-6 py-3 text-[13px] text-[#383a44]">
-                          {c.price > 0 ? `$${c.price}` : <span className="text-[#22be70] font-medium">Free</span>}
+                          {c.price > 0 ? `${c.price.toLocaleString()} KZT` : <span className="text-[#22be70] font-medium">Free</span>}
                         </td>
                         <td className="px-6 py-3">
                           <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${

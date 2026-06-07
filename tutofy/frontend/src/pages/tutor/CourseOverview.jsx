@@ -141,7 +141,7 @@ const CourseOverview = () => {
                     <div>
                       <p className="text-muted text-[12px] mb-1">Price</p>
                       <p className="text-dark text-[15px] font-bold">
-                        {course.price ? `$${course.price}/hr` : 'Free'}
+                        {course.price ? `${course.price.toLocaleString()} KZT` : 'Free'}
                       </p>
                     </div>
                     <div>

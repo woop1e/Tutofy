@@ -117,7 +117,7 @@ func (s *gradingService) SubmitGrade(ctx context.Context, callerRole, assignment
 }
 
 func (s *gradingService) GetStudentGrades(ctx context.Context, callerID, callerRole, studentID string) ([]*model.Grade, error) {
-	if callerRole != "tutor" && callerRole != "admin" && callerID != studentID {
+	if callerRole != "tutor" && callerRole != "admin" && callerRole != "parent" && callerID != studentID {
 		return nil, ErrForbidden
 	}
 	return s.repo.GetGradesByStudent(ctx, studentID)

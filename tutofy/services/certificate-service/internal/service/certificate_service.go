@@ -159,24 +159,43 @@ func (s *certificateService) GetPendingCertificates(ctx context.Context, callerI
 }
 
 func (s *certificateService) IssueCertificate(ctx context.Context, callerRole, studentID, courseID string) (*model.Certificate, error) {
-	if callerRole != "admin" && callerRole != "tutor" {
-		return nil, ErrForbidden
-	}
-	if callerRole != "admin" {
-		progress, err := s.progressClient.GetProgress(outCtx(ctx), &progresspb.GetProgressRequest{
-			StudentId: studentID,
-			CourseId:  courseID,
-		})
-		if err != nil || progress.GetCompletionPct() < 100 {
-			return nil, ErrNotComplete
+	// IssueCertificate is called internally from CompleteCourse (no role context needed)
+	bg := context.Background()
+
+	// Fetch course info
+	courseName := ""
+	tutorID := ""
+	tutorName := ""
+	if s.courseClient != nil {
+		if course, err := s.courseClient.GetCourse(bg, &coursepb.GetCourseRequest{CourseId: courseID}); err == nil {
+			courseName = course.GetTitle()
+			tutorID = course.GetTutorId()
 		}
 	}
+
+	// Fetch student name
+	studentName := ""
+	if s.userClient != nil {
+		if u, err := s.userClient.GetUser(bg, &userpb.GetUserRequest{UserId: studentID}); err == nil {
+			studentName = u.GetName()
+		}
+		if tutorID != "" {
+			if u, err := s.userClient.GetUser(bg, &userpb.GetUserRequest{UserId: tutorID}); err == nil {
+				tutorName = u.GetName()
+			}
+		}
+	}
+
 	c := &model.Certificate{
-		ID:       uuid.NewString(),
-		StudentID: studentID,
-		CourseID:  courseID,
-		Status:    model.CertStatusApproved,
-		IssuedAt:  time.Now(),
+		ID:          uuid.NewString(),
+		StudentID:   studentID,
+		CourseID:    courseID,
+		Status:      model.CertStatusApproved,
+		IssuedAt:    time.Now(),
+		StudentName: studentName,
+		CourseName:  courseName,
+		TutorID:     tutorID,
+		TutorName:   tutorName,
 	}
 	if err := s.repo.Create(ctx, c); err != nil {
 		return nil, err

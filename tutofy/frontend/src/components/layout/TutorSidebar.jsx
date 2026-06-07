@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { usersAPI } from '../../api/users';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
 
 const Icon = ({ name, size = 16, active }) => {
@@ -75,8 +76,17 @@ const TutorSidebar = () => {
     () => localStorage.getItem('sidebar_collapsed') === 'true'
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [photoUrl,   setPhotoUrl]   = useState('');
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (user?.user_id) {
+      usersAPI.getTutorProfile(user.user_id)
+        .then(p => { if (p?.photo_url) setPhotoUrl(p.photo_url); })
+        .catch(() => {});
+    }
+  }, [user?.user_id]);
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -146,7 +156,11 @@ const TutorSidebar = () => {
       {/* User */}
       <div className="sidebar-user">
         <div className="sidebar-user-row">
-          <div className="sidebar-avatar" title={collapsed ? (user?.name || 'Tutor') : undefined}>{initials}</div>
+          <div className="sidebar-avatar" title={collapsed ? (user?.name || 'Tutor') : undefined}>
+            {photoUrl
+              ? <img src={photoUrl} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} onError={() => setPhotoUrl('')} />
+              : initials}
+          </div>
           <div className="sidebar-text" style={{ minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Tutor'}</p>
             <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>{t('dashboard.tutor')}</p>

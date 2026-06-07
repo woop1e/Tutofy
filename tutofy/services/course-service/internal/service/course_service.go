@@ -19,10 +19,10 @@ var (
 )
 
 type CourseService interface {
-	CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32) (*model.Course, error)
+	CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32, subject, level string) (*model.Course, error)
 	GetCourse(ctx context.Context, id string) (*model.Course, error)
 	GetAllCourses(ctx context.Context, limit, offset int32) ([]*model.Course, error)
-	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32) (*model.Course, error)
+	UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32, subject, level string) (*model.Course, error)
 	PublishCourse(ctx context.Context, callerID, callerRole, courseID string) (*model.Course, error)
 	CompleteCourse(ctx context.Context, callerID, callerRole, courseID string) (*model.Course, error)
 	SearchCourses(ctx context.Context, tutorID, tag, courseType string, minPrice, maxPrice float64, limit, offset int32) ([]*model.Course, error)
@@ -41,12 +41,13 @@ func NewCourseService(repo repository.CourseRepository, rdb *redis.Client) Cours
 	return &courseService{repo: repo, rdb: rdb}
 }
 
-func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32) (*model.Course, error) {
+func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, title, description string, price float64, courseType string, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32, subject, level string) (*model.Course, error) {
 	if callerRole != "tutor" && callerRole != "admin" {
 		return nil, ErrNotTutor
 	}
 	if courseType == "" { courseType = "group" }
 	if releaseType == "" { releaseType = "static" }
+	if level == "" { level = "beginner" }
 	course := &model.Course{
 		ID:                      uuid.NewString(),
 		Title:                   title,
@@ -64,6 +65,8 @@ func (s *courseService) CreateCourse(ctx context.Context, callerID, callerRole, 
 		CompletionAttendancePct: completionAttendancePct,
 		CompletionGradePct:      completionGradePct,
 		CourseStatus:            "draft",
+		Subject:                 subject,
+		Level:                   level,
 	}
 	if err := s.repo.CreateCourse(ctx, course); err != nil {
 		return nil, err
@@ -94,13 +97,14 @@ func (s *courseService) GetAllCourses(ctx context.Context, limit, offset int32) 
 	return s.repo.GetAllCourses(ctx, limit, offset)
 }
 
-func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32) (*model.Course, error) {
+func (s *courseService) UpdateCourse(ctx context.Context, callerID, callerRole, courseID, title, description, courseType string, price float64, maxStudents int32, enrollmentDeadline string, totalLessons, totalWeeks int32, releaseType, startDate, endDate string, completionAttendancePct, completionGradePct int32, subject, level string) (*model.Course, error) {
 	course, err := s.repo.GetCourseByID(ctx, courseID)
 	if err != nil { return nil, err }
 	if callerRole != "admin" && course.TutorID != callerID { return nil, ErrForbidden }
 	if courseType == "" { courseType = course.CourseType }
 	if releaseType == "" { releaseType = course.ReleaseType }
-	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description, courseType, price, maxStudents, enrollmentDeadline, totalLessons, totalWeeks, releaseType, startDate, endDate, completionAttendancePct, completionGradePct)
+	if level == "" { level = course.Level }
+	updated, err := s.repo.UpdateCourse(ctx, courseID, title, description, courseType, price, maxStudents, enrollmentDeadline, totalLessons, totalWeeks, releaseType, startDate, endDate, completionAttendancePct, completionGradePct, subject, level)
 	if err == nil && s.rdb != nil {
 		_ = s.rdb.Del(ctx, "course:"+courseID).Err()
 	}

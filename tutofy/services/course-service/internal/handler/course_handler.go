@@ -34,7 +34,8 @@ func (h *CourseHandler) CreateCourse(ctx context.Context, req *coursepb.CreateCo
 		req.GetCourseType(), req.GetMaxStudents(), req.GetEnrollmentDeadline(),
 		req.GetTotalLessons(), req.GetTotalWeeks(), req.GetReleaseType(),
 		req.GetStartDate(), req.GetEndDate(),
-		req.GetCompletionAttendancePct(), req.GetCompletionGradePct())
+		req.GetCompletionAttendancePct(), req.GetCompletionGradePct(),
+		req.GetSubject(), req.GetLevel())
 	if err != nil {
 		if errors.Is(err, service.ErrNotTutor) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -79,7 +80,8 @@ func (h *CourseHandler) UpdateCourse(ctx context.Context, req *coursepb.UpdateCo
 		req.GetCourseType(), req.GetPrice(), req.GetMaxStudents(), req.GetEnrollmentDeadline(),
 		req.GetTotalLessons(), req.GetTotalWeeks(), req.GetReleaseType(),
 		req.GetStartDate(), req.GetEndDate(),
-		req.GetCompletionAttendancePct(), req.GetCompletionGradePct())
+		req.GetCompletionAttendancePct(), req.GetCompletionGradePct(),
+		req.GetSubject(), req.GetLevel())
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) { return nil, status.Error(codes.PermissionDenied, "forbidden") }
 		if errors.Is(err, repository.ErrNotFound) { return nil, status.Error(codes.NotFound, "course not found") }
@@ -143,6 +145,8 @@ func toProto(c *model.Course) *coursepb.CourseResponse {
 		CompletionAttendancePct: c.CompletionAttendancePct,
 		CompletionGradePct:      c.CompletionGradePct,
 		CourseStatus:            c.CourseStatus,
+		Subject:                 c.Subject,
+		Level:                   c.Level,
 	}
 }
 

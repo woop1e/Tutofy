@@ -9,6 +9,7 @@ import { assignmentsAPI } from '../../api/assignments';
 import { submissionsAPI } from '../../api/submissions';
 import { lessonsAPI } from '../../api/lessons';
 import { usersAPI } from '../../api/users';
+import { authAPI } from '../../api/auth';
 import TopBarActions from '../../components/ui/TopBarActions';
 
 const STATUS_AWAITING_PAYMENT = 5;
@@ -276,6 +277,7 @@ const TutorDashboard = () => {
   const handleConfirm = async (lessonId) => {
     setReqAction((p) => ({ ...p, [lessonId]: 'confirming' }));
     try {
+      const lesson = bookingRequests.find((l) => l.id === lessonId);
       await lessonsAPI.confirmLesson(lessonId);
       setBookingRequests((p) => p.filter((l) => l.id !== lessonId));
       setReqAction((p) => ({ ...p, [lessonId]: 'done' }));
