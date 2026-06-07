@@ -22,18 +22,18 @@ func (m *Mailer) SendEmail(to, subject, body string) error {
 	}
 
 	payload := map[string]any{
-		"from":    m.from,
-		"to":      []string{to},
-		"subject": subject,
-		"text":    body,
+		"sender":      map[string]string{"email": m.from},
+		"to":          []map[string]string{{"email": to}},
+		"subject":     subject,
+		"textContent": body,
 	}
 
 	data, _ := json.Marshal(payload)
-	req, err := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+m.apiKey)
+	req.Header.Set("api-key", m.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -43,9 +43,9 @@ func (m *Mailer) SendEmail(to, subject, body string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		var body map[string]any
-		_ = json.NewDecoder(resp.Body).Decode(&body)
-		return fmt.Errorf("resend API error: status %d body=%v", resp.StatusCode, body)
+		var respBody map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&respBody)
+		return fmt.Errorf("brevo API error: status %d body=%v", resp.StatusCode, respBody)
 	}
 	return nil
 }
