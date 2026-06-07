@@ -128,7 +128,7 @@ const TutorDashboard = () => {
   // Show tour for brand-new tutors even if the flag was set during a previous test run.
   // isFirstTime = true means the profile is still blank → guaranteed first-time user.
   useEffect(() => {
-    if (isFirstTime && localStorage.getItem('tutofy_tutor_tour_done') !== 'true') {
+    if (isFirstTime && localStorage.getItem('tutofy_tutor_tour_done') !== 'true' && localStorage.getItem('tutofy_tutor_tour_seen') !== 'true') {
       setShowTour(true);
     }
   }, [isFirstTime]);
