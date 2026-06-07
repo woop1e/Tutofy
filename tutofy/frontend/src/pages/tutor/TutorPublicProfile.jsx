@@ -80,7 +80,7 @@ const TutorPublicProfile = () => {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <div className="bg-white h-[68px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)] flex items-center px-7 flex-shrink-0">
+        <div className="bg-white h-[68px] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.05)] flex items-center px-7 justify-between flex-shrink-0">
           <div>
             <p className="text-[#0c0d12] text-[20px] font-bold">Public Profile</p>
             <p className="text-[#6b6f7d] text-[13px]">This is how students see you in the marketplace</p>
