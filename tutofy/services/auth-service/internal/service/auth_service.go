@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -58,7 +59,11 @@ func (s *AuthService) Register(email_, password, name, role string) (setupToken 
 		return "", err
 	}
 
-	go func() { _ = s.sendVerificationEmail(user.ID, email_) }()
+	go func() {
+		if err := s.sendVerificationEmail(user.ID, email_); err != nil {
+			log.Printf("error: sendVerificationEmail to %s failed: %v", email_, err)
+		}
+	}()
 
 	return s.GenerateJWT(user.ID, user.Role, user.Name)
 }
