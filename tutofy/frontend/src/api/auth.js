@@ -26,6 +26,11 @@ export const authAPI = {
     return response.data;
   },
 
+  exchangeGoogleCode: async (code, userId) => {
+    const response = await apiClient.post('/auth/google/exchange', { code, user_id: userId });
+    return response.data;
+  },
+
   generateMeetLink: async (title, scheduledAt, durationMinutes) => {
     const response = await apiClient.post('/calendar/meet-link', {
       title,

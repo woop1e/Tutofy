@@ -123,6 +123,7 @@ func main() {
 	mux.HandleFunc("POST /auth/resend-verification",   ah.ResendVerification)
 	mux.HandleFunc("GET /auth/google/connect",         gah.Connect)
 	mux.HandleFunc("GET /auth/google/callback",        gah.Callback)
+	mux.HandleFunc("POST /auth/google/exchange",       gah.ExchangeCode)
 	mux.HandleFunc("GET /auth/google/status",          gah.Status)
 	mux.HandleFunc("POST /calendar/meet-link",         gah.GenerateMeetLink)
 

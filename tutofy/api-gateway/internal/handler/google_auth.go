@@ -269,6 +269,56 @@ func (h *GoogleAuthHandler) refreshAccessToken(refreshToken string) (*googleToke
 	return &tok, nil
 }
 
+// ExchangeCode accepts a Google OAuth code + userID (from the state param) sent by the
+// frontend callback page, exchanges it for tokens, and stores them.
+// POST /auth/google/exchange  body: { code, user_id }
+func (h *GoogleAuthHandler) ExchangeCode(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Code   string `json:"code"`
+		UserID string `json:"user_id"`
+	}
+	if err := decode(r, &body); err != nil || body.Code == "" || body.UserID == "" {
+		jsonResp(w, http.StatusBadRequest, map[string]string{"error": "code and user_id are required"})
+		return
+	}
+
+	vals := url.Values{
+		"code":          {body.Code},
+		"client_id":     {h.clientID},
+		"client_secret": {h.clientSecret},
+		"redirect_uri":  {h.redirectURI},
+		"grant_type":    {"authorization_code"},
+	}
+
+	resp, err := http.PostForm("https://oauth2.googleapis.com/token", vals)
+	if err != nil {
+		jsonResp(w, http.StatusBadGateway, map[string]string{"error": "token exchange failed"})
+		return
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+
+	var tok googleTokenResp
+	if err := json.Unmarshal(raw, &tok); err != nil || tok.Error != "" {
+		jsonResp(w, http.StatusBadGateway, map[string]string{"error": "invalid token response: " + tok.Error})
+		return
+	}
+
+	expiry := time.Now().Add(time.Duration(tok.ExpiresIn) * time.Second).Format(time.RFC3339)
+	_, err = h.authClient.StoreGoogleToken(r.Context(), &authpb.StoreGoogleTokenRequest{
+		UserId:       body.UserID,
+		AccessToken:  tok.AccessToken,
+		RefreshToken: tok.RefreshToken,
+		Expiry:       expiry,
+	})
+	if err != nil {
+		jsonResp(w, http.StatusInternalServerError, map[string]string{"error": "could not store token"})
+		return
+	}
+
+	jsonResp(w, http.StatusOK, map[string]string{"status": "connected"})
+}
+
 // Status returns {"connected": true/false} for the authenticated caller.
 func (h *GoogleAuthHandler) Status(w http.ResponseWriter, r *http.Request) {
 	callerID := userIDFromToken(r)

@@ -49,6 +49,7 @@ import StudentMarketplace from '../pages/student/StudentMarketplace';
 import StudentTutorProfile from '../pages/student/StudentTutorProfile';
 import StudentSettings from '../pages/student/StudentSettings';
 import JoinParent from '../pages/auth/JoinParent';
+import GoogleCallback from '../pages/auth/GoogleCallback';
 import ParentDashboard from '../pages/parent/ParentDashboard';
 
 const s  = (el) => <ProtectedRoute role="student">{el}</ProtectedRoute>;
@@ -66,6 +67,7 @@ const router = createBrowserRouter([
   { path: '/become-tutor',      element: <RegisterTutor /> },
   { path: '/verify-email',      element: <VerifyEmail /> },
   { path: '/join-parent',       element: <JoinParent /> },
+  { path: '/google/callback',   element: <GoogleCallback /> },
 
   { path: '/payment',                                element: p(<PaymentPage />) },
 
