@@ -4,7 +4,7 @@ import en from './locales/en.json';
 import ru from './locales/ru.json';
 import kz from './locales/kz.json';
 
-const savedLang = localStorage.getItem('tutofy_lang') || 'ru';
+const savedLang = localStorage.getItem('tutofy_lang') || 'en';
 
 i18n
   .use(initReactI18next)
@@ -15,7 +15,7 @@ i18n
       kz: { translation: kz },
     },
     lng: savedLang,
-    fallbackLng: 'ru',
+    fallbackLng: 'en',
     interpolation: { escapeValue: false },
   });
 
