@@ -88,7 +88,7 @@ const TutorPublicProfile = () => {
           <TopBarActions />
         </div>
 
-        <div className="flex-1 p-6overflow-y-auto  flex flex-col items-center">
+        <div className="flex-1 p-6 overflow-y-auto flex flex-col items-center">
           <div className="w-full max-w-[780px]">
 
             {loading ? (

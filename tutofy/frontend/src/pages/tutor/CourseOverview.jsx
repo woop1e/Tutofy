@@ -109,7 +109,7 @@ const CourseOverview = () => {
             </div>
           </div>
         ) : (
-          <div className="flex-1 p-6overflow-y-auto ">
+          <div className="flex-1 p-6 overflow-y-auto">
             <div className="grid grid-cols-3 gap-6">
               {/* Course Details */}
               <div className="col-span-2 space-y-5">

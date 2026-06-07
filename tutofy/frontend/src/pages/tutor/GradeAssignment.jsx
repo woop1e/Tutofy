@@ -84,7 +84,7 @@ const GradeAssignment = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6overflow-y-auto ">
+        <div className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-[600px] mx-auto">
             {submitted ? (
               <div className="bg-white rounded-[16px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.07)] p-12 text-center">

@@ -74,7 +74,7 @@ const StudentsInCourse = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6overflow-y-auto ">
+        <div className="flex-1 p-6 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
