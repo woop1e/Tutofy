@@ -43,7 +43,9 @@ func (m *Mailer) SendEmail(to, subject, body string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("resend API error: status %d", resp.StatusCode)
+		var body map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&body)
+		return fmt.Errorf("resend API error: status %d body=%v", resp.StatusCode, body)
 	}
 	return nil
 }
